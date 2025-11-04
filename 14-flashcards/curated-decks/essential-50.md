@@ -1,8 +1,8 @@
-# Essential 50 Flashcards
+# Essential 70 Flashcards
 
-> **The top 50 questions that appear in 80%+ of frontend interviews**
+> **The top 70 questions that appear in 80%+ of frontend interviews**
 
-**Time to review:** 25-30 minutes
+**Time to review:** 35-40 minutes
 **Best for:** Final review before interview, assessing your knowledge gaps
 
 ---
@@ -557,22 +557,242 @@
 
 ---
 
+## Card 51: Async/Await Error Handling
+**Q:** What are the best practices for error handling with async/await?
+
+**A:** 1) Use try/catch blocks for each async operation, 2) Handle errors at appropriate level (don't catch too early), 3) Consider using wrapper functions for consistent error handling, 4) Always handle promise rejections to avoid unhandled rejection warnings.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #async #error-handling
+**Frequency:** ⭐⭐⭐⭐⭐
+
+---
+
+## Card 52: Promise.all vs Promise.allSettled
+**Q:** When to use Promise.all vs Promise.allSettled?
+
+**A:** Promise.all: Fails fast if any promise rejects, returns array of all results. Promise.allSettled: Waits for all promises, returns array with status (fulfilled/rejected) for each. Use allSettled when you need all results regardless of failures.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #promises #async
+**Frequency:** ⭐⭐⭐⭐⭐
+
+---
+
+## Card 53: Promise.race vs Promise.any
+**Q:** Difference between Promise.race and Promise.any?
+
+**A:** Promise.race: Returns first settled promise (fulfilled OR rejected). Promise.any: Returns first fulfilled promise, only rejects if all reject. Use race for timeouts, any for fallback patterns.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #promises #async
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 54: Microtasks vs Macrotasks
+**Q:** What's the difference between microtasks and macrotasks?
+
+**A:** Microtasks: Promise callbacks, queueMicrotask, run after current script but before rendering. Macrotasks: setTimeout, setInterval, I/O, run after microtask queue is empty. Event loop processes all microtasks before next macrotask.
+
+**Difficulty:** 🔴 Hard
+**Tags:** #javascript #event-loop #async
+**Frequency:** ⭐⭐⭐⭐⭐
+
+---
+
+## Card 55: Event Loop Execution Order
+**Q:** What is the order of execution in the event loop?
+
+**A:** 1) Call stack (synchronous code), 2) Microtask queue (Promises, queueMicrotask), 3) Render (if needed), 4) Macrotask queue (setTimeout, setInterval), 5) Repeat. All microtasks run before ANY macrotask.
+
+**Difficulty:** 🔴 Hard
+**Tags:** #javascript #event-loop #async
+**Frequency:** ⭐⭐⭐⭐⭐
+
+---
+
+## Card 56: Async/Await vs Promises
+**Q:** When should you prefer async/await over .then()?
+
+**A:** async/await: Better for sequential operations, easier error handling with try/catch, cleaner code. .then(): Better for parallel operations with Promise.all, chaining multiple operations, working with non-async code.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #async #promises
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 57: Function Currying
+**Q:** What is function currying?
+
+**A:** Transform function with multiple arguments into sequence of functions each taking single argument. f(a,b,c) becomes f(a)(b)(c). Benefits: Partial application, reusable specialized functions, better composition.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #functional #currying
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 58: bind vs call vs apply
+**Q:** What's the difference between bind, call, and apply?
+
+**A:** call: Invokes function immediately with specified 'this' and individual arguments. apply: Same but arguments as array. bind: Returns new function with bound 'this', doesn't invoke immediately. Use bind for event handlers.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #this #methods
+**Frequency:** ⭐⭐⭐⭐⭐
+
+---
+
+## Card 59: Partial Application
+**Q:** What is partial application?
+
+**A:** Fixing some arguments of a function and producing a new function with fewer parameters. Similar to currying but fixes multiple args at once. Use bind or closures to implement. Useful for creating specialized functions from generic ones.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #functional #patterns
+**Frequency:** ⭐⭐⭐
+
+---
+
+## Card 60: Async Iterator
+**Q:** How do async iterators work?
+
+**A:** Objects with async next() method that returns Promise resolving to {value, done}. Use with for await...of loops. Useful for paginated API calls, streaming data, or sequential async operations.
+
+**Difficulty:** 🔴 Hard
+**Tags:** #javascript #async #iterators
+**Frequency:** ⭐⭐⭐
+
+---
+
+## Card 61: Common Async Pitfall - Sequential vs Parallel
+**Q:** What's wrong with: await fetch(url1); await fetch(url2)?
+
+**A:** Runs sequentially (waits for first before starting second). Use Promise.all([fetch(url1), fetch(url2)]) to run in parallel. Sequential doubles the time. Always parallelize independent async operations.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #async #performance
+**Frequency:** ⭐⭐⭐⭐⭐
+
+---
+
+## Card 62: Async Pitfall - forEach
+**Q:** Why doesn't async/await work with forEach?
+
+**A:** forEach doesn't wait for promises, callback isn't awaited. Use for...of loop, map with Promise.all, or for await...of for async iterables. forEach ignores promise returns.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #async #arrays
+**Frequency:** ⭐⭐⭐⭐⭐
+
+---
+
+## Card 63: Promise Constructor Anti-pattern
+**Q:** When should you avoid creating new Promise?
+
+**A:** Don't wrap existing promises (return existing promise directly). Don't use for synchronous code. Only use constructor when integrating callback-based APIs (fs, setTimeout) with promises.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #promises #patterns
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 64: Top-level await
+**Q:** What is top-level await?
+
+**A:** Using await outside async function at module top level. ES2022 feature. Blocks module execution until promise resolves. Useful for dynamic imports, resource initialization. Can delay app startup if overused.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #async #modules
+**Frequency:** ⭐⭐⭐
+
+---
+
+## Card 65: Promise Memory Leaks
+**Q:** How can promises cause memory leaks?
+
+**A:** 1) Uncaught rejections that keep references, 2) Long-running promises never settling, 3) Circular references in promise chains, 4) Not cleaning up resources in finally block. Always handle rejections and use cleanup logic.
+
+**Difficulty:** 🔴 Hard
+**Tags:** #javascript #promises #memory
+**Frequency:** ⭐⭐⭐
+
+---
+
+## Card 66: Async Function Return Value
+**Q:** What does an async function always return?
+
+**A:** Always returns a Promise, even if you return a non-promise value. Return value is wrapped in Promise.resolve(). Throwing error is equivalent to Promise.reject(). You can't return non-promise from async function.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #async #promises
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 67: Race Condition in Async Code
+**Q:** How do race conditions occur with async/await?
+
+**A:** Multiple async operations modifying shared state, with unpredictable completion order. Solution: Serialize operations with await, use request IDs to ignore stale responses, use cancellation tokens, or mutex patterns.
+
+**Difficulty:** 🔴 Hard
+**Tags:** #javascript #async #concurrency
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 68: Curry Implementation
+**Q:** How do you implement a basic curry function?
+
+**A:** Collect arguments until reaching original function's arity, then invoke. Check if enough args collected (curried.length), if yes call original, if no return new function collecting more args. Use closures to accumulate arguments.
+
+**Difficulty:** 🔴 Hard
+**Tags:** #javascript #currying #implementation
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 69: AbortController with Fetch
+**Q:** How does AbortController work with async operations?
+
+**A:** Create AbortController, pass signal to fetch/async operation. Call abort() to cancel. Listen for 'abort' event. Promise rejects with AbortError. Clean up resources on abort. Useful for canceling stale requests.
+
+**Difficulty:** 🟡 Medium
+**Tags:** #javascript #async #fetch
+**Frequency:** ⭐⭐⭐⭐
+
+---
+
+## Card 70: Async Stack Traces
+**Q:** Why are async stack traces difficult to debug?
+
+**A:** Stack trace is lost across async boundaries. Each await creates new call stack. Error stack only shows immediate context, not original caller. Use async_hooks (Node.js), browser DevTools async mode, or error monitoring tools for better traces.
+
+**Difficulty:** 🔴 Hard
+**Tags:** #javascript #async #debugging
+**Frequency:** ⭐⭐⭐
+
+---
+
 ## 🎯 How to Use These Cards
 
-1. **First Pass:** Go through all 50, mark the ones you struggle with
+1. **First Pass:** Go through all 70, mark the ones you struggle with
 2. **Focus on Weak Areas:** Review marked cards daily
 3. **Spaced Repetition:** Review Day 1, 3, 7, 14, 30
-4. **Before Interview:** Quick 25-minute review of all 50
+4. **Before Interview:** Quick 35-minute review of all 70
 5. **Explain Out Loud:** Teaching solidifies understanding
 
 ---
 
 ## 📊 Your Progress
 
-- [ ] Reviewed all 50 cards once
-- [ ] Can explain 40+ without looking
+- [ ] Reviewed all 70 cards once
+- [ ] Can explain 55+ without looking
 - [ ] Reviewed weak cards 3+ times
-- [ ] Can explain all 50 confidently
+- [ ] Can explain all 70 confidently
 - [ ] Ready for interview!
 
 ---
