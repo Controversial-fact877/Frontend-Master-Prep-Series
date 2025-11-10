@@ -119,9 +119,15 @@ Frontend-Master-Prep-Series/
 
 ## 🎯 Study Paths
 
+**📖 [View Complete Study Guides →](./resources/)**
+
+Includes: 4-week plan, 8-week plan, daily routines, interview checklist, and more!
+
 ### Path 1: Quick Sprint (4 Weeks)
 
 **Goal:** Interview-ready in one month
+
+**📘 [Full 4-Week Study Plan](./resources/study-plan-4-weeks.md)** - Complete day-by-day breakdown
 
 | Week | Focus | Time | Checklist |
 |------|-------|------|-----------|
@@ -154,6 +160,10 @@ Frontend-Master-Prep-Series/
 - **Weekend (2-3 hours):** Deep dive into 1 topic
 
 **Results:** Mastery in 6 months with daily consistency
+
+### Interview Tomorrow?
+
+**📋 [Pre-Interview Checklist](./resources/interview-checklist.md)** - Everything you need to do before, during, and after your interview
 
 ---
 
