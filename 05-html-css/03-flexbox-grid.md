@@ -18,188 +18,398 @@ Explain Flexbox. What problems does it solve? Explain main axis, cross axis, and
 
 **Flexbox** is a one-dimensional layout method for arranging items in rows or columns. Items flex (grow/shrink) to fill available space.
 
-**Main Concepts:**
-- **Flex Container** - Parent with `display: flex`
-- **Flex Items** - Direct children of flex container
-- **Main Axis** - Primary axis (default: horizontal)
-- **Cross Axis** - Perpendicular to main axis
+**Key Points:**
+
+1. **One-Dimensional Layout** - Works on single axis (row OR column), perfect for components
+2. **Content-Based Sizing** - Items size based on content and available space
+3. **Alignment Control** - Easy centering and alignment in both directions
+4. **Order Control** - Visual order independent of DOM order
+5. **Responsive by Default** - Items automatically adjust to container size
 
 ### Code Example
 
 ```css
-/* BASIC FLEXBOX */
+/* =========================================== */
+/* 1. FLEXBOX CONTAINER PROPERTIES */
+/* =========================================== */
+
 .container {
-  display: flex; /* Enable flexbox */
+  display: flex; /* or inline-flex */
 
   /* Main axis direction */
-  flex-direction: row; /* default: left to right */
-  /* row-reverse | column | column-reverse */
+  flex-direction: row; /* default: → left to right */
+  /* row-reverse: ← right to left */
+  /* column: ↓ top to bottom */
+  /* column-reverse: ↑ bottom to top */
 
-  /* Wrap items */
+  /* Wrap behavior */
   flex-wrap: nowrap; /* default: single line */
-  /* wrap | wrap-reverse */
+  /* wrap: multi-line, top to bottom */
+  /* wrap-reverse: multi-line, bottom to top */
 
-  /* Shorthand */
-  flex-flow: row wrap; /* direction + wrap */
+  /* Shorthand for direction + wrap */
+  flex-flow: row wrap; /* direction wrap */
 }
 
-/* ALIGNMENT */
+/*
+MAIN AXIS vs CROSS AXIS:
+========================
+flex-direction: row
+Main axis:  →  (horizontal)
+Cross axis: ↓  (vertical)
+
+flex-direction: column
+Main axis:  ↓  (vertical)
+Cross axis: →  (horizontal)
+*/
+```
+
+**Alignment Properties:**
+
+```css
+/* =========================================== */
+/* 2. ALIGNMENT ON MAIN AXIS */
+/* =========================================== */
+
 .container {
-  /* Main axis alignment */
-  justify-content: flex-start; /* default */
-  /* flex-end | center | space-between | space-around | space-evenly */
+  /* justify-content: align items on MAIN axis */
+  justify-content: flex-start; /* default: items at start */
+  /* flex-end: items at end */
+  /* center: items centered */
+  /* space-between: first and last at edges, equal space between */
+  /* space-around: equal space around each item */
+  /* space-evenly: equal space between and around */
+}
 
-  /* Cross axis alignment */
-  align-items: stretch; /* default */
-  /* flex-start | flex-end | center | baseline */
+/*
+VISUAL COMPARISON:
+==================
 
-  /* Multi-line cross axis */
+flex-start:
+┌──────────────────┐
+│ [1][2][3]        │
+└──────────────────┘
+
+flex-end:
+┌──────────────────┐
+│        [1][2][3] │
+└──────────────────┘
+
+center:
+┌──────────────────┐
+│    [1][2][3]     │
+└──────────────────┘
+
+space-between:
+┌──────────────────┐
+│[1]     [2]    [3]│
+└──────────────────┘
+
+space-around:
+┌──────────────────┐
+│ [1]   [2]   [3]  │
+└──────────────────┘
+
+space-evenly:
+┌──────────────────┐
+│  [1]  [2]  [3]   │
+└──────────────────┘
+*/
+```
+
+```css
+/* =========================================== */
+/* 3. ALIGNMENT ON CROSS AXIS */
+/* =========================================== */
+
+.container {
+  /* align-items: align items on CROSS axis (single line) */
+  align-items: stretch; /* default: fill container height */
+  /* flex-start: align to start of cross axis */
+  /* flex-end: align to end of cross axis */
+  /* center: center on cross axis */
+  /* baseline: align text baselines */
+
+  /* align-content: align multi-line rows on CROSS axis */
   align-content: stretch; /* default */
   /* Same values as justify-content */
-}
-
-/* FLEX ITEMS */
-.item {
-  /* Growth factor */
-  flex-grow: 0; /* default: don't grow */
-
-  /* Shrink factor */
-  flex-shrink: 1; /* default: can shrink */
-
-  /* Base size */
-  flex-basis: auto; /* default: content size */
-
-  /* Shorthand */
-  flex: 0 1 auto; /* grow shrink basis */
-  flex: 1; /* Common: flex-grow: 1, shrink: 1, basis: 0 */
-
-  /* Override container alignment */
-  align-self: auto; /* flex-start | flex-end | center | baseline | stretch */
-
-  /* Order */
-  order: 0; /* default: source order */
+  /* Only works with flex-wrap: wrap */
 }
 ```
 
-**Common Patterns:**
+**Flex Item Properties:**
+
+```css
+/* =========================================== */
+/* 4. FLEX ITEM PROPERTIES */
+/* =========================================== */
+
+.item {
+  /* flex-grow: ability to grow (take extra space) */
+  flex-grow: 0; /* default: don't grow */
+  /* 1: can grow, shares space with other growing items */
+  /* 2: grows twice as much as items with flex-grow: 1 */
+
+  /* flex-shrink: ability to shrink when space is limited */
+  flex-shrink: 1; /* default: can shrink */
+  /* 0: won't shrink below flex-basis */
+
+  /* flex-basis: base size before growing/shrinking */
+  flex-basis: auto; /* default: content size */
+  /* 200px: fixed base size */
+  /* 0: ignore content size */
+
+  /* SHORTHAND */
+  flex: 0 1 auto; /* grow shrink basis (default) */
+  flex: 1; /* Common: 1 1 0 (equal size items) */
+  flex: auto; /* Same as: 1 1 auto */
+  flex: none; /* Same as: 0 0 auto (fixed size) */
+
+  /* align-self: override align-items for this item */
+  align-self: auto; /* default: inherit from align-items */
+  /* flex-start | flex-end | center | baseline | stretch */
+
+  /* order: visual order (doesn't change DOM) */
+  order: 0; /* default: source order */
+  /* -1: appears first, 1: appears last */
+}
+```
+
+**Practical Examples:**
 
 ```html
-<!-- CENTERING (Most Famous Flexbox Use) -->
-<div class="center">
-  <div class="content">Perfectly Centered</div>
+<!-- =========================================== -->
+<!-- 5. PERFECT CENTERING -->
+<!-- =========================================== -->
+
+<div class="center-box">
+  <div class="content">Perfectly Centered!</div>
 </div>
+```
 
-<style>
-.center {
+```css
+.center-box {
   display: flex;
-  justify-content: center; /* Horizontal center */
-  align-items: center;     /* Vertical center */
-  height: 100vh;
+  justify-content: center; /* Center horizontally */
+  align-items: center;     /* Center vertically */
+  min-height: 100vh;       /* Full viewport height */
 }
-</style>
 
-<!-- NAVBAR -->
+/* Most famous Flexbox use case! */
+```
+
+```html
+<!-- =========================================== -->
+<!-- 6. NAVIGATION BAR -->
+<!-- =========================================== -->
+
 <nav class="navbar">
   <div class="logo">Logo</div>
   <ul class="nav-links">
-    <li>Home</li>
-    <li>About</li>
-    <li>Contact</li>
+    <li><a href="#">Home</a></li>
+    <li><a href="#">About</a></li>
+    <li><a href="#">Contact</a></li>
   </ul>
-  <button>Login</button>
+  <button class="login-btn">Login</button>
 </nav>
+```
 
-<style>
+```css
 .navbar {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Space between logo and nav */
-  padding: 1rem;
+  justify-content: space-between; /* Logo left, nav middle, button right */
+  padding: 1rem 2rem;
+  background: #333;
+  color: white;
 }
 
 .nav-links {
   display: flex;
-  gap: 1rem;
+  gap: 2rem;
   list-style: none;
+  margin: 0;
 }
-</style>
+```
 
-<!-- EQUAL HEIGHT CARDS -->
+```html
+<!-- =========================================== -->
+<!-- 7. EQUAL HEIGHT CARDS -->
+<!-- =========================================== -->
+
 <div class="card-container">
-  <div class="card">Short content</div>
-  <div class="card">Much longer content that spans multiple lines</div>
-  <div class="card">Medium content</div>
+  <div class="card">
+    <h3>Card 1</h3>
+    <p>Short content</p>
+  </div>
+  <div class="card">
+    <h3>Card 2</h3>
+    <p>This card has much longer content that spans multiple lines, making it taller than the others.</p>
+  </div>
+  <div class="card">
+    <h3>Card 3</h3>
+    <p>Medium length content here.</p>
+  </div>
 </div>
+```
 
-<style>
+```css
 .card-container {
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .card {
-  flex: 1; /* Equal width, equal height automatically! */
-  padding: 1rem;
-  border: 1px solid #ccc;
+  flex: 1; /* ✅ Equal width AND equal height automatically! */
+  padding: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
 }
-</style>
 
-<!-- SIDEBAR LAYOUT -->
+/* Flexbox magic: all cards same height as tallest */
+```
+
+```html
+<!-- =========================================== -->
+<!-- 8. SIDEBAR LAYOUT -->
+<!-- =========================================== -->
+
 <div class="layout">
-  <aside class="sidebar">Sidebar</aside>
-  <main class="content">Main Content</main>
+  <aside class="sidebar">Sidebar (fixed width)</aside>
+  <main class="main-content">Main content (fills remaining space)</main>
 </div>
+```
 
-<style>
+```css
 .layout {
   display: flex;
   min-height: 100vh;
+  gap: 0; /* No gap */
 }
 
 .sidebar {
   flex-basis: 250px; /* Fixed width */
-  flex-shrink: 0;     /* Don't shrink */
+  flex-shrink: 0;     /* Never shrink below 250px */
+  flex-grow: 0;       /* Don't grow */
+  background: #f5f5f5;
+  padding: 1rem;
 }
 
-.content {
-  flex: 1; /* Take remaining space */
+/* Shorthand: flex: 0 0 250px */
+
+.main-content {
+  flex: 1; /* Take all remaining space */
+  padding: 2rem;
 }
-</style>
+```
+
+```html
+<!-- =========================================== -->
+<!-- 9. HOLY GRAIL HEADER -->
+<!-- =========================================== -->
+
+<header class="header">
+  <div class="logo">Logo</div>
+  <nav class="nav">
+    <a href="#">Home</a>
+    <a href="#">About</a>
+    <a href="#">Services</a>
+  </nav>
+  <div class="actions">
+    <button>Sign Up</button>
+  </div>
+</header>
+```
+
+```css
+.header {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+}
+
+.logo {
+  flex-shrink: 0; /* Don't shrink */
+}
+
+.nav {
+  flex: 1; /* Take remaining space, pushes .actions to right */
+  display: flex;
+  gap: 1rem;
+  justify-content: center; /* Center nav items */
+}
+
+.actions {
+  flex-shrink: 0;
+}
+```
+
+```css
+/* =========================================== */
+/* 10. RESPONSIVE FLEXBOX */
+/* =========================================== */
+
+.responsive-cards {
+  display: flex;
+  flex-wrap: wrap; /* Allow wrapping */
+  gap: 1rem;
+}
+
+.card {
+  flex: 1 1 300px; /* Grow, shrink, min 300px */
+  /* Automatically wraps to new line if < 300px */
+}
+
+/* On small screens: stacks vertically
+   On large screens: multiple columns */
 ```
 
 ### Common Mistakes
 
-❌ **Wrong**: Using Flexbox for 2D layouts
-```css
-/* ❌ Flexbox not ideal for complex grids */
-.grid {
-  display: flex;
-  flex-wrap: wrap;
-}
+❌ **Wrong**: Forgetting flex container only affects direct children
+```html
+<div class="container" style="display: flex;">
+  <div class="wrapper">
+    <div class="item">I'm NOT a flex item!</div>
+  </div>
+</div>
+<!-- Only .wrapper is a flex item, not .item -->
+```
 
+✅ **Correct**: Apply flex to correct parent
+```html
+<div class="container">
+  <div class="wrapper" style="display: flex;">
+    <div class="item">I AM a flex item!</div>
+  </div>
+</div>
+```
+
+❌ **Wrong**: Using width on flex items (can cause confusion)
+```css
 .item {
-  flex-basis: 33.33%; /* Trying to make grid - use CSS Grid! */
+  flex: 1;
+  width: 300px; /* ❌ Conflicts with flex: 1 */
 }
 ```
 
-✅ **Correct**: Use CSS Grid for 2D layouts
+✅ **Correct**: Use flex-basis for size
 ```css
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.item {
+  flex: 0 0 300px; /* ✅ Clear intention: fixed 300px */
 }
 ```
 
 ### Follow-up Questions
-1. "What's the difference between Flexbox and Grid?"
-2. "How does flex-basis interact with width?"
-3. "What's the difference between space-between and space-evenly?"
-4. "Can you nest flex containers?"
+1. "What's the difference between flex: 1 and flex: auto?"
+2. "How does flex-basis interact with width/height?"
+3. "What's the difference between space-around and space-evenly?"
+4. "Can you use margin: auto in flex containers?"
 
 ### Resources
 - [MDN: Flexbox](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flexible_Box_Layout)
 - [CSS Tricks: Flexbox Guide](https://css-tricks.com/snippets/css/a-guide-to-flexbox/)
-- [Flexbox Froggy](https://flexboxfroggy.com/) - Interactive tutorial
+- [Flexbox Froggy](https://flexboxfroggy.com/)
 
 ---
 
@@ -211,56 +421,108 @@ Explain Flexbox. What problems does it solve? Explain main axis, cross axis, and
 **Companies:** Google, Meta, Amazon, Airbnb
 
 ### Question
-Explain CSS Grid. How does it differ from Flexbox? Demonstrate common grid patterns.
+Explain CSS Grid. How does it differ from Flexbox? Demonstrate grid template areas and common patterns.
 
 ### Answer
 
 **CSS Grid** is a two-dimensional layout system for rows AND columns simultaneously. More powerful than Flexbox for complex layouts.
 
+**Key Points:**
+
+1. **Two-Dimensional** - Controls rows AND columns at same time
+2. **Layout-First** - Define structure first, place items second
+3. **Explicit Placement** - Precise control over item positioning
+4. **Named Areas** - Semantic grid-template-areas for readable layouts
+5. **Responsive Built-in** - Auto-fit/auto-fill for responsive grids without media queries
+
 ### Code Example
 
 ```css
-/* BASIC GRID */
+/* =========================================== */
+/* 1. BASIC GRID SETUP */
+/* =========================================== */
+
 .container {
-  display: grid;
+  display: grid; /* or inline-grid */
 
   /* Define columns */
   grid-template-columns: 200px 200px 200px; /* 3 columns, fixed width */
-  grid-template-columns: 1fr 1fr 1fr; /* 3 equal columns */
+  grid-template-columns: 1fr 1fr 1fr; /* 3 equal columns (fr = fraction) */
   grid-template-columns: repeat(3, 1fr); /* Shorthand */
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive */
+  grid-template-columns: 200px 1fr 200px; /* Fixed, fluid, fixed */
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive! */
 
   /* Define rows */
   grid-template-rows: 100px auto 100px; /* Header, content, footer */
+  grid-template-rows: repeat(3, 200px); /* 3 rows, 200px each */
 
-  /* Gaps */
-  gap: 1rem; /* row and column gap */
+  /* Gaps (gutters) */
+  gap: 1rem; /* Both row and column gap */
   row-gap: 1rem;
-  column-gap: 1rem;
+  column-gap: 2rem;
 }
 
-/* GRID ITEMS - PLACEMENT */
+/*
+FR UNIT (fraction):
+===================
+1fr = 1 part of available space
+2fr = 2 parts of available space
+
+Example:
+grid-template-columns: 1fr 2fr 1fr;
+└─ 25% ─┘─ 50% ─┘─ 25% ─┘
+*/
+```
+
+**Grid Item Placement:**
+
+```css
+/* =========================================== */
+/* 2. ITEM PLACEMENT (LINE NUMBERS) */
+/* =========================================== */
+
 .item {
-  /* By line numbers */
+  /* By line numbers (1-based indexing) */
   grid-column-start: 1;
-  grid-column-end: 3; /* Span columns 1-2 */
+  grid-column-end: 3; /* Spans columns 1-2 */
 
   /* Shorthand */
   grid-column: 1 / 3; /* start / end */
-  grid-column: 1 / span 2; /* start / span */
+  grid-column: 1 / span 2; /* start / span count */
+  grid-column: 1 / -1; /* start to end (-1 = last line) */
 
   /* Rows */
   grid-row: 1 / 3;
+  grid-row: 2 / span 2;
 
-  /* Area shorthand */
+  /* Both in one */
   grid-area: 1 / 1 / 3 / 3; /* row-start / col-start / row-end / col-end */
 }
+
+/*
+GRID LINE NUMBERS:
+==================
+    1       2       3       4
+1   ┌───────┬───────┬───────┐
+    │ Cell  │ Cell  │ Cell  │
+2   ├───────┼───────┼───────┤
+    │ Cell  │ Cell  │ Cell  │
+3   ├───────┼───────┼───────┤
+    │ Cell  │ Cell  │ Cell  │
+4   └───────┴───────┴───────┘
+
+Line numbers start at 1
+Negative numbers count from end (-1 = last line)
+*/
 ```
 
-**Common Patterns:**
+**Grid Template Areas (Most Readable!):**
 
 ```css
-/* HOLY GRAIL LAYOUT */
+/* =========================================== */
+/* 3. NAMED GRID AREAS */
+/* =========================================== */
+
 .layout {
   display: grid;
   grid-template-areas:
@@ -270,102 +532,1241 @@ Explain CSS Grid. How does it differ from Flexbox? Demonstrate common grid patte
   grid-template-columns: 200px 1fr 200px;
   grid-template-rows: auto 1fr auto;
   min-height: 100vh;
+  gap: 1rem;
 }
 
+/* Place items in named areas */
 .header  { grid-area: header; }
 .sidebar { grid-area: sidebar; }
 .main    { grid-area: main; }
 .aside   { grid-area: aside; }
 .footer  { grid-area: footer; }
 
-/* RESPONSIVE CARD GRID */
-.cards {
+/*
+VISUAL LAYOUT:
+==============
+┌──────────────────────────────┐
+│          header              │
+├──────┬──────────────┬────────┤
+│      │              │        │
+│sidebar│    main     │ aside  │
+│      │              │        │
+├──────┴──────────────┴────────┤
+│          footer              │
+└──────────────────────────────┘
+
+Very readable and maintainable!
+*/
+```
+
+**Common Patterns:**
+
+```html
+<!-- =========================================== -->
+<!-- 4. RESPONSIVE CARD GRID (Auto-fit) -->
+<!-- =========================================== -->
+
+<div class="card-grid">
+  <div class="card">Card 1</div>
+  <div class="card">Card 2</div>
+  <div class="card">Card 3</div>
+  <div class="card">Card 4</div>
+  <div class="card">Card 5</div>
+  <div class="card">Card 6</div>
+</div>
+```
+
+```css
+.card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 2rem;
 }
-/* Automatically fits cards, wraps to new rows */
 
-/* MAGAZINE LAYOUT */
+/*
+auto-fit: Fit as many columns as possible
+minmax(300px, 1fr): Min 300px, max equal width
+
+RESPONSIVE BEHAVIOR:
+====================
+1200px wide: [Card][Card][Card][Card]
+900px wide:  [Card][Card][Card]
+600px wide:  [Card][Card]
+300px wide:  [Card]
+
+No media queries needed!
+*/
+```
+
+```css
+/* =========================================== */
+/* 5. MAGAZINE/MASONRY LAYOUT */
+/* =========================================== */
+
 .magazine {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 200px;
+  grid-auto-rows: 200px; /* Each row 200px */
   gap: 1rem;
 }
 
+/* Featured article (spans 2x2) */
 .feature {
-  grid-column: span 2; /* 2 columns wide */
-  grid-row: span 2;    /* 2 rows tall */
+  grid-column: span 2;
+  grid-row: span 2;
 }
 
+/* Small item (1x1) */
 .small {
   grid-column: span 1;
   grid-row: span 1;
 }
+
+/* Wide item (2x1) */
+.wide {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+/*
+VISUAL RESULT:
+==============
+┌───────┬───────┬───┬───┐
+│       │       │ S │ S │
+│Feature│Feature│───┼───┤
+│       │       │ S │ S │
+├───────┴───────┼───┴───┤
+│     Wide      │ Small │
+└───────────────┴───────┘
+*/
 ```
 
-**Flexbox vs Grid Decision Tree:**
+```css
+/* =========================================== */
+/* 6. DASHBOARD LAYOUT */
+/* =========================================== */
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr); /* 12-column grid */
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.stats {
+  grid-column: span 3; /* Takes 3 columns */
+}
+
+.chart {
+  grid-column: span 9; /* Takes 9 columns */
+}
+
+.sidebar {
+  grid-column: span 4;
+  grid-row: span 2;
+}
+
+/* Responsive version */
+@media (max-width: 768px) {
+  .stats,
+  .chart,
+  .sidebar {
+    grid-column: span 12; /* Full width on mobile */
+  }
+}
+```
 
 ```css
-/* USE FLEXBOX WHEN: */
-- One-dimensional (row OR column)
-- Content-first (size based on content)
-- Small-scale layouts
-- Components (navbar, button groups)
+/* =========================================== */
+/* 7. CENTERING WITH GRID */
+/* =========================================== */
 
-/* USE GRID WHEN: */
-- Two-dimensional (rows AND columns)
-- Layout-first (defined structure)
-- Large-scale layouts
-- Page layouts, complex grids
-
-/* EXAMPLE: Flexbox inside Grid */
-.page-layout {
-  display: grid; /* Grid for page structure */
-  grid-template-columns: 250px 1fr;
+.center-grid {
+  display: grid;
+  place-items: center; /* Shorthand: align-items + justify-items */
+  min-height: 100vh;
 }
 
-.navbar {
-  display: flex; /* Flex for component */
-  justify-content: space-between;
+/* Equivalent to */
+.center-grid-explicit {
+  display: grid;
+  align-items: center;    /* Vertical */
+  justify-items: center;  /* Horizontal */
+  min-height: 100vh;
 }
+```
+
+**Auto-fit vs Auto-fill:**
+
+```css
+/* =========================================== */
+/* 8. AUTO-FIT VS AUTO-FILL */
+/* =========================================== */
+
+/* auto-fit: Collapse empty tracks */
+.auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* auto-fill: Keep empty tracks (no collapse) */
+.auto-fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/*
+DIFFERENCE (with 3 items in 800px container):
+==============================================
+
+auto-fit (400px each):
+┌─────────┬─────────┐
+│  Item1  │  Item2  │
+├─────────┴─────────┤
+│      Item3        │
+└───────────────────┘
+
+auto-fill (200px each):
+┌───┬───┬───┬───┐
+│ 1 │ 2 │ 3 │   │ ← Empty track
+└───┴───┴───┴───┘
+
+auto-fit: Expands items to fill
+auto-fill: Creates ghost columns
+*/
 ```
 
 ### Common Mistakes
 
-❌ **Wrong**: Using Grid for simple one-dimensional layouts
+❌ **Wrong**: Using Grid for simple one-axis layouts
 ```css
-.simple-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* Overkill */
+.simple-navbar {
+  display: grid; /* ❌ Overkill for single row */
+  grid-template-columns: auto 1fr auto;
 }
 ```
 
-✅ **Correct**: Use Flexbox for simple layouts
+✅ **Correct**: Use Flexbox for one-dimensional layouts
 ```css
-.simple-row {
+.simple-navbar {
   display: flex;
-  gap: 1rem;
+  justify-content: space-between;
 }
+```
 
+❌ **Wrong**: Confusing grid-template-columns with width
+```css
 .item {
-  flex: 1;
+  grid-template-columns: 3; /* ❌ Doesn't work! */
+}
+```
+
+✅ **Correct**: Use grid-column span
+```css
+.item {
+  grid-column: span 3; /* ✅ Spans 3 columns */
 }
 ```
 
 ### Follow-up Questions
 1. "What's the difference between fr unit and percentage?"
-2. "How does auto-fit differ from auto-fill?"
-3. "Can you nest grids?"
-4. "How do you handle responsive grid layouts?"
+2. "How does minmax() work in grid-template-columns?"
+3. "Can you explain implicit vs explicit grid?"
+4. "What's the difference between justify-items and justify-content?"
 
 ### Resources
 - [MDN: CSS Grid](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Grid_Layout)
 - [CSS Tricks: Grid Guide](https://css-tricks.com/snippets/css/complete-guide-grid/)
-- [Grid Garden](https://cssgridgarden.com/) - Interactive tutorial
+- [Grid Garden](https://cssgridgarden.com/)
 
 ---
 
-*[File continues with advanced grid techniques, alignment, sizing, etc.]*
+## Question 3: Flexbox vs Grid - When to Use Which?
 
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 8-10 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+When should you use Flexbox vs CSS Grid? Can you use them together?
+
+### Answer
+
+**Decision Framework:** Flexbox for components, Grid for layouts. They work great together!
+
+**Key Points:**
+
+1. **Dimensional Difference** - Flexbox = 1D (row OR column), Grid = 2D (rows AND columns)
+2. **Content vs Layout** - Flexbox = content-first, Grid = layout-first
+3. **Use Together** - Grid for page structure, Flexbox for components within grid areas
+4. **Both Valid** - Sometimes either works, choose based on intent and flexibility needs
+5. **Browser Support** - Both widely supported (95%+ browsers)
+
+### Code Example
+
+```css
+/* =========================================== */
+/* 1. FLEXBOX USE CASES */
+/* =========================================== */
+
+/* ✅ Navigation bar (one row) */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ✅ Button group (one row) */
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ✅ Vertical list with dynamic spacing */
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ✅ Centering single item */
+.modal-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ✅ Form row (label + input) */
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* ✅ Equal height cards in single row */
+.card-row {
+  display: flex;
+  gap: 1rem;
+}
+```
+
+```css
+/* =========================================== */
+/* 2. CSS GRID USE CASES */
+/* =========================================== */
+
+/* ✅ Page layout (header, sidebar, content, footer) */
+.page-layout {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebar main"
+    "footer footer";
+  grid-template-columns: 250px 1fr;
+}
+
+/* ✅ Photo gallery (rows and columns) */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* ✅ Dashboard widgets (complex grid) */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+/* ✅ Form layout (labels and inputs aligned) */
+.form-grid {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* ✅ Magazine layout (different sized items) */
+.magazine {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 200px;
+}
+```
+
+**Using Flexbox and Grid Together:**
+
+```html
+<!-- =========================================== -->
+<!-- 3. COMBINED USAGE (Grid + Flex) -->
+<!-- =========================================== -->
+
+<div class="page-layout">
+  <header class="header">
+    <!-- Flex inside Grid area -->
+    <nav class="navbar">
+      <div class="logo">Logo</div>
+      <ul class="nav-links">
+        <li><a href="#">Home</a></li>
+        <li><a href="#">About</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <aside class="sidebar">
+    <!-- Flex for vertical menu -->
+    <ul class="menu">
+      <li>Item 1</li>
+      <li>Item 2</li>
+    </ul>
+  </aside>
+
+  <main class="main">
+    <!-- Grid for card layout -->
+    <div class="card-grid">
+      <div class="card">
+        <!-- Flex for card internals -->
+        <div class="card-header">
+          <h3>Title</h3>
+          <button>×</button>
+        </div>
+        <div class="card-body">Content</div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <!-- Flex for footer links -->
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+    </div>
+  </footer>
+</div>
+```
+
+```css
+/* =========================================== */
+/* 4. COMBINED CSS */
+/* =========================================== */
+
+/* Grid for page structure */
+.page-layout {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebar main"
+    "footer footer";
+  grid-template-columns: 250px 1fr;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+
+.header { grid-area: header; }
+.sidebar { grid-area: sidebar; }
+.main { grid-area: main; }
+.footer { grid-area: footer; }
+
+/* Flex for navbar (inside Grid area) */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+  list-style: none;
+}
+
+/* Flex for sidebar menu */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  list-style: none;
+}
+
+/* Grid for cards */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+/* Flex for card internals */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+/* Flex for footer */
+.footer-links {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  padding: 1rem;
+}
+```
+
+**Decision Tree:**
+
+```plaintext
+/* =========================================== */
+/* 5. WHICH TO USE? */
+/* =========================================== */
+
+START: Need to layout elements?
+│
+├─ One direction only (row OR column)?
+│  └─ YES → FLEXBOX ✅
+│     Examples: navbar, button group, menu
+│
+├─ Need rows AND columns at same time?
+│  └─ YES → CSS GRID ✅
+│     Examples: page layout, photo gallery, dashboard
+│
+├─ Content determines size?
+│  └─ YES → FLEXBOX ✅
+│     Example: tags, badges, dynamic content
+│
+├─ Layout defines size?
+│  └─ YES → CSS GRID ✅
+│     Example: fixed grid, dashboard widgets
+│
+├─ Need equal height columns?
+│  └─ Single row → FLEXBOX ✅
+│  └─ Multiple rows → CSS GRID ✅
+│
+├─ Unknown number of items?
+│  └─ Flow in one direction → FLEXBOX ✅
+│  └─ Wrap to grid → CSS GRID (auto-fit) ✅
+│
+└─ Overlapping elements?
+   └─ CSS GRID ✅ (with z-index)
+      or POSITION: absolute
+```
+
+**Same Result, Different Methods:**
+
+```css
+/* =========================================== */
+/* 6. FLEXBOX VS GRID FOR SAME LAYOUT */
+/* =========================================== */
+
+/* Three equal columns - FLEXBOX */
+.flex-columns {
+  display: flex;
+  gap: 1rem;
+}
+
+.flex-columns .column {
+  flex: 1; /* Equal width */
+}
+
+/* Three equal columns - GRID */
+.grid-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+/* Both work! Choose based on:
+   - Flexbox: If content might vary, need flexibility
+   - Grid: If structure is fixed, need precise control
+*/
+```
+
+### Common Mistakes
+
+❌ **Wrong**: Using Grid when Flexbox is simpler
+```css
+.button-group {
+  display: grid; /* ❌ Overkill for simple row */
+  grid-template-columns: repeat(3, auto);
+}
+```
+
+✅ **Correct**: Use Flexbox for simple cases
+```css
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+```
+
+❌ **Wrong**: Fighting Flexbox for complex layouts
+```css
+.complex-layout {
+  display: flex; /* ❌ Hard to maintain */
+  flex-wrap: wrap;
+}
+
+.item {
+  flex-basis: 33.33%; /* Fragile! */
+}
+```
+
+✅ **Correct**: Use Grid for complex layouts
+```css
+.complex-layout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+```
+
+### Follow-up Questions
+1. "Can you nest Grid inside Flexbox and vice versa?"
+2. "Which has better browser support?"
+3. "Which is better for responsive design?"
+4. "Can you achieve the same layout with both?"
+
+### Resources
+- [Flexbox vs Grid](https://css-tricks.com/quick-whats-the-difference-between-flexbox-and-grid/)
+- [MDN: Layout Cookbook](https://developer.mozilla.org/en-US/docs/Web/CSS/Layout_cookbook)
+
+---
+
+## Question 4: Advanced Flexbox - gap, order, and flex-basis
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 8-10 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain the gap property, order property, and how flex-basis works. What's the difference between flex: 1 and flex: auto?
+
+### Answer
+
+**Key Points:**
+
+1. **gap Property** - Modern spacing solution, replaces margin hacks
+2. **order Property** - Visual reordering without changing DOM
+3. **flex-basis** - Base size before flex-grow/shrink applied
+4. **flex Shorthand** - Common values have different meanings
+5. **Accessibility** - Visual order vs DOM order affects screen readers
+
+### Code Example
+
+```css
+/* =========================================== */
+/* 1. GAP PROPERTY (Modern Spacing) */
+/* =========================================== */
+
+.container {
+  display: flex;
+  gap: 1rem; /* Space between items (NOT around) */
+}
+
+/* Before gap (old way) */
+.old-way {
+  display: flex;
+}
+
+.old-way .item {
+  margin-right: 1rem;
+}
+
+.old-way .item:last-child {
+  margin-right: 0; /* Remove margin from last item */
+}
+
+/* After gap (new way) */
+.new-way {
+  display: flex;
+  gap: 1rem; /* ✅ Much cleaner! */
+}
+
+/* Different row/column gaps */
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 2rem;    /* Vertical spacing */
+  column-gap: 1rem; /* Horizontal spacing */
+  /* Shorthand: gap: 2rem 1rem; (row column) */
+}
+```
+
+```css
+/* =========================================== */
+/* 2. ORDER PROPERTY */
+/* =========================================== */
+
+.container {
+  display: flex;
+}
+
+.item-1 {
+  order: 2; /* Appears second */
+}
+
+.item-2 {
+  order: 1; /* Appears first */
+}
+
+.item-3 {
+  order: 3; /* Appears third */
+}
+
+/* Default order: 0
+   Negative values allowed
+   Visual order only (DOM unchanged)
+*/
+
+/* Practical example: Mobile reordering */
+@media (max-width: 768px) {
+  .sidebar {
+    order: 2; /* Move sidebar after content */
+  }
+
+  .main {
+    order: 1; /* Content first on mobile */
+  }
+}
+
+/* ⚠️  ACCESSIBILITY WARNING:
+   Screen readers use DOM order, not visual order!
+   Use sparingly, mainly for responsive adjustments
+*/
+```
+
+```css
+/* =========================================== */
+/* 3. FLEX-BASIS EXPLAINED */
+/* =========================================== */
+
+.item {
+  flex-basis: auto; /* Default: use content size */
+  flex-basis: 200px; /* Start at 200px before growing/shrinking */
+  flex-basis: 50%; /* 50% of container */
+  flex-basis: 0; /* Ignore content size, equal distribution */
+}
+
+/* How flex-basis interacts with flex-grow */
+.container {
+  display: flex;
+  width: 600px;
+}
+
+/* Case 1: flex-basis: auto */
+.item-a {
+  flex: 1 1 auto; /* Content: 100px */
+}
+
+.item-b {
+  flex: 1 1 auto; /* Content: 200px */
+}
+
+/* Calculation:
+   Extra space: 600 - 300 = 300px
+   Item A: 100 + (300 / 2) = 250px
+   Item B: 200 + (300 / 2) = 350px
+   (Not equal!)
+*/
+
+/* Case 2: flex-basis: 0 */
+.item-a {
+  flex: 1 1 0; /* Ignore content */
+}
+
+.item-b {
+  flex: 1 1 0; /* Ignore content */
+}
+
+/* Calculation:
+   Extra space: 600px (all of it)
+   Item A: 0 + (600 / 2) = 300px
+   Item B: 0 + (600 / 2) = 300px
+   (Equal!)
+*/
+```
+
+```css
+/* =========================================== */
+/* 4. FLEX SHORTHAND DEEP DIVE */
+/* =========================================== */
+
+/* flex: <grow> <shrink> <basis> */
+
+/* Initial (default) */
+.item {
+  flex: 0 1 auto;
+  /* Don't grow, can shrink, base on content */
+}
+
+/* flex: 1 (most common) */
+.item {
+  flex: 1;
+  /* Same as: flex: 1 1 0 */
+  /* Grow equally, can shrink, ignore content size */
+  /* Result: EQUAL width items */
+}
+
+/* flex: auto */
+.item {
+  flex: auto;
+  /* Same as: flex: 1 1 auto */
+  /* Grow, can shrink, base on content */
+  /* Result: Different widths based on content */
+}
+
+/* flex: none */
+.item {
+  flex: none;
+  /* Same as: flex: 0 0 auto */
+  /* Can't grow or shrink, fixed size */
+}
+
+/* Custom values */
+.item {
+  flex: 2 1 300px;
+  /* Grow 2x faster than items with flex-grow: 1 */
+  /* Can shrink */
+  /* Start at 300px */
+}
+```
+
+**Practical Examples:**
+
+```css
+/* =========================================== */
+/* 5. REAL-WORLD PATTERNS */
+/* =========================================== */
+
+/* Equal width columns (ignoring content) */
+.equal-columns {
+  display: flex;
+  gap: 1rem;
+}
+
+.column {
+  flex: 1; /* flex: 1 1 0 - equal widths */
+}
+
+/* Content-aware columns */
+.content-columns {
+  display: flex;
+  gap: 1rem;
+}
+
+.column {
+  flex: auto; /* flex: 1 1 auto - based on content */
+}
+
+/* Fixed sidebar + fluid main */
+.layout {
+  display: flex;
+}
+
+.sidebar {
+  flex: 0 0 250px; /* Fixed 250px, won't grow/shrink */
+}
+
+.main {
+  flex: 1; /* Take remaining space */
+}
+
+/* Priority growth */
+.container {
+  display: flex;
+}
+
+.small {
+  flex: 1; /* Gets 1 part */
+}
+
+.large {
+  flex: 2; /* Gets 2 parts (twice as much) */
+}
+
+/* Responsive order */
+.mobile-first {
+  display: flex;
+  flex-direction: column;
+}
+
+.header { order: 1; }
+.content { order: 2; }
+.sidebar { order: 3; }
+
+@media (min-width: 768px) {
+  .mobile-first {
+    flex-direction: row;
+  }
+
+  .sidebar { order: 2; } /* Sidebar between header and content */
+  .content { order: 3; }
+}
+```
+
+### Common Mistakes
+
+❌ **Wrong**: Using margin for flex spacing
+```css
+.container {
+  display: flex;
+}
+
+.item {
+  margin-right: 1rem;
+}
+
+.item:last-child {
+  margin-right: 0; /* ❌ Extra code needed */
+}
+```
+
+✅ **Correct**: Use gap
+```css
+.container {
+  display: flex;
+  gap: 1rem; /* ✅ Clean and simple */
+}
+```
+
+❌ **Wrong**: Overusing order for layout
+```css
+.item-1 { order: 5; }
+.item-2 { order: 1; }
+.item-3 { order: 3; }
+/* ❌ Confusing, bad for accessibility */
+```
+
+✅ **Correct**: Use order sparingly, mainly for responsive
+```css
+@media (max-width: 768px) {
+  .sidebar {
+    order: 2; /* ✅ Legitimate responsive use */
+  }
+}
+```
+
+### Follow-up Questions
+1. "Does gap work with Grid?"
+2. "How does order affect tab navigation?"
+3. "What's the difference between flex-basis and width?"
+4. "Can flex-basis be negative?"
+
+### Resources
+- [MDN: gap](https://developer.mozilla.org/en-US/docs/Web/CSS/gap)
+- [MDN: flex-basis](https://developer.mozilla.org/en-US/docs/Web/CSS/flex-basis)
+
+---
+
+## Question 5: Advanced Grid - Implicit Grid, Grid Auto, and Subgrid
+
+**Difficulty:** 🔴 Hard
+**Frequency:** ⭐⭐⭐
+**Time:** 10-12 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain implicit vs explicit grid. What is grid-auto-flow and grid-auto-rows? How does subgrid work?
+
+### Answer
+
+**Key Points:**
+
+1. **Explicit Grid** - Rows/columns you define with grid-template
+2. **Implicit Grid** - Automatically created rows/columns for overflow items
+3. **Grid Auto Properties** - Control implicit grid behavior
+4. **Subgrid** - Nested grid inherits parent grid tracks
+5. **Auto-placement** - Algorithm for placing items automatically
+
+### Code Example
+
+```css
+/* =========================================== */
+/* 1. EXPLICIT VS IMPLICIT GRID */
+/* =========================================== */
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Explicit: 3 columns */
+  grid-template-rows: 100px 100px; /* Explicit: 2 rows */
+  gap: 1rem;
+}
+
+/* If you have 9 items, but only defined 2 rows (6 cells):
+   Rows 1-2: Explicit (100px each)
+   Row 3: Implicit (auto-sized to fit content)
+*/
+
+/* Control implicit grid size */
+.container {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 100px 100px; /* Explicit rows */
+  grid-auto-rows: 150px; /* Implicit rows will be 150px */
+}
+
+/* Multiple implicit row sizes */
+.container {
+  grid-auto-rows: 100px 200px; /* Alternating pattern */
+  /* Row 3: 100px, Row 4: 200px, Row 5: 100px, etc. */
+}
+
+/* minmax for flexible implicit rows */
+.container {
+  grid-auto-rows: minmax(100px, auto);
+  /* At least 100px, grows to fit content */
+}
+```
+
+```css
+/* =========================================== */
+/* 2. GRID-AUTO-FLOW */
+/* =========================================== */
+
+.container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-flow: row; /* Default: fill rows first */
+}
+
+/*
+grid-auto-flow: row (default)
+┌───┬───┬───┐
+│ 1 │ 2 │ 3 │
+├───┼───┼───┤
+│ 4 │ 5 │ 6 │
+└───┴───┴───┘
+*/
+
+.container {
+  grid-auto-flow: column; /* Fill columns first */
+}
+
+/*
+grid-auto-flow: column
+┌───┬───┬───┐
+│ 1 │ 3 │ 5 │
+├───┼───┼───┤
+│ 2 │ 4 │ 6 │
+└───┴───┴───┘
+*/
+
+.container {
+  grid-auto-flow: dense; /* Fill holes in grid */
+}
+
+/*
+grid-auto-flow: row dense
+Without dense (holes):
+┌───┬───────┬───┐
+│ 1 │   2   │   │ ← Hole
+├───┼───────┼───┤
+│ 3 │   4   │ 5 │
+└───┴───────┴───┘
+
+With dense (packed):
+┌───┬───────┬───┐
+│ 1 │   2   │ 5 │ ← Filled
+├───┼───────┼───┤
+│ 3 │   4   │   │
+└───┴───────┴───┘
+
+Useful for masonry layouts!
+*/
+```
+
+```css
+/* =========================================== */
+/* 3. GRID-AUTO-COLUMNS */
+/* =========================================== */
+
+.container {
+  display: grid;
+  grid-template-rows: 100px 100px;
+  grid-auto-flow: column; /* Flow in columns */
+  grid-auto-columns: 200px; /* Implicit columns 200px */
+}
+
+/* If items exceed defined structure, creates columns automatically */
+
+/* Responsive auto columns */
+.container {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(300px, 1fr);
+  overflow-x: auto; /* Horizontal scroll for overflow */
+}
+```
+
+```css
+/* =========================================== */
+/* 4. SUBGRID (CSS Grid Level 2) */
+/* =========================================== */
+
+.parent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto;
+  gap: 1rem;
+}
+
+.nested-grid {
+  grid-column: span 2; /* Takes 2 parent columns */
+  display: grid;
+  grid-template-columns: subgrid; /* ✅ Inherits parent's 2 columns */
+  grid-template-rows: subgrid; /* Inherits parent's rows */
+  gap: 0.5rem; /* Can override gap */
+}
+
+/*
+WITHOUT SUBGRID:
+Parent:  [────1────][────2────][────3────][────4────]
+Nested:  [──a──][──b──] (independent grid)
+
+WITH SUBGRID:
+Parent:  [────1────][────2────][────3────][────4────]
+Nested:  [────1────][────2────] (aligns with parent!)
+
+Perfect for aligning nested card grids!
+*/
+```
+
+**Practical Examples:**
+
+```css
+/* =========================================== */
+/* 5. AUTO-PLACEMENT MASONRY LAYOUT */
+/* =========================================== */
+
+.masonry {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-rows: 20px; /* Small row units */
+  grid-auto-flow: dense; /* Fill holes */
+  gap: 1rem;
+}
+
+.masonry .item {
+  /* Items span different row counts */
+  grid-row-end: span 10; /* Default span */
+}
+
+.masonry .item.tall {
+  grid-row-end: span 20; /* Taller items */
+}
+
+/* Creates Pinterest-like masonry layout */
+```
+
+```css
+/* =========================================== */
+/* 6. INFINITE SCROLL GRID */
+/* =========================================== */
+
+.infinite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-auto-rows: 400px; /* All implicit rows 400px */
+  gap: 2rem;
+}
+
+/* As new items load, grid auto-creates rows at 400px each */
+```
+
+```css
+/* =========================================== */
+/* 7. PRACTICAL SUBGRID EXAMPLE */
+/* =========================================== */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.card {
+  display: grid;
+  grid-template-rows: subgrid; /* Align all card sections */
+  grid-row: span 3; /* Span 3 parent rows */
+  gap: 1rem;
+}
+
+/*
+RESULT: All cards have aligned sections
+┌────────┐ ┌────────┐ ┌────────┐
+│ Header │ │ Header │ │ Header │ ← All same height
+├────────┤ ├────────┤ ├────────┤
+│  Body  │ │  Body  │ │  Body  │ ← All same height
+├────────┤ ├────────┤ ├────────┤
+│ Footer │ │ Footer │ │ Footer │ ← All same height
+└────────┘ └────────┘ └────────┘
+
+Without subgrid, each card's sections would be independent heights!
+*/
+```
+
+### Common Mistakes
+
+❌ **Wrong**: Not defining implicit grid size
+```css
+.container {
+  grid-template-columns: repeat(3, 1fr);
+  /* ❌ Implicit rows will be auto-sized (tiny!) */
+}
+```
+
+✅ **Correct**: Control implicit grid
+```css
+.container {
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: minmax(200px, auto); /* ✅ Minimum height */
+}
+```
+
+❌ **Wrong**: Confusing subgrid with nested grid
+```css
+.nested {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  /* ❌ Creates independent grid, doesn't align with parent */
+}
+```
+
+✅ **Correct**: Use subgrid for alignment
+```css
+.nested {
+  display: grid;
+  grid-template-columns: subgrid;
+  /* ✅ Inherits parent columns, perfect alignment */
+}
+```
+
+### Follow-up Questions
+1. "What's the browser support for subgrid?"
+2. "How do you debug implicit grid tracks?"
+3. "Can you use auto-fill with explicit tracks?"
+4. "What happens when grid-auto-flow: dense reorders accessibility?"
+
+### Resources
+- [MDN: Subgrid](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Grid_Layout/Subgrid)
+- [Grid by Example: Auto-placement](https://gridbyexample.com/examples/#example19)
+
+---
+
+## Summary Table
+
+| Topic | Use Case | Key Property |
+|-------|----------|-------------|
+| Flexbox | 1D layouts, components | flex, justify-content, align-items |
+| Grid | 2D layouts, page structure | grid-template, grid-area |
+| Flex vs Grid | 1D vs 2D decision | display: flex vs display: grid |
+| Gap | Spacing between items | gap (works in both) |
+| Subgrid | Align nested grids | grid-template-columns: subgrid |
+
+---
+
+**Next Topics**: Responsive Design, Media Queries, Container Queries
