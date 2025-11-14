@@ -120,12 +120,12 @@ Each topic directory contains **questions with comprehensive answers**:
 │   ├── essential-50.md
 │   ├── pre-interview-30.md
 │   └── daily-20.md
-├── by-topic/              # Topic-specific decks
-│   ├── javascript.md
-│   ├── react.md
-│   └── typescript.md
-└── interactive-app/       # Web-based viewer with progress tracking
-    └── index.html
+└── by-topic/              # Topic-specific decks
+    ├── javascript.md
+    ├── react.md
+    └── typescript.md
+
+📱 Interactive app at root: index.html + assets/js/
 ```
 
 **Use flashcards for:**
@@ -209,7 +209,7 @@ Review flashcards on schedule:
 - Day 14: Review
 - Day 30: Review
 
-**Tool:** Use the [Interactive Flashcard App](./14-flashcards/interactive-app/) to track automatically
+**Tool:** Use the [Interactive Flashcard App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/) to track automatically
 
 ### 3. Code Everything
 
@@ -387,9 +387,10 @@ Better to deeply understand 10 concepts than superficially know 100.
 
 ### Flashcard Tools
 
-- **Interactive Web App** (in this repo at `14-flashcards/interactive-app/`)
-  - Track your progress
+- **[Interactive Web App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)** (deployed at root)
+  - Track your progress with SM-2 algorithm
   - Spaced repetition built-in
+  - Modern UI with Tailwind CSS
   - Works offline
 - **Markdown Files** - Read directly in GitHub or any text editor
 
