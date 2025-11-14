@@ -2072,6 +2072,4116 @@ console.log(computeWithStats.stats()); // { hits: 1, misses: 2 }
 
 ---
 
-[← Back to JavaScript README](./README.md) | [Next: Execution Context →](./02-async-javascript.md)
+## Question 11: What is the difference between == and ===?
 
-**Progress:** 10 of 20 core concept questions completed
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon, Microsoft, Netflix
+
+### Question
+Explain the difference between loose equality (==) and strict equality (===). When should you use each?
+
+### Answer
+
+- **`==`** (Loose/Abstract Equality): Performs type coercion before comparison
+- **`===`** (Strict Equality): No type coercion, checks both type and value
+
+1. **How == Works**
+   - If types are different, JavaScript converts them to the same type
+   - Follows complex coercion rules
+   - Can lead to unexpected behavior
+   - Special case: `null == undefined` returns `true`
+
+2. **How === Works**
+   - If types are different, immediately returns `false`
+   - No type conversion
+   - More predictable and explicit
+   - Recommended for most comparisons
+
+3. **Coercion Rules for ==**
+   - String to number: `"5" == 5` → `true`
+   - Boolean to number: `true == 1` → `true`
+   - Object to primitive: `[5] == 5` → `true`
+   - `null == undefined` → `true` (special case)
+
+4. **When to Use Each**
+   - Use `===` almost always (best practice)
+   - Use `==` only when intentionally checking for `null` or `undefined`
+   - Most style guides enforce `===`
+
+5. **Best Practices**
+   - Default to `===` for clarity and safety
+   - Avoid relying on coercion
+   - Explicitly convert types when needed
+   - Use linters to enforce `===`
+
+### Code Example
+
+```javascript
+// 1. BASIC COMPARISONS
+
+// === (Strict Equality)
+console.log(5 === 5);           // true (same type, same value)
+console.log(5 === "5");         // false (different types)
+console.log(true === 1);        // false (different types)
+console.log(null === undefined); // false (different types)
+
+// == (Loose Equality)
+console.log(5 == 5);            // true
+console.log(5 == "5");          // true (string coerced to number)
+console.log(true == 1);         // true (boolean coerced to number)
+console.log(null == undefined);  // true (special case)
+
+// 2. TYPE COERCION EXAMPLES
+
+// String to number
+console.log("10" == 10);        // true
+console.log("10" === 10);       // false
+
+// Boolean to number
+console.log(true == 1);         // true (true → 1)
+console.log(false == 0);        // true (false → 0)
+console.log(true === 1);        // false
+
+// Empty string to number
+console.log("" == 0);           // true ("" → 0)
+console.log("" === 0);          // false
+
+// Null and undefined
+console.log(null == undefined); // true (special case)
+console.log(null === undefined); // false
+console.log(null == 0);         // false
+console.log(undefined == 0);    // false
+
+// 3. ARRAY AND OBJECT COMPARISONS
+
+// Arrays to primitives
+console.log([1] == 1);          // true ([1] → "1" → 1)
+console.log([1] === 1);         // false
+
+console.log([] == 0);           // true ([] → "" → 0)
+console.log([] === 0);          // false
+
+console.log([""] == 0);         // true ([""] → "" → 0)
+
+// Objects
+console.log({} == {});          // false (different references)
+console.log({} === {});         // false
+
+// 4. TRICKY CASES
+
+console.log(false == "");       // true (both → 0)
+console.log(false == "0");      // true (both → 0)
+console.log("" == "0");         // false (string comparison)
+
+console.log(0 == "");           // true
+console.log(0 == "0");          // true
+
+// The infamous case
+console.log([] == ![]);         // true!
+/*
+Explanation:
+1. ![] → false (empty array is truthy)
+2. [] == false
+3. [] → "" (ToPrimitive)
+4. "" == false
+5. "" → 0, false → 0
+6. 0 == 0 → true
+*/
+
+// 5. NaN COMPARISON (SPECIAL CASE)
+
+console.log(NaN == NaN);        // false
+console.log(NaN === NaN);       // false
+console.log(Object.is(NaN, NaN)); // true (use Object.is for NaN)
+
+// Check for NaN
+console.log(Number.isNaN(NaN)); // true (correct way)
+console.log(isNaN("hello"));    // true (converts to number first!)
+console.log(Number.isNaN("hello")); // false (doesn't convert)
+
+// 6. +0 AND -0
+
+console.log(+0 == -0);          // true
+console.log(+0 === -0);         // true
+console.log(Object.is(+0, -0)); // false
+
+// 7. PRACTICAL - NULL/UNDEFINED CHECK
+
+// ❌ Bad: Checking both separately
+if (value === null || value === undefined) {
+  console.log("Value is nullish");
+}
+
+// ✅ Good: Using == for null check (rare acceptable use)
+if (value == null) {
+  // true if value is null OR undefined
+  console.log("Value is nullish");
+}
+
+// ✅ Better: Modern nullish check
+if (value ?? false) {
+  console.log("Value is not null/undefined");
+}
+
+// 8. PRACTICAL - USER INPUT VALIDATION
+
+function validateAge(age) {
+  // User input might be string or number
+
+  // ❌ Bad: Using ==
+  if (age == 18) {
+    return true; // Would match "18" too
+  }
+
+  // ✅ Good: Explicit conversion + ===
+  if (Number(age) === 18) {
+    return true;
+  }
+
+  // ✅ Better: Type check first
+  if (typeof age === 'number' && age === 18) {
+    return true;
+  }
+}
+
+// 9. COMPARISON ALGORITHM
+
+// === Algorithm:
+// 1. If types differ → false
+// 2. If both undefined → true
+// 3. If both null → true
+// 4. If both numbers and same value → true
+// 5. If both strings and same characters → true
+// 6. If both booleans and same → true
+// 7. If both reference same object → true
+// 8. Otherwise → false
+
+// == Algorithm (simplified):
+// 1. If same type → compare like ===
+// 2. If null/undefined → true
+// 3. If number/string → convert string to number
+// 4. If boolean → convert boolean to number
+// 5. If object/primitive → convert object to primitive
+// 6. Otherwise → false
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Using == carelessly
+  ```javascript
+  const input = "0";
+
+  if (input == false) { // true! (unexpected)
+    console.log("Empty");
+  }
+  ```
+
+- ❌ **Mistake:** Thinking == is "more flexible"
+  ```javascript
+  function isEqual(a, b) {
+    return a == b; // Dangerous! Hidden coercion
+  }
+
+  console.log(isEqual("1", 1));    // true
+  console.log(isEqual(true, 1));   // true
+  console.log(isEqual([], ""));    // true (unexpected!)
+  ```
+
+- ✅ **Correct:** Use === by default
+  ```javascript
+  if (input === "") {
+    console.log("Empty");
+  }
+
+  // Explicit conversion when needed
+  if (Number(input) === 0) {
+    console.log("Zero");
+  }
+  ```
+
+### Follow-up Questions
+
+- "What are the coercion rules for the == operator?"
+- "Why does `[] == ![]` return true?"
+- "When is it acceptable to use ==?"
+- "What is Object.is() and how is it different?"
+- "How does != differ from !==?"
+
+### Resources
+
+- [MDN: Equality Comparisons](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Equality_comparisons_and_sameness)
+- [JavaScript Equality Table](https://dorey.github.io/JavaScript-Equality-Table/)
+- [Understanding == vs ===](https://www.freecodecamp.org/news/loose-vs-strict-equality-in-javascript/)
+
+---
+
+## Question 12: What is the difference between null and undefined?
+
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon, Microsoft
+
+### Question
+Explain the difference between `null` and `undefined` in JavaScript. When would you use each?
+
+### Answer
+
+Both represent absence of value, but with different meanings:
+- **`undefined`**: Variable declared but not assigned, or missing property
+- **`null`**: Intentional absence of value (explicit)
+
+1. **undefined Characteristics**
+   - Default value for uninitialized variables
+   - Default return value for functions
+   - Missing object properties
+   - Type: `undefined`
+   - Represents "not yet defined"
+
+2. **null Characteristics**
+   - Must be explicitly assigned
+   - Represents intentional absence
+   - Type: `object` (historical bug)
+   - Represents "intentionally empty"
+
+3. **When Variables Become undefined**
+   - Declared but not initialized
+   - Function parameters not passed
+   - Accessing non-existent object properties
+   - Function without return statement
+
+4. **When to Use null**
+   - Explicitly clear a value
+   - Indicate "no object" (API returns)
+   - Reset object references
+   - Intentionally empty state
+
+5. **Checking for null/undefined**
+   - Use `== null` to check both
+   - Use `=== null` or `=== undefined` for specific check
+   - Use nullish coalescing (`??`) for default values
+   - Use optional chaining (`?.`) for safe access
+
+### Code Example
+
+```javascript
+// 1. UNDEFINED - UNINITIALIZED VARIABLES
+
+let x;
+console.log(x);        // undefined
+console.log(typeof x); // "undefined"
+
+var y;
+console.log(y);        // undefined
+
+// 2. NULL - EXPLICIT ABSENCE
+
+let user = null; // Explicitly "no user"
+console.log(user);        // null
+console.log(typeof user); // "object" (historical bug!)
+
+// 3. FUNCTION RETURN VALUES
+
+function noReturn() {
+  // No return statement
+}
+
+console.log(noReturn()); // undefined
+
+function explicitNull() {
+  return null; // Explicit no value
+}
+
+console.log(explicitNull()); // null
+
+// 4. FUNCTION PARAMETERS
+
+function greet(name) {
+  console.log(name); // undefined if not passed
+}
+
+greet(); // undefined
+
+// 5. OBJECT PROPERTIES
+
+const obj = { name: "John" };
+
+console.log(obj.name);  // "John"
+console.log(obj.age);   // undefined (property doesn't exist)
+console.log(obj.city);  // undefined
+
+// Explicit null
+const user = {
+  name: "Alice",
+  email: null // Explicitly no email
+};
+
+console.log(user.email); // null
+
+// 6. ARRAY ELEMENTS
+
+const arr = [1, 2, 3];
+console.log(arr[10]);    // undefined (index doesn't exist)
+
+const arr2 = [1, null, 3];
+console.log(arr2[1]);    // null (explicitly set)
+
+// 7. CHECKING FOR NULL VS UNDEFINED
+
+let value1;
+let value2 = null;
+
+// Checking undefined
+console.log(value1 === undefined);  // true
+console.log(typeof value1 === "undefined"); // true
+
+// Checking null
+console.log(value2 === null);       // true
+console.log(value2 === undefined);  // false
+
+// Checking both (nullish)
+console.log(value1 == null);        // true
+console.log(value2 == null);        // true
+
+// 8. TYPE CHECKING
+
+console.log(typeof undefined); // "undefined"
+console.log(typeof null);      // "object" (bug!)
+
+// Correct null check
+console.log(null === null);         // true
+console.log(value2 === null);       // true
+
+// 9. PRACTICAL - DEFAULT VALUES
+
+// ❌ Using undefined
+function getUser(id) {
+  if (id === 1) {
+    return { name: "John" };
+  }
+  return undefined; // Don't do this
+}
+
+// ✅ Using null
+function getUserBetter(id) {
+  if (id === 1) {
+    return { name: "John" };
+  }
+  return null; // Clear intent: no user found
+}
+
+// 10. NULLISH COALESCING
+
+let username;
+let savedName = null;
+
+// ❌ Using || (treats 0, "", false as falsy)
+const name1 = username || "Guest";    // "Guest"
+const name2 = savedName || "Guest";   // "Guest"
+
+// ✅ Using ?? (only null/undefined)
+const name3 = username ?? "Guest";    // "Guest"
+const name4 = savedName ?? "Guest";   // "Guest"
+
+// Difference:
+const count = 0;
+console.log(count || 10);  // 10 (0 is falsy)
+console.log(count ?? 10);  // 0 (0 is not null/undefined)
+
+// 11. OPTIONAL CHAINING
+
+const user = {
+  name: "Alice",
+  address: null
+};
+
+// ❌ Without optional chaining
+console.log(user.address.city); // TypeError!
+
+// ✅ With optional chaining
+console.log(user.address?.city); // undefined (safe)
+console.log(user.settings?.theme); // undefined
+
+// 12. CLEARING REFERENCES
+
+let largeObject = { /* huge data */ };
+
+// Clear reference to allow garbage collection
+largeObject = null;
+
+// 13. API RESPONSES
+
+// Common pattern: null means "no data"
+function fetchUser(id) {
+  const users = {
+    1: { name: "Alice" },
+    2: { name: "Bob" }
+  };
+
+  return users[id] || null; // null if not found
+}
+
+console.log(fetchUser(1)); // { name: "Alice" }
+console.log(fetchUser(99)); // null (not found)
+
+// 14. DESTRUCTURING WITH DEFAULTS
+
+const { name = "Guest", age = 18 } = {};
+console.log(name); // "Guest" (undefined → default)
+console.log(age);  // 18
+
+const { city = "NYC" } = { city: null };
+console.log(city); // null (null doesn't trigger default!)
+
+// Use nullish coalescing for true default
+const { country } = { country: null };
+console.log(country ?? "USA"); // "USA"
+
+// 15. TYPEOF VS STRICT EQUALITY
+
+function isUndefined(value) {
+  // ✅ Method 1: Strict equality
+  return value === undefined;
+
+  // ✅ Method 2: typeof (safer for undeclared variables)
+  return typeof value === "undefined";
+}
+
+function isNull(value) {
+  // ✅ Only strict equality works
+  return value === null;
+
+  // ❌ typeof doesn't help
+  // typeof null === "object"
+}
+
+// 16. JSON SERIALIZATION
+
+const data = {
+  name: "John",
+  age: undefined,
+  city: null
+};
+
+console.log(JSON.stringify(data));
+// {"name":"John","city":null}
+// undefined is omitted, null is preserved!
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Using typeof for null check
+  ```javascript
+  if (typeof value === "null") { // ❌ Never true!
+    // typeof null is "object"
+  }
+  ```
+
+- ❌ **Mistake:** Not distinguishing between null and undefined
+  ```javascript
+  function getUserAge(user) {
+    return user.age; // undefined if missing, but could be null
+  }
+
+  // Better: be explicit
+  function getUserAge(user) {
+    return user.age !== undefined ? user.age : null;
+  }
+  ```
+
+- ✅ **Correct:** Use appropriate checks
+  ```javascript
+  // Check specifically
+  if (value === null) { }
+  if (value === undefined) { }
+
+  // Check either (nullish)
+  if (value == null) { }
+
+  // Use nullish coalescing
+  const result = value ?? defaultValue;
+  ```
+
+### Follow-up Questions
+
+- "Why does `typeof null` return 'object'?"
+- "When should you explicitly return null?"
+- "What is the difference between `== null` and `=== null`?"
+- "How does JSON.stringify handle null vs undefined?"
+- "What is nullish coalescing and when would you use it?"
+
+### Resources
+
+- [MDN: null](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/null)
+- [MDN: undefined](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)
+- [JavaScript.info: null and undefined](https://javascript.info/types#null)
+
+---
+
+## Question 13: What is the difference between typeof and instanceof?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5-7 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain the difference between `typeof` and `instanceof` operators. When would you use each?
+
+### Answer
+
+- **`typeof`**: Returns a string indicating the type of a value
+- **`instanceof`**: Tests whether an object is an instance of a specific class/constructor
+
+1. **typeof Operator**
+   - Returns primitive type as string
+   - Works with any value
+   - Returns `"object"` for `null` (bug)
+   - Returns `"function"` for functions
+   - Cannot distinguish between object types
+
+2. **instanceof Operator**
+   - Tests prototype chain
+   - Only works with objects
+   - Can distinguish between different object types
+   - Can be fooled by prototype manipulation
+   - Doesn't work across different execution contexts (iframes)
+
+3. **typeof Return Values**
+   - `"string"`, `"number"`, `"boolean"`, `"undefined"`
+   - `"object"`, `"function"`, `"symbol"`, `"bigint"`
+   - Special case: `typeof null === "object"`
+
+4. **instanceof Usage**
+   - Check if object created by constructor
+   - Check inheritance chain
+   - Custom class instances
+   - Built-in types (Array, Date, RegExp)
+
+5. **When to Use Each**
+   - Use `typeof` for primitive type checking
+   - Use `instanceof` for object type checking
+   - Use `Array.isArray()` for arrays specifically
+   - Use `Object.prototype.toString.call()` for reliable type checking
+
+### Code Example
+
+```javascript
+// 1. TYPEOF - PRIMITIVE TYPES
+
+console.log(typeof 42);              // "number"
+console.log(typeof "hello");         // "string"
+console.log(typeof true);            // "boolean"
+console.log(typeof undefined);       // "undefined"
+console.log(typeof Symbol('id'));    // "symbol"
+console.log(typeof 123n);            // "bigint"
+
+// 2. TYPEOF - OBJECTS AND FUNCTIONS
+
+console.log(typeof {});              // "object"
+console.log(typeof []);              // "object" (arrays are objects!)
+console.log(typeof null);            // "object" (historical bug!)
+console.log(typeof function(){});    // "function"
+console.log(typeof class{});         // "function" (classes are functions)
+
+// 3. TYPEOF - LIMITATIONS
+
+// Can't distinguish object types
+console.log(typeof []);              // "object"
+console.log(typeof {});              // "object"
+console.log(typeof new Date());      // "object"
+console.log(typeof /regex/);         // "object"
+
+// null quirk
+console.log(typeof null);            // "object" (not "null"!)
+
+// 4. INSTANCEOF - OBJECT TYPE CHECKING
+
+// Arrays
+const arr = [1, 2, 3];
+console.log(arr instanceof Array);   // true
+console.log(arr instanceof Object);  // true (Array inherits from Object)
+
+// Dates
+const date = new Date();
+console.log(date instanceof Date);   // true
+console.log(date instanceof Object); // true
+
+// RegExp
+const regex = /test/;
+console.log(regex instanceof RegExp); // true
+console.log(regex instanceof Object); // true
+
+// 5. INSTANCEOF - CUSTOM CLASSES
+
+class Person {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+class Employee extends Person {
+  constructor(name, role) {
+    super(name);
+    this.role = role;
+  }
+}
+
+const john = new Person("John");
+const jane = new Employee("Jane", "Developer");
+
+console.log(john instanceof Person);      // true
+console.log(john instanceof Employee);    // false
+console.log(john instanceof Object);      // true
+
+console.log(jane instanceof Employee);    // true
+console.log(jane instanceof Person);      // true (inheritance!)
+console.log(jane instanceof Object);      // true
+
+// 6. INSTANCEOF - DOESN'T WORK WITH PRIMITIVES
+
+console.log("hello" instanceof String);   // false (primitive)
+console.log(new String("hello") instanceof String); // true (object)
+
+console.log(42 instanceof Number);        // false
+console.log(new Number(42) instanceof Number); // true
+
+console.log(true instanceof Boolean);     // false
+console.log(new Boolean(true) instanceof Boolean); // true
+
+// 7. COMBINING TYPEOF AND INSTANCEOF
+
+function checkType(value) {
+  // Use typeof for primitives
+  if (typeof value !== "object") {
+    return typeof value;
+  }
+
+  // Handle null
+  if (value === null) {
+    return "null";
+  }
+
+  // Use instanceof for objects
+  if (value instanceof Array) return "array";
+  if (value instanceof Date) return "date";
+  if (value instanceof RegExp) return "regexp";
+  if (value instanceof Error) return "error";
+
+  return "object";
+}
+
+console.log(checkType(42));            // "number"
+console.log(checkType("hello"));       // "string"
+console.log(checkType(null));          // "null"
+console.log(checkType([1, 2, 3]));     // "array"
+console.log(checkType(new Date()));    // "date"
+console.log(checkType({ a: 1 }));      // "object"
+
+// 8. RELIABLE TYPE CHECKING
+
+function getType(value) {
+  return Object.prototype.toString.call(value).slice(8, -1).toLowerCase();
+}
+
+console.log(getType(42));              // "number"
+console.log(getType("hello"));         // "string"
+console.log(getType(null));            // "null"
+console.log(getType(undefined));       // "undefined"
+console.log(getType([]));              // "array"
+console.log(getType({}));              // "object"
+console.log(getType(new Date()));      // "date"
+console.log(getType(/regex/));         // "regexp"
+console.log(getType(function(){}));    // "function"
+
+// 9. ARRAY CHECKING (BEST PRACTICES)
+
+const arr = [1, 2, 3];
+
+// ❌ Using typeof
+console.log(typeof arr);               // "object" (not helpful!)
+
+// ❌ Using instanceof (can fail across frames)
+console.log(arr instanceof Array);     // true (but can fail)
+
+// ✅ Using Array.isArray()
+console.log(Array.isArray(arr));       // true (reliable!)
+
+// 10. PROTOTYPE CHAIN AND INSTANCEOF
+
+function Animal(name) {
+  this.name = name;
+}
+
+function Dog(name, breed) {
+  Animal.call(this, name);
+  this.breed = breed;
+}
+
+Dog.prototype = Object.create(Animal.prototype);
+Dog.prototype.constructor = Dog;
+
+const buddy = new Dog("Buddy", "Golden");
+
+console.log(buddy instanceof Dog);     // true
+console.log(buddy instanceof Animal);  // true (prototype chain!)
+console.log(buddy instanceof Object);  // true
+
+// 11. INSTANCEOF WITH NULL/UNDEFINED
+
+try {
+  console.log(null instanceof Object);      // false
+  console.log(undefined instanceof Object); // false
+} catch (e) {
+  // No error, just false
+}
+
+// 12. MANIPULATING PROTOTYPE CHAIN
+
+const obj = {};
+console.log(obj instanceof Object);    // true
+
+// Change prototype
+Object.setPrototypeOf(obj, null);
+console.log(obj instanceof Object);    // false (no longer in chain!)
+
+// 13. PRACTICAL TYPE GUARDS (TYPESCRIPT PATTERN)
+
+function isString(value) {
+  return typeof value === "string";
+}
+
+function isArray(value) {
+  return Array.isArray(value);
+}
+
+function isDate(value) {
+  return value instanceof Date;
+}
+
+function isPlainObject(value) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    value.constructor === Object
+  );
+}
+
+// Use type guards
+if (isString(someValue)) {
+  console.log(someValue.toUpperCase());
+}
+
+if (isArray(someValue)) {
+  console.log(someValue.length);
+}
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Using typeof for arrays
+  ```javascript
+  const arr = [1, 2, 3];
+  if (typeof arr === "array") { // ❌ Never true!
+    // typeof arr is "object"
+  }
+  ```
+
+- ❌ **Mistake:** Using instanceof for primitives
+  ```javascript
+  console.log("hello" instanceof String); // false (primitive!)
+  // Only works with object wrappers
+  ```
+
+- ✅ **Correct:** Use appropriate checks
+  ```javascript
+  // For arrays
+  if (Array.isArray(arr)) { }
+
+  // For strings
+  if (typeof value === "string") { }
+
+  // For objects
+  if (value !== null && typeof value === "object") { }
+  ```
+
+### Follow-up Questions
+
+- "Why does `typeof null` return 'object'?"
+- "How does instanceof work internally?"
+- "What is the difference between `instanceof` and `isPrototypeOf()`?"
+- "How would you implement a custom instanceof?"
+- "What are the limitations of instanceof with iframes?"
+
+### Resources
+
+- [MDN: typeof](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/typeof)
+- [MDN: instanceof](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/instanceof)
+- [Understanding typeof vs instanceof](https://www.freecodecamp.org/news/javascript-typeof-vs-instanceof/)
+
+---
+
+## Question 14: What are truthy and falsy values in JavaScript?
+
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon, Microsoft
+
+### Question
+Explain truthy and falsy values in JavaScript. List all falsy values.
+
+### Answer
+
+In JavaScript, values are converted to boolean (`true` or `false`) in boolean contexts (if statements, logical operators, etc.).
+
+**Falsy Values** (only 8 values):
+1. `false`
+2. `0` (zero)
+3. `-0` (negative zero)
+4. `0n` (BigInt zero)
+5. `""` (empty string)
+6. `null`
+7. `undefined`
+8. `NaN`
+
+**Everything else is truthy!**
+
+1. **Common Truthy Values**
+   - All numbers except 0, -0 (including negative numbers)
+   - All strings except "" (including "0", "false")
+   - All objects and arrays (even empty `{}` and `[]`)
+   - Functions
+   - `Infinity` and `-Infinity`
+
+2. **Boolean Contexts**
+   - if statements: `if (value)`
+   - while loops: `while (condition)`
+   - Logical operators: `&&`, `||`, `!`
+   - Ternary operator: `condition ? a : b`
+
+3. **Explicit Conversion**
+   - `Boolean(value)` - convert to boolean
+   - `!!value` - double negation trick
+   - Comparison with boolean: avoid using `== true/false`
+
+4. **Practical Use Cases**
+   - Input validation
+   - Default values
+   - Short-circuit evaluation
+   - Conditional rendering
+
+5. **Common Pitfalls**
+   - `"0"` is truthy (string, not number)
+   - `[]` and `{}` are truthy (even when empty)
+   - `"false"` is truthy (it's a string)
+
+### Code Example
+
+```javascript
+// 1. ALL FALSY VALUES (ONLY 8!)
+
+console.log(Boolean(false));      // false
+console.log(Boolean(0));          // false
+console.log(Boolean(-0));         // false
+console.log(Boolean(0n));         // false
+console.log(Boolean(""));         // false
+console.log(Boolean(null));       // false
+console.log(Boolean(undefined));  // false
+console.log(Boolean(NaN));        // false
+
+// 2. COMMON TRUTHY VALUES
+
+console.log(Boolean(true));       // true
+console.log(Boolean(1));          // true
+console.log(Boolean(-1));         // true
+console.log(Boolean("hello"));    // true
+console.log(Boolean("0"));        // true (string!)
+console.log(Boolean("false"));    // true (string!)
+console.log(Boolean([]));         // true (array!)
+console.log(Boolean({}));         // true (object!)
+console.log(Boolean(function(){})); // true
+console.log(Boolean(Infinity));   // true
+console.log(Boolean(-Infinity));  // true
+
+// 3. IF STATEMENT EXAMPLES
+
+if (0) {
+  console.log("Never runs"); // 0 is falsy
+}
+
+if ("") {
+  console.log("Never runs"); // empty string is falsy
+}
+
+if (null) {
+  console.log("Never runs"); // null is falsy
+}
+
+if ("0") {
+  console.log("Runs!"); // "0" is truthy (string)
+}
+
+if ([]) {
+  console.log("Runs!"); // empty array is truthy
+}
+
+if ({}) {
+  console.log("Runs!"); // empty object is truthy
+}
+
+// 4. LOGICAL OPERATORS WITH TRUTHY/FALSY
+
+// OR operator (||) - returns first truthy value
+console.log(0 || "default");         // "default"
+console.log("" || "fallback");       // "fallback"
+console.log(null || undefined || 5); // 5
+console.log(false || 0 || "");       // "" (all falsy, returns last)
+
+// AND operator (&&) - returns first falsy value or last truthy
+console.log(true && "value");        // "value"
+console.log(1 && 2 && 3);           // 3 (all truthy, returns last)
+console.log(1 && 0 && 2);           // 0 (first falsy)
+console.log("" && "never");         // "" (first falsy)
+
+// NOT operator (!) - converts to boolean and negates
+console.log(!0);                    // true
+console.log(!"");                   // true
+console.log(!null);                 // true
+console.log(!"hello");              // false
+console.log(![]);                   // false (array is truthy)
+
+// 5. DOUBLE NEGATION TRICK
+
+console.log(!!0);                   // false
+console.log(!!"hello");             // true
+console.log(!![]);                  // true
+console.log(!!null);                // false
+
+// Same as Boolean()
+console.log(Boolean(0));            // false
+console.log(Boolean("hello"));      // true
+
+// 6. COMMON TRAPS
+
+// ❌ Trap 1: "0" is truthy!
+if ("0") {
+  console.log("Runs!"); // "0" is a non-empty string
+}
+
+// ❌ Trap 2: Empty arrays/objects are truthy!
+if ([]) {
+  console.log("Runs!"); // empty array is truthy
+}
+
+if ({}) {
+  console.log("Runs!"); // empty object is truthy
+}
+
+// ❌ Trap 3: "false" is truthy!
+const value = "false";
+if (value) {
+  console.log("Runs!"); // string "false" is truthy
+}
+
+// 7. PRACTICAL - INPUT VALIDATION
+
+function validateInput(input) {
+  if (!input) {
+    return "Input is required"; // Catches "", null, undefined, 0
+  }
+  return "Valid input";
+}
+
+console.log(validateInput(""));        // "Input is required"
+console.log(validateInput(null));      // "Input is required"
+console.log(validateInput(undefined)); // "Input is required"
+console.log(validateInput("hello"));   // "Valid input"
+
+// ⚠️ Problem: Also catches 0 as invalid!
+console.log(validateInput(0)); // "Input is required" (might not want this)
+
+// Better: Be specific
+function validateInputBetter(input) {
+  if (input == null || input === "") {
+    return "Input is required";
+  }
+  return "Valid input";
+}
+
+console.log(validateInputBetter(0)); // "Valid input" (0 is now valid)
+
+// 8. DEFAULT VALUES
+
+// ❌ Using || (problem with 0, false, "")
+function setCount(count) {
+  const finalCount = count || 10; // Problem if count is 0
+  return finalCount;
+}
+
+console.log(setCount(5));    // 5
+console.log(setCount(0));    // 10 (wanted 0, got 10!)
+console.log(setCount(null)); // 10
+
+// ✅ Using ?? (nullish coalescing)
+function setCountBetter(count) {
+  const finalCount = count ?? 10; // Only null/undefined trigger default
+  return finalCount;
+}
+
+console.log(setCountBetter(5));    // 5
+console.log(setCountBetter(0));    // 0 (correct!)
+console.log(setCountBetter(null)); // 10
+
+// 9. ARRAY/OBJECT CHECKS
+
+const items = [];
+const data = {};
+
+// ❌ Wrong: Checking truthiness
+if (items) {
+  console.log("Has items"); // Runs even if empty!
+}
+
+// ✅ Correct: Check length/keys
+if (items.length > 0) {
+  console.log("Has items");
+}
+
+if (Object.keys(data).length > 0) {
+  console.log("Has data");
+}
+
+// 10. COMPARING WITH BOOLEAN (AVOID!)
+
+// ❌ Bad: Comparing with true/false
+if (value == true) { // Complex coercion!
+  // ...
+}
+
+// ✅ Good: Use truthy/falsy directly
+if (value) {
+  // ...
+}
+
+// ✅ Or be explicit
+if (value === true) {
+  // ...
+}
+
+// Examples of confusion:
+console.log("0" == true);    // false (confusing!)
+console.log("0" == false);   // true (confusing!)
+console.log([] == true);     // false
+console.log([] == false);    // true (wat!)
+
+// 11. SHORT-CIRCUIT WITH FUNCTIONS
+
+function expensive() {
+  console.log("Called expensive function");
+  return "result";
+}
+
+// Function only called if left side is truthy
+const result1 = true && expensive();  // "Called expensive function"
+const result2 = false && expensive(); // (not called)
+
+// Function only called if left side is falsy
+const result3 = true || expensive();  // (not called)
+const result4 = false || expensive(); // "Called expensive function"
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Thinking "0" is falsy
+  ```javascript
+  if ("0") {
+    console.log("Runs!"); // "0" is a truthy string
+  }
+  ```
+
+- ❌ **Mistake:** Thinking empty array/object is falsy
+  ```javascript
+  if ([]) {
+    console.log("Runs!"); // Empty array is truthy
+  }
+
+  if ({}) {
+    console.log("Runs!"); // Empty object is truthy
+  }
+  ```
+
+- ✅ **Correct:** Know the 8 falsy values and use appropriate checks
+  ```javascript
+  // Check array length
+  if (arr.length > 0) { }
+
+  // Check object keys
+  if (Object.keys(obj).length > 0) { }
+
+  // Use nullish coalescing for defaults
+  const count = value ?? 0;
+  ```
+
+### Follow-up Questions
+
+- "Why are empty arrays and objects truthy?"
+- "What is the difference between `||` and `??`?"
+- "How does short-circuit evaluation work?"
+- "What are the pitfalls of using `|| for default values?"
+- "Why should you avoid comparing with `== true`?"
+
+### Resources
+
+- [MDN: Truthy](https://developer.mozilla.org/en-US/docs/Glossary/Truthy)
+- [MDN: Falsy](https://developer.mozilla.org/en-US/docs/Glossary/Falsy)
+- [JavaScript.info: Type Conversions](https://javascript.info/type-conversions)
+
+---
+
+## Question 15: Explain short-circuit evaluation with && and || operators
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5-7 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+How does short-circuit evaluation work with `&&` and `||` operators? Provide practical examples.
+
+### Answer
+
+**Short-circuit evaluation** means logical operators stop evaluating as soon as the result is determined.
+
+1. **OR Operator (||)**
+   - Returns first truthy value
+   - If all values are falsy, returns last value
+   - Right side not evaluated if left is truthy
+   - Common for default values
+
+2. **AND Operator (&&)**
+   - Returns first falsy value
+   - If all values are truthy, returns last value
+   - Right side not evaluated if left is falsy
+   - Common for conditional execution
+
+3. **Why Short-Circuit**
+   - Performance optimization
+   - Avoid unnecessary computations
+   - Prevent errors (null/undefined checks)
+   - Enable conditional execution
+
+4. **Return Values**
+   - **Returns the actual value**, not just true/false!
+   - `||` returns first truthy or last value
+   - `&&` returns first falsy or last value
+
+5. **Modern Alternatives**
+   - `??` (nullish coalescing) - only null/undefined
+   - `?.` (optional chaining) - safe property access
+
+### Code Example
+
+```javascript
+// 1. OR (||) - RETURNS FIRST TRUTHY
+
+console.log(false || "default");        // "default"
+console.log(0 || "fallback");           // "fallback"
+console.log("" || "empty");             // "empty"
+console.log(null || undefined || "value"); // "value"
+
+// Returns actual values, not true/false!
+console.log(5 || 10);                   // 5 (first truthy)
+console.log("hello" || "world");        // "hello"
+
+// All falsy → returns last
+console.log(false || 0 || "");          // "" (last value)
+console.log(null || undefined);         // undefined
+
+// 2. AND (&&) - RETURNS FIRST FALSY
+
+console.log(true && "value");           // "value" (last truthy)
+console.log(1 && 2 && 3);              // 3 (last truthy)
+console.log(false && "never");          // false (first falsy)
+console.log(0 && "never");              // 0 (first falsy)
+console.log("" && "never");             // "" (first falsy)
+
+// All truthy → returns last
+console.log(5 && 10 && 15);            // 15
+
+// 3. SHORT-CIRCUIT PREVENTS EXECUTION
+
+function expensiveOperation() {
+  console.log("Expensive operation called!");
+  return "result";
+}
+
+// OR - right side NOT called if left is truthy
+const result1 = true || expensiveOperation();  // true (not called)
+const result2 = false || expensiveOperation(); // "result" (called)
+
+// AND - right side NOT called if left is falsy
+const result3 = false && expensiveOperation(); // false (not called)
+const result4 = true && expensiveOperation();  // "result" (called)
+
+// 4. DEFAULT VALUES WITH ||
+
+function greet(name) {
+  const finalName = name || "Guest"; // Default if name is falsy
+  return `Hello, ${finalName}!`;
+}
+
+console.log(greet("Alice"));   // "Hello, Alice!"
+console.log(greet(""));        // "Hello, Guest!"
+console.log(greet(null));      // "Hello, Guest!"
+console.log(greet(undefined)); // "Hello, Guest!"
+
+// ⚠️ Problem: 0 and false also get default!
+console.log(greet(0));         // "Hello, Guest!" (might not want this)
+console.log(greet(false));     // "Hello, Guest!" (might not want this)
+
+// 5. CONDITIONAL EXECUTION WITH &&
+
+const user = { name: "Alice", role: "admin" };
+
+// Execute only if user exists
+user && console.log(`Welcome, ${user.name}!`); // Logs
+
+// Execute only if user is admin
+user.role === "admin" && console.log("Admin access granted"); // Logs
+
+// Common in React
+const hasData = true;
+hasData && renderComponent(); // Only renders if hasData is truthy
+
+// 6. CHAINING SHORT-CIRCUITS
+
+// OR chain - first truthy wins
+const value = getFromCache() || getFromDatabase() || "default";
+// Only calls each function until one returns truthy
+
+// AND chain - first falsy stops
+const result = validateInput() && processData() && saveToDatabase();
+// Stops at first falsy (failed validation)
+
+// 7. PRACTICAL - NULL/UNDEFINED CHECK
+
+const data = { user: { name: "Alice" } };
+
+// ❌ Without short-circuit - crashes if data.user is null
+// console.log(data.user.name); // TypeError if user is null
+
+// ✅ With && short-circuit
+console.log(data && data.user && data.user.name); // "Alice"
+
+// Better with optional chaining
+console.log(data?.user?.name); // "Alice"
+
+// 8. DEFAULT VALUES - || VS ??
+
+const count1 = 0;
+const count2 = null;
+
+// || treats 0 as falsy
+console.log(count1 || 10);  // 10 (0 is falsy!)
+console.log(count2 || 10);  // 10
+
+// ?? only treats null/undefined as nullish
+console.log(count1 ?? 10);  // 0 (keeps 0!)
+console.log(count2 ?? 10);  // 10
+
+const flag1 = false;
+const flag2 = null;
+
+console.log(flag1 || true);  // true (false is falsy)
+console.log(flag1 ?? true);  // false (keeps false!)
+
+console.log(flag2 || true);  // true
+console.log(flag2 ?? true);  // true
+
+// 9. PRACTICAL - CACHING
+
+let cache = null;
+
+function getData() {
+  // Only compute if cache is empty
+  cache = cache || expensiveComputation();
+  return cache;
+}
+
+// Or with lazy evaluation
+function getDataLazy() {
+  return cache || (cache = expensiveComputation());
+}
+
+// 10. GUARD CLAUSES
+
+function processUser(user) {
+  // Early return if user is falsy
+  if (!user) return;
+
+  // Or using && for one-liner
+  user && console.log(`Processing ${user.name}`);
+
+  // Multiple guards
+  user && user.isActive && processActiveUser(user);
+}
+
+// 11. COMBINING && AND ||
+
+// Complex conditions
+const canEdit = (isOwner || isAdmin) && isActive;
+
+// Default with validation
+const name = (input && input.trim()) || "Anonymous";
+
+// 12. PERFORMANCE OPTIMIZATION
+
+// ❌ Bad: Always executes both
+function slowCheck() {
+  return expensiveCheck1() | expensiveCheck2(); // Bitwise OR, no short-circuit!
+}
+
+// ✅ Good: Short-circuits
+function fastCheck() {
+  return expensiveCheck1() || expensiveCheck2(); // Stops at first truthy
+}
+
+// 13. EVENT HANDLER PATTERN
+
+function handleClick(event) {
+  // Prevent default only if condition is met
+  shouldPreventDefault && event.preventDefault();
+
+  // Call handler only if it exists
+  onClick && onClick(event);
+
+  // Chain multiple checks
+  isEnabled && !isLoading && performAction();
+}
+
+// 14. API RESPONSE HANDLING
+
+function processResponse(response) {
+  // Extract data with defaults
+  const data = response && response.data || [];
+  const status = response && response.status || 500;
+  const message = response && response.message || "Error occurred";
+
+  return { data, status, message };
+}
+
+// Better with optional chaining and nullish coalescing
+function processResponseBetter(response) {
+  return {
+    data: response?.data ?? [],
+    status: response?.status ?? 500,
+    message: response?.message ?? "Error occurred"
+  };
+}
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Using || with 0, false, or ""
+  ```javascript
+  const count = 0;
+  const display = count || "No items"; // "No items" (wrong!)
+
+  // Use ?? instead
+  const display = count ?? "No items"; // 0 (correct!)
+  ```
+
+- ❌ **Mistake:** Forgetting operators return values
+  ```javascript
+  const result = true && "value";
+  console.log(result); // "value", not true!
+  ```
+
+- ✅ **Correct:** Use appropriate operator
+  ```javascript
+  // For defaults with falsy values: use ||
+  const name = input || "default";
+
+  // For defaults with only null/undefined: use ??
+  const count = value ?? 0;
+
+  // For safe access: use ?.
+  const city = user?.address?.city;
+  ```
+
+### Follow-up Questions
+
+- "What is the difference between `||` and `??`?"
+- "How does short-circuit evaluation improve performance?"
+- "What is optional chaining (`?.`) and when should you use it?"
+- "Can you use short-circuit for conditional execution?"
+- "What are the pitfalls of using `||` for default values?"
+
+### Resources
+
+- [MDN: Logical OR (||)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_OR)
+- [MDN: Logical AND (&&)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_AND)
+- [JavaScript.info: Logical Operators](https://javascript.info/logical-operators)
+
+---
+
+## Question 16: What is optional chaining (?.) in JavaScript?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 5-7 minutes
+**Companies:** Google, Meta, Amazon, Microsoft
+
+### Question
+Explain optional chaining (`?.`) operator. How does it work and when should you use it?
+
+### Answer
+
+**Optional chaining** (`?.`) allows you to safely access nested object properties without checking if each reference is null/undefined.
+
+1. **What It Does**
+   - Returns `undefined` if reference is null/undefined
+   - Short-circuits the rest of the chain
+   - Prevents "Cannot read property of undefined" errors
+   - Works with properties, methods, and array indexes
+
+2. **Three Forms**
+   - `obj?.prop` - property access
+   - `obj?.[expr]` - computed property access
+   - `func?.()` - function call
+
+3. **When to Use**
+   - Accessing deeply nested properties
+   - Optional API response fields
+   - Optional callback functions
+   - Dynamic property access
+
+4. **When NOT to Use**
+   - Required properties (hides bugs!)
+   - Where null/undefined should error
+   - Simple one-level access
+   - Performance-critical code (slight overhead)
+
+5. **Combination with ??**
+   - `obj?.prop ?? defaultValue` - safe access with default
+   - Common pattern for nested data with fallbacks
+
+### Code Example
+
+```javascript
+// 1. BASIC PROPERTY ACCESS
+
+const user = {
+  name: "Alice",
+  address: {
+    street: "123 Main St",
+    city: "Boston"
+  }
+};
+
+// ❌ Without optional chaining - crashes!
+const user2 = { name: "Bob" }; // No address
+// console.log(user2.address.city); // TypeError!
+
+// ✅ With optional chaining
+console.log(user2.address?.city); // undefined (safe!)
+
+// Traditional way (verbose)
+const city = user2.address && user2.address.city;
+
+// Modern way (clean)
+const city2 = user2.address?.city;
+
+// 2. DEEPLY NESTED ACCESS
+
+const data = {
+  user: {
+    profile: {
+      settings: {
+        theme: "dark"
+      }
+    }
+  }
+};
+
+// ❌ Traditional - verbose!
+const theme = data && data.user && data.user.profile &&
+              data.user.profile.settings &&
+              data.user.profile.settings.theme;
+
+// ✅ Optional chaining - clean!
+const theme2 = data?.user?.profile?.settings?.theme;
+
+// If any part is null/undefined → undefined
+const missing = data?.user?.profile?.missing?.prop; // undefined
+
+// 3. OPTIONAL METHOD CALLS
+
+const obj = {
+  greet() {
+    return "Hello!";
+  }
+};
+
+// ✅ Method exists
+console.log(obj.greet?.()); // "Hello!"
+
+// ✅ Method doesn't exist
+console.log(obj.missing?.()); // undefined (no error!)
+
+// ❌ Without optional chaining
+// console.log(obj.missing()); // TypeError!
+
+// 4. OPTIONAL ARRAY ACCESS
+
+const users = [
+  { name: "Alice" },
+  { name: "Bob" }
+];
+
+console.log(users[0]?.name);  // "Alice"
+console.log(users[10]?.name); // undefined (index doesn't exist)
+
+// With null array
+const nullArray = null;
+console.log(nullArray?.[0]);  // undefined (safe!)
+
+// 5. COMPUTED PROPERTY ACCESS
+
+const key = "address";
+const user = { name: "Alice", address: "123 Main" };
+
+// Traditional bracket notation
+console.log(user[key]); // "123 Main"
+
+// Optional computed access
+console.log(user?.[key]); // "123 Main"
+
+const nullObj = null;
+console.log(nullObj?.[key]); // undefined (safe!)
+
+// 6. COMBINING WITH NULLISH COALESCING
+
+const user = { name: "Alice" };
+
+// Get nested value with default
+const city = user?.address?.city ?? "Unknown";
+console.log(city); // "Unknown"
+
+const theme = user?.settings?.theme ?? "light";
+console.log(theme); // "light"
+
+// Without optional chaining (verbose)
+const city2 = (user && user.address && user.address.city) || "Unknown";
+
+// 7. OPTIONAL CALLBACKS
+
+function processData(data, onSuccess, onError) {
+  try {
+    const result = process(data);
+    onSuccess?.(result); // Call only if function exists
+  } catch (error) {
+    onError?.(error); // Call only if function exists
+  }
+}
+
+// Call without callbacks (no error!)
+processData(someData);
+
+// Call with only onSuccess
+processData(someData, (result) => console.log(result));
+
+// 8. OPTIONAL EVENT HANDLERS
+
+class Button {
+  constructor(options) {
+    this.onClick = options.onClick;
+    this.onHover = options.onHover;
+  }
+
+  handleClick(event) {
+    // Call handler only if defined
+    this.onClick?.(event);
+  }
+
+  handleHover(event) {
+    this.onHover?.(event);
+  }
+}
+
+// Create button without all handlers (no error!)
+const btn = new Button({
+  onClick: (e) => console.log("Clicked!")
+  // onHover not provided - that's OK!
+});
+
+// 9. API RESPONSE HANDLING
+
+async function getUser(id) {
+  const response = await fetch(`/api/users/${id}`);
+  const data = await response.json();
+
+  // Safely access optional fields
+  return {
+    name: data?.name ?? "Unknown",
+    email: data?.contact?.email ?? "No email",
+    city: data?.address?.city ?? "Unknown",
+    phone: data?.contact?.phone?.number ?? "No phone"
+  };
+}
+
+// 10. REACT COMPONENT EXAMPLE
+
+function UserProfile({ user }) {
+  return (
+    <div>
+      <h1>{user?.name ?? "Guest"}</h1>
+      <p>{user?.address?.city}</p>
+      <img src={user?.avatar?.url ?? "/default-avatar.png"} />
+      {user?.isAdmin && <AdminBadge />}
+    </div>
+  );
+}
+
+// Works even if user is null/undefined
+<UserProfile user={null} /> // No crash!
+
+// 11. SHORT-CIRCUITING
+
+let count = 0;
+
+function increment() {
+  count++;
+  return { value: count };
+}
+
+const obj = null;
+
+// increment() is NOT called (short-circuit!)
+console.log(obj?.prop?.nested?.increment());
+console.log(count); // 0 (increment never called)
+
+// 12. DELETE WITH OPTIONAL CHAINING
+
+const config = {
+  theme: "dark",
+  settings: {
+    notifications: true
+  }
+};
+
+// Safe delete
+delete config?.settings?.advanced; // No error even if doesn't exist
+delete config?.missing?.prop; // No error
+
+// 13. LIMITATIONS
+
+// ❌ Can't use on left side of assignment
+// obj?.prop = "value"; // SyntaxError!
+
+// ✅ Must use regular access for assignment
+if (obj) {
+  obj.prop = "value";
+}
+
+// ❌ Doesn't work with optional construction
+// const instance = new Constructor?.(); // SyntaxError!
+
+// ✅ Use conditional instead
+const instance = Constructor ? new Constructor() : null;
+
+// 14. PERFORMANCE CONSIDERATION
+
+// For tight loops, optional chaining has slight overhead
+for (let i = 0; i < 1000000; i++) {
+  // Slightly slower
+  const value = obj?.prop?.nested;
+
+  // Slightly faster (if you know obj exists)
+  const value2 = obj.prop?.nested;
+}
+
+// In most cases, the overhead is negligible
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Using for required properties
+  ```javascript
+  // Bad - hides bugs!
+  function processUser(user) {
+    console.log(user?.name); // undefined if user is null - should error!
+  }
+
+  // Good - fail fast for required data
+  function processUser(user) {
+    if (!user) throw new Error("User required");
+    console.log(user.name);
+  }
+  ```
+
+- ❌ **Mistake:** Trying to use for assignment
+  ```javascript
+  obj?.prop = "value"; // SyntaxError!
+  ```
+
+- ✅ **Correct:** Use for optional access with defaults
+  ```javascript
+  const name = user?.name ?? "Guest";
+  const city = user?.address?.city ?? "Unknown";
+  ```
+
+### Follow-up Questions
+
+- "What's the difference between `?.` and `&&` for null checks?"
+- "Can you use optional chaining on the left side of an assignment?"
+- "How does optional chaining work with nullish coalescing?"
+- "What are the performance implications of optional chaining?"
+- "When should you NOT use optional chaining?"
+
+### Resources
+
+- [MDN: Optional Chaining](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Optional_chaining)
+- [JavaScript.info: Optional Chaining](https://javascript.info/optional-chaining)
+- [TC39 Optional Chaining Proposal](https://github.com/tc39/proposal-optional-chaining)
+
+---
+
+## Question 17: What is nullish coalescing (??) operator?
+
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain the nullish coalescing (`??`) operator. How is it different from the OR (`||`) operator?
+
+### Answer
+
+**Nullish coalescing** (`??`) returns the right operand when the left operand is `null` or `undefined`. Unlike `||`, it doesn't treat other falsy values (0, false, "") as triggers.
+
+1. **What is Nullish**
+   - Only `null` and `undefined` are nullish
+   - All other values are NOT nullish (including 0, false, "")
+   - Different from falsy (which includes 0, false, "", etc.)
+
+2. **|| vs ??**
+   - `||` returns right side for ANY falsy value
+   - `??` returns right side ONLY for null/undefined
+   - Use `||` when you want to filter all falsy values
+   - Use `??` when 0, false, "" are valid values
+
+3. **Common Use Cases**
+   - Default values where 0 is valid
+   - Boolean flags where false is valid
+   - Strings where empty string is valid
+
+4. **Assignment Variants**
+   - `??=` - nullish coalescing assignment
+   - Only assigns if current value is null/undefined
+
+5. **Chaining and Precedence**
+   - Cannot directly mix `??` with `&&` or `||`
+   - Must use parentheses for clarity
+
+### Code Example
+
+```javascript
+// 1. BASIC COMPARISON: || VS ??
+
+// || returns right side for ANY falsy value
+console.log(0 || 10);        // 10 (0 is falsy)
+console.log("" || "default"); // "default" ("" is falsy)
+console.log(false || true);   // true (false is falsy)
+
+// ?? returns right side ONLY for null/undefined
+console.log(0 ?? 10);        // 0 (0 is not nullish!)
+console.log("" ?? "default"); // "" (empty string is not nullish!)
+console.log(false ?? true);   // false (false is not nullish!)
+
+// Both behave same for null/undefined
+console.log(null || 10);      // 10
+console.log(null ?? 10);      // 10
+console.log(undefined || 10); // 10
+console.log(undefined ?? 10); // 10
+
+// 2. PRACTICAL - COUNT/NUMBER VALUES
+
+function setCount(count) {
+  // ❌ Wrong with ||: treats 0 as invalid
+  const value1 = count || 5;
+  console.log(value1); // 5 if count is 0!
+
+  // ✅ Correct with ??: keeps 0
+  const value2 = count ?? 5;
+  console.log(value2); // 0 if count is 0
+}
+
+setCount(0);    // || gives 5, ?? gives 0
+setCount(null); // Both give 5
+
+// 3. PRACTICAL - BOOLEAN FLAGS
+
+function enableFeature(isEnabled) {
+  // ❌ Wrong with ||: treats false as disabled
+  const enabled1 = isEnabled || true;
+  console.log(enabled1); // true even if isEnabled is false!
+
+  // ✅ Correct with ??: respects false
+  const enabled2 = isEnabled ?? true;
+  console.log(enabled2); // false if isEnabled is false
+}
+
+enableFeature(false);     // || gives true, ?? gives false
+enableFeature(undefined); // Both give true
+
+// 4. PRACTICAL - EMPTY STRING
+
+function setName(name) {
+  // ❌ Wrong with ||: treats "" as invalid
+  const finalName1 = name || "Anonymous";
+  console.log(finalName1); // "Anonymous" if name is ""
+
+  // ✅ Correct with ??: keeps ""
+  const finalName2 = name ?? "Anonymous";
+  console.log(finalName2); // "" if name is ""
+}
+
+setName("");        // || gives "Anonymous", ?? gives ""
+setName(undefined); // Both give "Anonymous"
+
+// 5. REAL-WORLD EXAMPLE - USER SETTINGS
+
+const userSettings = {
+  volume: 0,          // 0 is valid!
+  notifications: false, // false is valid!
+  username: ""        // "" might be valid during editing
+};
+
+// ❌ Wrong with ||
+const volume1 = userSettings.volume || 50;
+const notifications1 = userSettings.notifications || true;
+const username1 = userSettings.username || "Guest";
+
+console.log(volume1);        // 50 (wanted 0!)
+console.log(notifications1); // true (wanted false!)
+console.log(username1);      // "Guest" (wanted ""!)
+
+// ✅ Correct with ??
+const volume2 = userSettings.volume ?? 50;
+const notifications2 = userSettings.notifications ?? true;
+const username2 = userSettings.username ?? "Guest";
+
+console.log(volume2);        // 0 (correct!)
+console.log(notifications2); // false (correct!)
+console.log(username2);      // "" (correct!)
+
+// 6. NULLISH COALESCING ASSIGNMENT (??=)
+
+let config = {
+  timeout: undefined,
+  retries: 0,
+  cache: null
+};
+
+// Only assign if current value is null/undefined
+config.timeout ??= 5000;  // Assigned (was undefined)
+config.retries ??= 3;     // NOT assigned (0 is not nullish)
+config.cache ??= {};      // Assigned (was null)
+
+console.log(config);
+// { timeout: 5000, retries: 0, cache: {} }
+
+// 7. COMBINING WITH OPTIONAL CHAINING
+
+const user = {
+  name: "Alice",
+  settings: {
+    theme: null,
+    fontSize: 0
+  }
+};
+
+// Get nested value with default
+const theme = user?.settings?.theme ?? "light";
+const fontSize = user?.settings?.fontSize ?? 14;
+
+console.log(theme);    // "light" (theme was null)
+console.log(fontSize); // 0 (fontSize was 0, not nullish!)
+
+// 8. CHAINING NULLISH COALESCING
+
+const value = input1 ?? input2 ?? input3 ?? "default";
+// Returns first non-nullish value
+
+const a = null;
+const b = undefined;
+const c = 0;
+const d = "value";
+
+const result = a ?? b ?? c ?? d ?? "default";
+console.log(result); // 0 (first non-nullish!)
+
+// 9. PRECEDENCE AND MIXING OPERATORS
+
+// ❌ Cannot directly mix with && or ||
+// const result = a ?? b || c; // SyntaxError!
+// const result = a && b ?? c; // SyntaxError!
+
+// ✅ Must use parentheses
+const result1 = (a ?? b) || c;  // OK
+const result2 = a ?? (b || c);  // OK
+const result3 = (a && b) ?? c;  // OK
+
+// 10. FUNCTION PARAMETERS WITH DEFAULTS
+
+// Traditional default parameter
+function greet1(name = "Guest") {
+  console.log(`Hello, ${name}!`);
+}
+
+greet1();        // "Hello, Guest!"
+greet1(null);    // "Hello, null!" (null passes through!)
+greet1("");      // "Hello, !" ("" passes through!)
+
+// Using ?? for more control
+function greet2(name) {
+  const finalName = name ?? "Guest";
+  console.log(`Hello, ${finalName}!`);
+}
+
+greet2();        // "Hello, Guest!"
+greet2(null);    // "Hello, Guest!"
+greet2("");      // "Hello, !" ("" is not nullish)
+
+// 11. API RESPONSE HANDLING
+
+async function fetchUserData(id) {
+  const response = await fetch(`/api/users/${id}`);
+  const data = await response.json();
+
+  return {
+    id: data.id ?? -1,                    // -1 if missing
+    name: data.name ?? "Unknown",         // "Unknown" if null/undefined
+    age: data.age ?? 0,                   // 0 if null/undefined
+    isActive: data.isActive ?? false,     // false if null/undefined
+    score: data.score ?? 0,               // Keep 0 if it's 0
+    verified: data.verified ?? false      // Keep false if it's false
+  };
+}
+
+// 12. CONDITIONAL RENDERING (REACT)
+
+function Component({ count, showZero }) {
+  return (
+    <div>
+      {/* ❌ Wrong: hides when count is 0 */}
+      {count || <EmptyState />}
+
+      {/* ✅ Correct: shows 0 */}
+      {count ?? <EmptyState />}
+
+      {/* ✅ Best: explicit check */}
+      {count !== undefined && count !== null ? count : <EmptyState />}
+    </div>
+  );
+}
+
+// 13. DECISION TABLE
+
+const value = /* some value */;
+
+// When to use ||
+value || defaultValue  // Use when ANY falsy value should trigger default
+
+// When to use ??
+value ?? defaultValue  // Use when ONLY null/undefined should trigger default
+
+// Examples:
+const count = 0;
+count || 10   // 10 (0 is replaced)
+count ?? 10   // 0 (0 is kept)
+
+const flag = false;
+flag || true  // true (false is replaced)
+flag ?? true  // false (false is kept)
+
+const text = "";
+text || "N/A"  // "N/A" ("" is replaced)
+text ?? "N/A"  // "" ("" is kept)
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Using || when 0, false, or "" are valid
+  ```javascript
+  const volume = settings.volume || 50;  // Replaces 0 with 50!
+
+  // Correct
+  const volume = settings.volume ?? 50;  // Keeps 0
+  ```
+
+- ❌ **Mistake:** Mixing ?? with && or || without parentheses
+  ```javascript
+  const result = a ?? b || c;  // SyntaxError!
+
+  // Correct
+  const result = (a ?? b) || c;  // OK
+  ```
+
+- ✅ **Correct:** Use ?? for values where 0, false, "" are meaningful
+  ```javascript
+  const count = value ?? 0;
+  const enabled = flag ?? false;
+  const name = input ?? "";
+  ```
+
+### Follow-up Questions
+
+- "What is the difference between `??` and `||`?"
+- "What values are considered 'nullish'?"
+- "Can you mix `??` with `&&` or `||`?"
+- "What is `??=` (nullish coalescing assignment)?"
+- "When should you use `??` vs `||`?"
+
+### Resources
+
+- [MDN: Nullish Coalescing](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing)
+- [JavaScript.info: Nullish Coalescing](https://javascript.info/nullish-coalescing-operator)
+- [TC39 Nullish Coalescing Proposal](https://github.com/tc39/proposal-nullish-coalescing)
+
+---
+
+## Question 18: What is destructuring in JavaScript?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 7-10 minutes
+**Companies:** Google, Meta, Amazon, Microsoft
+
+### Question
+Explain array and object destructuring. Provide examples of practical use cases.
+
+### Answer
+
+**Destructuring** is a syntax for extracting values from arrays or properties from objects into distinct variables.
+
+1. **Array Destructuring**
+   - Extract by position
+   - Skip elements with commas
+   - Rest operator to collect remaining
+   - Default values for missing elements
+   - Swap variables easily
+
+2. **Object Destructuring**
+   - Extract by property name
+   - Rename variables during extraction
+   - Default values for missing properties
+   - Nested destructuring
+   - Rest operator to collect remaining properties
+
+3. **Common Use Cases**
+   - Function parameters
+   - API response handling
+   - Multiple return values
+   - Swapping variables
+   - Importing specific exports
+
+4. **Benefits**
+   - Cleaner code
+   - Less repetitive
+   - Self-documenting
+   - Avoids intermediate variables
+
+5. **Advanced Patterns**
+   - Nested destructuring
+   - Mixed array/object destructuring
+   - Destructuring in loops
+   - Dynamic property names
+
+### Code Example
+
+```javascript
+// 1. BASIC ARRAY DESTRUCTURING
+
+const numbers = [1, 2, 3, 4, 5];
+
+// Traditional way
+const first = numbers[0];
+const second = numbers[1];
+
+// Destructuring way
+const [a, b, c] = numbers;
+console.log(a, b, c); // 1, 2, 3
+
+// Skip elements
+const [x, , y] = numbers; // Skip second element
+console.log(x, y); // 1, 3
+
+// 2. REST IN ARRAY DESTRUCTURING
+
+const [head, ...tail] = [1, 2, 3, 4, 5];
+console.log(head); // 1
+console.log(tail); // [2, 3, 4, 5]
+
+// Get first and last
+const [first, ...middle, last] = [1, 2, 3, 4, 5]; // ❌ SyntaxError!
+// Rest must be last
+
+// 3. DEFAULT VALUES IN ARRAYS
+
+const [a = 1, b = 2, c = 3] = [10];
+console.log(a, b, c); // 10, 2, 3
+
+const [x = "default"] = [undefined];
+console.log(x); // "default" (undefined triggers default)
+
+const [y = "default"] = [null];
+console.log(y); // null (null doesn't trigger default!)
+
+// 4. SWAPPING VARIABLES
+
+let a = 1, b = 2;
+
+// Traditional swap
+let temp = a;
+a = b;
+b = temp;
+
+// Destructuring swap (no temp variable!)
+[a, b] = [b, a];
+console.log(a, b); // 2, 1
+
+// 5. BASIC OBJECT DESTRUCTURING
+
+const user = {
+  name: "Alice",
+  age: 25,
+  city: "Boston"
+};
+
+// Traditional way
+const name = user.name;
+const age = user.age;
+
+// Destructuring way
+const { name, age, city } = user;
+console.log(name, age, city); // "Alice", 25, "Boston"
+
+// Order doesn't matter!
+const { city: c, name: n } = user;
+console.log(c, n); // "Boston", "Alice"
+
+// 6. RENAMING DURING DESTRUCTURING
+
+const user = { name: "Alice", age: 25 };
+
+// Rename 'name' to 'username'
+const { name: username, age: userAge } = user;
+console.log(username, userAge); // "Alice", 25
+
+// Common pattern for avoiding name conflicts
+const { name: userName } = user;
+const { name: productName } = product;
+
+// 7. DEFAULT VALUES IN OBJECTS
+
+const user = { name: "Alice" };
+
+const { name, age = 18, city = "Unknown" } = user;
+console.log(name, age, city); // "Alice", 18, "Unknown"
+
+// With renaming AND defaults
+const { name: n, age: a = 18 } = user;
+console.log(n, a); // "Alice", 18
+
+// 8. NESTED DESTRUCTURING
+
+const user = {
+  name: "Alice",
+  address: {
+    street: "123 Main St",
+    city: "Boston",
+    coords: {
+      lat: 42.3601,
+      lng: -71.0589
+    }
+  }
+};
+
+// Nested destructuring
+const {
+  name,
+  address: {
+    city,
+    coords: { lat, lng }
+  }
+} = user;
+
+console.log(name, city, lat, lng);
+// "Alice", "Boston", 42.3601, -71.0589
+
+// Note: 'address' and 'coords' are NOT variables!
+// console.log(address); // ReferenceError
+
+// 9. REST IN OBJECT DESTRUCTURING
+
+const user = {
+  name: "Alice",
+  age: 25,
+  city: "Boston",
+  country: "USA",
+  email: "alice@example.com"
+};
+
+// Extract some, collect rest
+const { name, age, ...otherInfo } = user;
+console.log(name, age); // "Alice", 25
+console.log(otherInfo);
+// { city: "Boston", country: "USA", email: "alice@example.com" }
+
+// 10. FUNCTION PARAMETERS
+
+// Traditional
+function greet(user) {
+  console.log(`Hello, ${user.name}! You are ${user.age} years old.`);
+}
+
+// Destructured parameters
+function greetBetter({ name, age }) {
+  console.log(`Hello, ${name}! You are ${age} years old.`);
+}
+
+greetBetter({ name: "Alice", age: 25 });
+
+// With defaults
+function createUser({ name = "Guest", age = 18, role = "user" } = {}) {
+  return { name, age, role };
+}
+
+console.log(createUser()); // { name: "Guest", age: 18, role: "user" }
+console.log(createUser({ name: "Alice" })); // { name: "Alice", age: 18, role: "user" }
+
+// 11. MULTIPLE RETURN VALUES
+
+function getCoordinates() {
+  return [42.3601, -71.0589];
+}
+
+const [latitude, longitude] = getCoordinates();
+
+function getUserInfo() {
+  return {
+    name: "Alice",
+    email: "alice@example.com",
+    age: 25
+  };
+}
+
+const { name, email } = getUserInfo();
+
+// 12. API RESPONSE HANDLING
+
+async function fetchUser(id) {
+  const response = await fetch(`/api/users/${id}`);
+  const data = await response.json();
+
+  // Destructure with defaults
+  const {
+    name = "Unknown",
+    email = "no-email",
+    address: {
+      city = "Unknown",
+      country = "Unknown"
+    } = {}
+  } = data;
+
+  return { name, email, city, country };
+}
+
+// 13. ARRAY OF OBJECTS
+
+const users = [
+  { id: 1, name: "Alice", age: 25 },
+  { id: 2, name: "Bob", age: 30 },
+  { id: 3, name: "Charlie", age: 35 }
+];
+
+// Destructure in map
+const names = users.map(({ name }) => name);
+console.log(names); // ["Alice", "Bob", "Charlie"]
+
+// Destructure in forEach
+users.forEach(({ name, age }) => {
+  console.log(`${name} is ${age} years old`);
+});
+
+// Destructure in for...of
+for (const { name, age } of users) {
+  console.log(`${name}: ${age}`);
+}
+
+// 14. DYNAMIC PROPERTY NAMES
+
+const key = "username";
+const { [key]: value } = { username: "alice123" };
+console.log(value); // "alice123"
+
+const prop = "email";
+const user = { email: "alice@example.com", name: "Alice" };
+const { [prop]: emailValue } = user;
+console.log(emailValue); // "alice@example.com"
+
+// 15. MIXED ARRAY AND OBJECT DESTRUCTURING
+
+const response = {
+  data: {
+    users: [
+      { id: 1, name: "Alice" },
+      { id: 2, name: "Bob" }
+    ],
+    total: 2
+  }
+};
+
+// Extract first user's name
+const {
+  data: {
+    users: [{ name: firstName }],
+    total
+  }
+} = response;
+
+console.log(firstName, total); // "Alice", 2
+
+// 16. REACT/JSX COMMON PATTERNS
+
+// Component props destructuring
+function UserCard({ name, age, avatar, onEdit }) {
+  return (
+    <div>
+      <img src={avatar} />
+      <h2>{name}</h2>
+      <p>Age: {age}</p>
+      <button onClick={onEdit}>Edit</button>
+    </div>
+  );
+}
+
+// With defaults
+function Button({
+  text = "Click me",
+  onClick = () => {},
+  disabled = false,
+  ...otherProps
+}) {
+  return <button onClick={onClick} disabled={disabled} {...otherProps}>{text}</button>;
+}
+
+// 17. IMPORTING MODULES
+
+// Named imports (destructuring!)
+import { useState, useEffect } from 'react';
+import { formatDate, parseDate } from './utils';
+
+// With renaming
+import { default as React, Component as ReactComponent } from 'react';
+
+// 18. OBJECT METHOD DESTRUCTURING
+
+const calculator = {
+  add: (a, b) => a + b,
+  subtract: (a, b) => a - b,
+  multiply: (a, b) => a * b
+};
+
+const { add, multiply } = calculator;
+console.log(add(5, 3));      // 8
+console.log(multiply(5, 3)); // 15
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Forgetting parentheses when destructuring statement
+  ```javascript
+  let a, b;
+  { a, b } = { a: 1, b: 2 }; // ❌ SyntaxError!
+
+  // Correct
+  ({ a, b } = { a: 1, b: 2 }); // ✅ OK
+  ```
+
+- ❌ **Mistake:** Rest parameter not last
+  ```javascript
+  const [a, ...rest, b] = [1, 2, 3, 4]; // ❌ SyntaxError!
+
+  // Correct
+  const [a, b, ...rest] = [1, 2, 3, 4]; // ✅ OK
+  ```
+
+- ✅ **Correct:** Use destructuring for cleaner code
+  ```javascript
+  // Extract what you need
+  const { name, email } = user;
+
+  // Use defaults for safety
+  const { age = 18, city = "Unknown" } = user;
+
+  // Rest for remaining properties
+  const { id, ...userData } = user;
+  ```
+
+### Follow-up Questions
+
+- "How do you swap variables using destructuring?"
+- "Can you use default values with destructuring?"
+- "What is the difference between `undefined` and `null` in destructuring?"
+- "How does destructuring work with nested objects?"
+- "Can you rename variables during destructuring?"
+
+### Resources
+
+- [MDN: Destructuring Assignment](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment)
+- [JavaScript.info: Destructuring](https://javascript.info/destructuring-assignment)
+- [ES6 Destructuring](https://www.freecodecamp.org/news/destructuring-in-javascript/)
+
+---
+
+## Question 19: What is the spread operator (...) in JavaScript?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 7 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain the spread operator (`...`). Provide examples of its use with arrays and objects.
+
+### Answer
+
+The **spread operator** (`...`) expands iterables (arrays, strings) or object properties into individual elements.
+
+1. **Array Operations**
+   - Copy arrays (shallow)
+   - Concatenate arrays
+   - Pass array as function arguments
+   - Add elements easily
+
+2. **Object Operations**
+   - Copy objects (shallow)
+   - Merge objects
+   - Add/override properties
+   - Clone with modifications
+
+3. **Key Behaviors**
+   - Creates shallow copies (nested objects are references!)
+   - Later properties override earlier ones
+   - Works with any iterable
+   - Syntactically simple
+
+4. **Common Use Cases**
+   - Immutable updates
+   - React state updates
+   - Merging configurations
+   - Function argument spreading
+
+5. **Spread vs Rest**
+   - Spread: **expands** into individual elements
+   - Rest: **collects** individual elements into array
+
+### Code Example
+
+```javascript
+// 1. ARRAY SPREADING - COPY
+
+const original = [1, 2, 3];
+const copy = [...original];
+
+console.log(copy); // [1, 2, 3]
+console.log(copy === original); // false (new array!)
+
+copy.push(4);
+console.log(original); // [1, 2, 3] (unchanged)
+console.log(copy);     // [1, 2, 3, 4]
+
+// 2. ARRAY SPREADING - CONCATENATE
+
+const arr1 = [1, 2, 3];
+const arr2 = [4, 5, 6];
+
+// Traditional
+const combined1 = arr1.concat(arr2);
+
+// Spread
+const combined2 = [...arr1, ...arr2];
+console.log(combined2); // [1, 2, 3, 4, 5, 6]
+
+// Add elements in between
+const mixed = [0, ...arr1, 3.5, ...arr2, 7];
+console.log(mixed); // [0, 1, 2, 3, 3.5, 4, 5, 6, 7]
+
+// 3. ARRAY SPREADING - FUNCTION ARGUMENTS
+
+function sum(a, b, c) {
+  return a + b + c;
+}
+
+const numbers = [1, 2, 3];
+
+// Traditional
+sum.apply(null, numbers); // 6
+
+// Spread
+sum(...numbers); // 6
+
+// With Math functions
+const nums = [5, 2, 8, 1, 9];
+console.log(Math.max(...nums)); // 9
+console.log(Math.min(...nums)); // 1
+
+// 4. OBJECT SPREADING - COPY
+
+const user = { name: "Alice", age: 25 };
+const userCopy = { ...user };
+
+console.log(userCopy); // { name: "Alice", age: 25 }
+console.log(userCopy === user); // false (new object!)
+
+userCopy.age = 26;
+console.log(user.age); // 25 (unchanged)
+
+// 5. OBJECT SPREADING - MERGE
+
+const defaults = { theme: "light", language: "en" };
+const userSettings = { theme: "dark", notifications: true };
+
+const settings = { ...defaults, ...userSettings };
+console.log(settings);
+// { theme: "dark", language: "en", notifications: true }
+// userSettings.theme overrides defaults.theme
+
+// 6. OBJECT SPREADING - ADD/OVERRIDE PROPERTIES
+
+const user = { name: "Alice", age: 25 };
+
+// Add property
+const withEmail = { ...user, email: "alice@example.com" };
+
+// Override property
+const withNewAge = { ...user, age: 26 };
+
+// Multiple changes
+const updated = {
+  ...user,
+  age: 26,
+  city: "Boston",
+  isActive: true
+};
+
+// 7. SHALLOW COPY WARNING!
+
+const original = {
+  name: "Alice",
+  address: {
+    city: "Boston"
+  }
+};
+
+const copy = { ...original };
+
+// Top-level property: independent
+copy.name = "Bob";
+console.log(original.name); // "Alice" (unchanged)
+
+// Nested object: SHARED REFERENCE!
+copy.address.city = "NYC";
+console.log(original.address.city); // "NYC" (changed!)
+
+// Deep copy needed for nested objects
+const deepCopy = {
+  ...original,
+  address: { ...original.address }
+};
+
+// 8. STRING SPREADING
+
+const str = "hello";
+const chars = [...str];
+console.log(chars); // ["h", "e", "l", "l", "o"]
+
+// Create array from string
+const letters = [..."abc"];
+console.log(letters); // ["a", "b", "c"]
+
+// 9. SET AND MAP SPREADING
+
+const set = new Set([1, 2, 3, 4, 5]);
+const arr = [...set];
+console.log(arr); // [1, 2, 3, 4, 5]
+
+// Remove duplicates from array
+const nums = [1, 2, 2, 3, 3, 4];
+const unique = [...new Set(nums)];
+console.log(unique); // [1, 2, 3, 4]
+
+// 10. REACT STATE UPDATES (IMMUTABLE PATTERN)
+
+// Array state
+const [items, setItems] = useState([1, 2, 3]);
+
+// Add item
+setItems([...items, 4]);
+
+// Remove item
+setItems(items.filter(item => item !== 2));
+
+// Update item
+setItems(items.map(item => item === 2 ? 20 : item));
+
+// Object state
+const [user, setUser] = useState({ name: "Alice", age: 25 });
+
+// Update property
+setUser({ ...user, age: 26 });
+
+// Update nested property
+setUser({
+  ...user,
+  address: {
+    ...user.address,
+    city: "NYC"
+  }
+});
+
+// 11. FUNCTION DEFAULT PARAMETERS WITH SPREADING
+
+function createUser(overrides = {}) {
+  const defaults = {
+    name: "Guest",
+    age: 18,
+    role: "user",
+    active: true
+  };
+
+  return { ...defaults, ...overrides };
+}
+
+console.log(createUser());
+// { name: "Guest", age: 18, role: "user", active: true }
+
+console.log(createUser({ name: "Alice", role: "admin" }));
+// { name: "Alice", age: 18, role: "admin", active: true }
+
+// 12. COMBINING ARRAYS AND OBJECTS
+
+const users = [
+  { id: 1, name: "Alice" },
+  { id: 2, name: "Bob" }
+];
+
+// Add new user
+const newUsers = [...users, { id: 3, name: "Charlie" }];
+
+// Update user
+const updatedUsers = users.map(user =>
+  user.id === 2 ? { ...user, name: "Robert" } : user
+);
+
+// 13. SPREAD VS REST
+
+// Spread: Expands array into individual elements
+const nums = [1, 2, 3];
+console.log(...nums); // 1 2 3 (three separate arguments)
+
+// Rest: Collects individual elements into array
+function sum(...numbers) { // rest parameter
+  return numbers.reduce((total, n) => total + n, 0);
+}
+
+console.log(sum(1, 2, 3, 4, 5)); // 15
+
+// 14. PRACTICAL - MERGING CONFIGURATIONS
+
+const defaultConfig = {
+  timeout: 5000,
+  retries: 3,
+  cache: true,
+  headers: {
+    "Content-Type": "application/json"
+  }
+};
+
+const userConfig = {
+  timeout: 10000,
+  headers: {
+    "Authorization": "Bearer token"
+  }
+};
+
+// Naive merge (headers get completely replaced!)
+const config1 = { ...defaultConfig, ...userConfig };
+console.log(config1.headers);
+// { Authorization: "Bearer token" }
+// Lost Content-Type!
+
+// Correct merge (deep merge headers)
+const config2 = {
+  ...defaultConfig,
+  ...userConfig,
+  headers: {
+    ...defaultConfig.headers,
+    ...userConfig.headers
+  }
+};
+console.log(config2.headers);
+// { "Content-Type": "application/json", "Authorization": "Bearer token" }
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Thinking spread creates deep copy
+  ```javascript
+  const original = { name: "Alice", address: { city: "Boston" } };
+  const copy = { ...original };
+
+  copy.address.city = "NYC";
+  console.log(original.address.city); // "NYC" (changed!)
+  ```
+
+- ❌ **Mistake:** Wrong spread order
+  ```javascript
+  const defaults = { theme: "light" };
+  const user = { theme: "dark" };
+
+  // Wrong: defaults override user
+  const settings = { ...user, ...defaults };
+  // theme: "light" (wanted "dark"!)
+
+  // Correct
+  const settings = { ...defaults, ...user };
+  // theme: "dark"
+  ```
+
+- ✅ **Correct:** Use spread for shallow copies and immutable updates
+  ```javascript
+  // Shallow copy is fine for primitives
+  const newUser = { ...user, age: 26 };
+
+  // Deep copy for nested objects
+  const newConfig = {
+    ...config,
+    headers: { ...config.headers, newHeader: "value" }
+  };
+  ```
+
+### Follow-up Questions
+
+- "What is the difference between spread and rest operators?"
+- "Does spread create a deep copy or shallow copy?"
+- "How do you merge two objects with nested properties?"
+- "Can you use spread with strings?"
+- "What happens when spreading objects with duplicate keys?"
+
+### Resources
+
+- [MDN: Spread Syntax](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax)
+- [JavaScript.info: Spread Operator](https://javascript.info/rest-parameters-spread#spread-syntax)
+
+---
+
+## Question 20: What are rest parameters in JavaScript?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain rest parameters (`...args`). How are they different from the `arguments` object?
+
+### Answer
+
+**Rest parameters** collect all remaining arguments into a real array using `...` syntax.
+
+1. **What Rest Does**
+   - Collects multiple arguments into array
+   - Must be last parameter
+   - Creates real Array (not array-like)
+   - Named parameter (unlike arguments)
+
+2. **Rest vs Arguments**
+   - Rest is real array (has array methods)
+   - Arguments is array-like object
+   - Rest only collects remaining args
+   - Arguments collects all args
+
+3. **Common Use Cases**
+   - Variable number of arguments
+   - Wrapper functions
+   - Flexible APIs
+   - Collecting array elements
+
+4. **Benefits**
+   - Cleaner than arguments
+   - Works with arrow functions
+   - Real array (map, filter, reduce)
+   - Better parameter names
+
+5. **Limitations**
+   - Must be last parameter
+   - Can only have one rest parameter
+   - Doesn't include named parameters
+
+### Code Example
+
+```javascript
+// 1. BASIC REST PARAMETERS
+
+function sum(...numbers) {
+  return numbers.reduce((total, num) => total + num, 0);
+}
+
+console.log(sum(1, 2, 3)); // 6
+console.log(sum(1, 2, 3, 4, 5)); // 15
+console.log(sum()); // 0 (empty array)
+
+// 2. REST WITH NAMED PARAMETERS
+
+function greet(greeting, ...names) {
+  return `${greeting}, ${names.join(" and ")}!`;
+}
+
+console.log(greet("Hello", "Alice")); // "Hello, Alice!"
+console.log(greet("Hi", "Bob", "Charlie")); // "Hi, Bob and Charlie!"
+console.log(greet("Hey", "Alice", "Bob", "Charlie"));
+// "Hey, Alice and Bob and Charlie!"
+
+// 3. REST VS ARGUMENTS
+
+// Old way: arguments object
+function oldSum() {
+  // arguments is array-like, not real array
+  console.log(Array.isArray(arguments)); // false
+
+  // Need to convert to array
+  const args = Array.from(arguments);
+  return args.reduce((total, num) => total + num, 0);
+}
+
+// Modern way: rest parameters
+function modernSum(...numbers) {
+  console.log(Array.isArray(numbers)); // true (real array!)
+  return numbers.reduce((total, num) => total + num, 0);
+}
+
+// 4. REST MUST BE LAST
+
+function example(first, ...rest, last) {
+  // ❌ SyntaxError! Rest must be last parameter
+}
+
+function correct(first, second, ...rest) {
+  // ✅ OK
+  console.log(first);  // First arg
+  console.log(second); // Second arg
+  console.log(rest);   // Array of remaining args
+}
+
+correct(1, 2, 3, 4, 5);
+// first: 1
+// second: 2
+// rest: [3, 4, 5]
+
+// 5. REST IN ARROW FUNCTIONS
+
+// ❌ arguments doesn't work in arrow functions
+const arrowSum1 = () => {
+  return arguments.reduce((a, b) => a + b); // ReferenceError!
+};
+
+// ✅ Rest parameters work perfectly
+const arrowSum2 = (...numbers) => {
+  return numbers.reduce((a, b) => a + b, 0);
+};
+
+console.log(arrowSum2(1, 2, 3, 4)); // 10
+
+// 6. WRAPPER FUNCTIONS
+
+function logAndExecute(fn, ...args) {
+  console.log(`Calling function with args:`, args);
+  return fn(...args); // Spread args back out
+}
+
+function add(a, b) {
+  return a + b;
+}
+
+console.log(logAndExecute(add, 5, 3));
+// Calling function with args: [5, 3]
+// 8
+
+// 7. ARRAY METHODS WITH REST
+
+function findMax(...numbers) {
+  return Math.max(...numbers);
+}
+
+function average(...numbers) {
+  return numbers.reduce((a, b) => a + b, 0) / numbers.length;
+}
+
+function sortNumbers(...numbers) {
+  return numbers.sort((a, b) => a - b);
+}
+
+console.log(findMax(5, 2, 9, 1)); // 9
+console.log(average(1, 2, 3, 4)); // 2.5
+console.log(sortNumbers(5, 2, 9, 1)); // [1, 2, 5, 9]
+
+// 8. REST IN DESTRUCTURING
+
+const [first, second, ...rest] = [1, 2, 3, 4, 5];
+console.log(first);  // 1
+console.log(second); // 2
+console.log(rest);   // [3, 4, 5]
+
+const { name, age, ...otherProps } = {
+  name: "Alice",
+  age: 25,
+  city: "Boston",
+  email: "alice@example.com"
+};
+
+console.log(name);  // "Alice"
+console.log(age);   // 25
+console.log(otherProps); // { city: "Boston", email: "alice@example.com" }
+
+// 9. PRACTICAL - FLEXIBLE API
+
+class Calculator {
+  add(...numbers) {
+    return numbers.reduce((sum, n) => sum + n, 0);
+  }
+
+  multiply(...numbers) {
+    return numbers.reduce((product, n) => product * n, 1);
+  }
+}
+
+const calc = new Calculator();
+console.log(calc.add(1, 2));           // 3
+console.log(calc.add(1, 2, 3, 4, 5));  // 15
+console.log(calc.multiply(2, 3, 4));   // 24
+
+// 10. REST WITH DEFAULTS
+
+function createUser(name, role = "user", ...permissions) {
+  return {
+    name,
+    role,
+    permissions
+  };
+}
+
+console.log(createUser("Alice"));
+// { name: "Alice", role: "user", permissions: [] }
+
+console.log(createUser("Bob", "admin", "read", "write", "delete"));
+// { name: "Bob", role: "admin", permissions: ["read", "write", "delete"] }
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Rest not last parameter
+  ```javascript
+  function wrong(...rest, last) { } // SyntaxError!
+  ```
+
+- ❌ **Mistake:** Multiple rest parameters
+  ```javascript
+  function wrong(...args1, ...args2) { } // SyntaxError!
+  ```
+
+- ✅ **Correct:** Rest as last parameter, spread when calling
+  ```javascript
+  function collect(first, ...rest) {
+    // rest collects remaining args into array
+  }
+
+  function spread(a, b, c) {
+    // ...
+  }
+
+  const args = [1, 2, 3];
+  spread(...args); // spread expands array into args
+  ```
+
+### Follow-up Questions
+
+- "What is the difference between rest parameters and the arguments object?"
+- "Can you use rest parameters in arrow functions?"
+- "Can rest parameters be combined with default parameters?"
+- "What is the difference between rest and spread operators?"
+
+### Resources
+
+- [MDN: Rest Parameters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/rest_parameters)
+- [JavaScript.info: Rest Parameters](https://javascript.info/rest-parameters-spread)
+
+---
+
+## Question 21: What are default parameters in JavaScript?
+
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain default parameters. How do they work and when should you use them?
+
+### Answer
+
+**Default parameters** allow named parameters to have default values if no value or `undefined` is passed.
+
+1. **Basic Behavior**
+   - Triggered by `undefined` (not by `null`!)
+   - Evaluated at call time (not define time)
+   - Can reference earlier parameters
+   - Can be any expression
+
+2. **vs Old Pattern**
+   - Old: `value = value || default` (problematic with 0, false, "")
+   - New: `function(value = default)` (only undefined triggers)
+
+3. **Common Use Cases**
+   - Optional function parameters
+   - Configuration objects
+   - API default values
+   - Fallback values
+
+### Code Example
+
+```javascript
+// 1. BASIC DEFAULT PARAMETERS
+function greet(name = "Guest", greeting = "Hello") {
+  return `${greeting}, ${name}!`;
+}
+
+console.log(greet());                    // "Hello, Guest!"
+console.log(greet("Alice"));             // "Hello, Alice!"
+console.log(greet("Bob", "Hi"));         // "Hi, Bob!"
+console.log(greet(undefined, "Hey"));    // "Hey, Guest!"
+
+// 2. UNDEFINED VS NULL
+function test(value = "default") {
+  console.log(value);
+}
+
+test();        // "default" (undefined triggers default)
+test(undefined); // "default" (explicitly passing undefined)
+test(null);    // null (null does NOT trigger default!)
+test(0);       // 0 (0 does NOT trigger default)
+test(false);   // false (false does NOT trigger default)
+test("");      // "" (empty string does NOT trigger default)
+
+// 3. OLD WAY VS NEW WAY
+// ❌ Old problematic way
+function oldWay(value) {
+  value = value || "default"; // Problem: replaces 0, false, ""
+  console.log(value);
+}
+
+oldWay(0);     // "default" (wanted 0!)
+oldWay(false); // "default" (wanted false!)
+
+// ✅ New correct way
+function newWay(value = "default") {
+  console.log(value);
+}
+
+newWay(0);     // 0 (correct!)
+newWay(false); // false (correct!)
+
+// 4. DEFAULT PARAMETERS WITH DESTRUCTURING
+function createUser({ name = "Guest", age = 18, role = "user" } = {}) {
+  return { name, age, role };
+}
+
+console.log(createUser());                          // { name: "Guest", age: 18, role: "user" }
+console.log(createUser({ name: "Alice" }));         // { name: "Alice", age: 18, role: "user" }
+console.log(createUser({ name: "Bob", age: 25 })); // { name: "Bob", age: 25, role: "user" }
+
+// 5. REFERENCING EARLIER PARAMETERS
+function makeArray(length = 10, value = length * 2) {
+  return Array(length).fill(value);
+}
+
+console.log(makeArray(3));    // [6, 6, 6] (value defaults to length * 2)
+console.log(makeArray(3, 10)); // [10, 10, 10]
+
+// ❌ Can't reference later parameters
+function wrong(a = b, b = 2) {
+  // ReferenceError: Cannot access 'b' before initialization
+}
+
+// 6. FUNCTION CALL AS DEFAULT
+function getDefaultName() {
+  console.log("getDefaultName called");
+  return "Guest";
+}
+
+function greet(name = getDefaultName()) {
+  console.log(`Hello, ${name}!`);
+}
+
+greet("Alice");  // Doesn't call getDefaultName
+greet();         // Calls getDefaultName, logs "Hello, Guest!"
+
+// 7. REQUIRED PARAMETERS PATTERN
+function required(paramName) {
+  throw new Error(`Parameter ${paramName} is required`);
+}
+
+function createUser(name = required('name'), email = required('email')) {
+  return { name, email };
+}
+
+// createUser(); // Error: Parameter name is required
+createUser("Alice", "alice@example.com"); // OK
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Expecting null to trigger default
+  ```javascript
+  function test(value = "default") {
+    console.log(value);
+  }
+  test(null); // null (not "default"!)
+  ```
+
+- ✅ **Correct:** Only undefined triggers defaults
+  ```javascript
+  function test(value = "default") {
+    console.log(value);
+  }
+  test();         // "default"
+  test(undefined); // "default"
+  test(null);     // null
+  ```
+
+### Resources
+
+- [MDN: Default Parameters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Default_parameters)
+
+---
+
+## Question 22: What are template literals in JavaScript?
+
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain template literals (template strings). What are their advantages?
+
+### Answer
+
+**Template literals** are string literals allowing embedded expressions, multi-line strings, and string interpolation using backticks (\`).
+
+1. **Features**
+   - String interpolation with `${expression}`
+   - Multi-line strings (no \n needed)
+   - Expression evaluation
+   - Tagged templates (advanced)
+
+2. **Advantages**
+   - Cleaner string concatenation
+   - No escape characters for quotes
+   - Embedded expressions
+   - Better readability
+
+### Code Example
+
+```javascript
+// 1. STRING INTERPOLATION
+const name = "Alice";
+const age = 25;
+
+// Old way
+const greeting1 = "Hello, " + name + "! You are " + age + " years old.";
+
+// Template literal way
+const greeting2 = `Hello, ${name}! You are ${age} years old.`;
+
+// 2. EXPRESSIONS
+const a = 5;
+const b = 10;
+
+console.log(`Sum: ${a + b}`);        // "Sum: 15"
+console.log(`Product: ${a * b}`);    // "Product: 50"
+console.log(`Comparison: ${a < b}`); // "Comparison: true"
+
+// 3. MULTI-LINE STRINGS
+// Old way
+const html1 = "<div>\n" +
+              "  <h1>Title</h1>\n" +
+              "  <p>Content</p>\n" +
+              "</div>";
+
+// Template literal way
+const html2 = `<div>
+  <h1>Title</h1>
+  <p>Content</p>
+</div>`;
+
+// 4. FUNCTION CALLS
+function getGreeting(time) {
+  return time < 12 ? "Good morning" : "Good afternoon";
+}
+
+const time = 10;
+console.log(`${getGreeting(time)}, Alice!`); // "Good morning, Alice!"
+
+// 5. NESTED TEMPLATES
+const user = { name: "Alice", isAdmin: true };
+const message = `User: ${user.name} (${user.isAdmin ? "Admin" : "User"})`;
+
+// 6. TAGGED TEMPLATES (ADVANCED)
+function highlight(strings, ...values) {
+  return strings.reduce((result, str, i) => {
+    return `${result}${str}<strong>${values[i] || ""}</strong>`;
+  }, "");
+}
+
+const name = "Alice";
+const score = 95;
+const result = highlight`${name} scored ${score} points`;
+// "<strong>Alice</strong> scored <strong>95</strong> points"
+```
+
+### Resources
+
+- [MDN: Template Literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
+
+---
+
+## Question 23: What is Symbol in JavaScript?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐
+**Time:** 5-7 minutes
+**Companies:** Google, Meta
+
+### Question
+Explain the Symbol primitive type. When would you use it?
+
+### Answer
+
+**Symbol** is a unique, immutable primitive type used as object property keys. Each Symbol is guaranteed to be unique.
+
+1. **Characteristics**
+   - Every Symbol is unique
+   - Immutable
+   - Can be used as object keys
+   - Not enumerable in for...in loops
+   - Not serialized by JSON.stringify
+
+2. **Use Cases**
+   - Private object properties
+   - Avoiding property name collisions
+   - Defining object metadata
+   - Well-known symbols (Symbol.iterator, etc.)
+
+### Code Example
+
+```javascript
+// 1. CREATING SYMBOLS
+const sym1 = Symbol();
+const sym2 = Symbol();
+
+console.log(sym1 === sym2); // false (each is unique!)
+
+const sym3 = Symbol("description");
+const sym4 = Symbol("description");
+console.log(sym3 === sym4); // false (still unique despite same description!)
+
+// 2. SYMBOL AS OBJECT KEY
+const id = Symbol("id");
+const user = {
+  name: "Alice",
+  [id]: 12345  // Symbol as property key
+};
+
+console.log(user[id]);  // 12345
+console.log(user.id);   // undefined (not the same as string "id")
+
+// 3. SYMBOLS ARE NOT ENUMERABLE
+const secret = Symbol("secret");
+const obj = {
+  name: "Alice",
+  age: 25,
+  [secret]: "hidden value"
+};
+
+// Symbols hidden from normal enumeration
+console.log(Object.keys(obj));        // ["name", "age"]
+console.log(JSON.stringify(obj));     // {"name":"Alice","age":25}
+
+// But can be accessed if you have the symbol
+console.log(Object.getOwnPropertySymbols(obj)); // [Symbol(secret)]
+
+// 4. GLOBAL SYMBOL REGISTRY
+const globalSym1 = Symbol.for("app.id");
+const globalSym2 = Symbol.for("app.id");
+
+console.log(globalSym1 === globalSym2); // true (same symbol!)
+
+console.log(Symbol.keyFor(globalSym1)); // "app.id"
+
+// 5. WELL-KNOWN SYMBOLS
+const iterableObj = {
+  items: [1, 2, 3],
+  [Symbol.iterator]() {
+    let index = 0;
+    return {
+      next: () => ({
+        value: this.items[index++],
+        done: index > this.items.length
+      })
+    };
+  }
+};
+
+for (const item of iterableObj) {
+  console.log(item); // 1, 2, 3
+}
+```
+
+### Resources
+
+- [MDN: Symbol](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol)
+
+---
+
+## Question 24: What is BigInt in JavaScript?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta
+
+### Question
+Explain BigInt. When would you use it instead of Number?
+
+### Answer
+
+**BigInt** is a numeric primitive for representing integers larger than 2^53 - 1 (Number.MAX_SAFE_INTEGER).
+
+1. **Characteristics**
+   - Can represent arbitrarily large integers
+   - Created with `n` suffix or `BigInt()` function
+   - Cannot mix with Number in operations
+   - No decimal/fractional values
+
+2. **Use Cases**
+   - Large integer calculations
+   - Cryptography
+   - High-precision timestamps
+   - Database IDs
+
+### Code Example
+
+```javascript
+// 1. CREATING BIGINTS
+const bigInt1 = 1234567890123456789012345678901234567890n;
+const bigInt2 = BigInt("1234567890123456789012345678901234567890");
+
+console.log(typeof bigInt1); // "bigint"
+
+// 2. NUMBER LIMITATIONS
+console.log(Number.MAX_SAFE_INTEGER);      // 9007199254740991
+console.log(Number.MAX_SAFE_INTEGER + 1);  // 9007199254740992
+console.log(Number.MAX_SAFE_INTEGER + 2);  // 9007199254740992 (wrong!)
+
+// 3. BIGINT SOLVES THIS
+const bigNum1 = 9007199254740991n;
+const bigNum2 = bigNum1 + 1n;
+const bigNum3 = bigNum1 + 2n;
+
+console.log(bigNum2); // 9007199254740992n (correct!)
+console.log(bigNum3); // 9007199254740993n (correct!)
+
+// 4. OPERATIONS
+const a = 10n;
+const b = 20n;
+
+console.log(a + b);  // 30n
+console.log(a * b);  // 200n
+console.log(a - b);  // -10n
+console.log(b / a);  // 2n (integer division!)
+
+// 5. CANNOT MIX WITH NUMBER
+const num = 10;
+const big = 20n;
+
+// console.log(num + big); // TypeError!
+
+// Must convert:
+console.log(BigInt(num) + big);  // 30n
+console.log(num + Number(big));  // 30
+
+// 6. COMPARISONS
+console.log(10n === 10);   // false (different types)
+console.log(10n == 10);    // true (type coercion)
+console.log(10n < 20);     // true (works across types)
+```
+
+### Resources
+
+- [MDN: BigInt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt)
+
+---
+
+## Question 25: What is strict mode in JavaScript?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5-7 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain strict mode (`"use strict"`). What does it do and why use it?
+
+### Answer
+
+**Strict mode** is an opt-in mode that enforces stricter parsing and error handling.
+
+1. **What It Does**
+   - Eliminates silent errors (throws instead)
+   - Fixes mistakes that make optimization difficult
+   - Prohibits problematic syntax
+   - Disallows future reserved words
+
+2. **Key Changes**
+   - No implicit global variables
+   - `this` is `undefined` in functions (not global)
+   - No duplicate parameters
+   - No octal literals
+   - Can't delete undeletable properties
+
+3. **How to Enable**
+   - File/script level: `"use strict";` at top
+   - Function level: `"use strict";` in function
+   - Modules: Always strict (no need to declare)
+
+### Code Example
+
+```javascript
+// 1. ENABLE STRICT MODE
+"use strict";
+
+// Now all code runs in strict mode
+
+// 2. NO IMPLICIT GLOBALS
+// ❌ Without strict mode
+function sloppy() {
+  x = 10; // Creates global variable (bad!)
+}
+
+// ✅ With strict mode
+function strict() {
+  "use strict";
+  y = 10; // ReferenceError: y is not defined
+}
+
+// 3. THIS IN FUNCTIONS
+function showThis() {
+  "use strict";
+  console.log(this); // undefined in strict mode
+  // (window in non-strict)
+}
+
+showThis();
+
+// 4. NO DUPLICATE PARAMETERS
+// ❌ Allowed in non-strict
+function duplicate(a, a, b) {
+  return a + b; // Which 'a'?
+}
+
+// ✅ Error in strict mode
+function duplicateStrict(a, a, b) {
+  "use strict";
+  // SyntaxError: Duplicate parameter name
+}
+
+// 5. CAN'T DELETE UNDELETABLE
+"use strict";
+
+delete Object.prototype; // TypeError (can't delete)
+
+var x = 10;
+delete x; // SyntaxError (can't delete variables)
+
+// 6. NO OCTAL LITERALS
+"use strict";
+
+const num = 0o10; // ✅ OK (ES6 syntax)
+const bad = 010;  // ❌ SyntaxError (old octal syntax)
+
+// 7. MODULES ARE ALWAYS STRICT
+// No need for "use strict" in modules
+export function myFunction() {
+  // Already in strict mode!
+  x = 10; // ReferenceError
+}
+```
+
+### Resources
+
+- [MDN: Strict Mode](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode)
+
+---
+
+## Question 26: Arrow Functions vs Regular Functions - What's the difference?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 7 minutes
+**Companies:** Google, Meta, Amazon, Microsoft
+
+### Question
+What are the differences between arrow functions and regular functions?
+
+### Answer
+
+**Arrow functions** have different `this` binding, no `arguments`, cannot be constructors, and have concise syntax.
+
+1. **Key Differences**
+   - Lexical `this` (doesn't bind own `this`)
+   - No `arguments` object
+   - Cannot be used as constructors
+   - No `prototype` property
+   - Cannot be generators
+
+2. **When to Use Arrow**
+   - Callbacks and higher-order functions
+   - Methods that don't need own `this`
+   - Preserving outer `this` context
+
+3. **When NOT to Use Arrow**
+   - Object methods that need `this`
+   - Event handlers that need `this`
+   - Functions needing `arguments`
+   - Constructor functions
+
+### Code Example
+
+```javascript
+// 1. THIS BINDING
+const obj = {
+  name: "Alice",
+
+  // Regular function: own 'this'
+  regularMethod() {
+    console.log(this.name); // "Alice"
+  },
+
+  // Arrow function: lexical 'this' (from surrounding scope)
+  arrowMethod: () => {
+    console.log(this.name); // undefined (this from outer scope)
+  }
+};
+
+// 2. CALLBACKS
+const numbers = [1, 2, 3];
+
+// Regular function
+numbers.map(function(n) {
+  return n * 2;
+});
+
+// Arrow function (concise!)
+numbers.map(n => n * 2);
+
+// 3. ARGUMENTS OBJECT
+function regularFunc() {
+  console.log(arguments); // [1, 2, 3]
+}
+
+const arrowFunc = () => {
+  console.log(arguments); // ReferenceError!
+};
+
+regularFunc(1, 2, 3);
+
+// 4. CONSTRUCTOR
+function RegularFunc() {
+  this.value = 42;
+}
+
+const ArrowFunc = () => {
+  this.value = 42;
+};
+
+new RegularFunc(); // OK
+// new ArrowFunc(); // TypeError!
+
+// 5. PRACTICAL - REACT COMPONENT
+class Component {
+  state = { count: 0 };
+
+  // ❌ Regular method loses 'this' when passed as callback
+  regularIncrement() {
+    this.setState({ count: this.state.count + 1 });
+  }
+
+  // ✅ Arrow function preserves 'this'
+  arrowIncrement = () => {
+    this.setState({ count: this.state.count + 1 });
+  };
+
+  render() {
+    return (
+      <button onClick={this.arrowIncrement}>+</button>
+    );
+  }
+}
+```
+
+### Resources
+
+- [MDN: Arrow Functions](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions)
+
+---
+
+## Question 27: How does error handling work with try-catch-finally?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5-7 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain try-catch-finally blocks. How do you handle errors in JavaScript?
+
+### Answer
+
+**try-catch-finally** provides structured error handling in JavaScript.
+
+1. **Structure**
+   - `try`: Code that might throw error
+   - `catch`: Handle the error
+   - `finally`: Always executes (optional)
+   - Can throw custom errors
+
+2. **Error Types**
+   - `Error`: Generic error
+   - `TypeError`: Wrong type
+   - `ReferenceError`: Undefined variable
+   - `SyntaxError`: Parse error
+   - Custom errors
+
+### Code Example
+
+```javascript
+// 1. BASIC TRY-CATCH
+try {
+  const result = riskyOperation();
+  console.log(result);
+} catch (error) {
+  console.error("Error occurred:", error.message);
+}
+
+// 2. TRY-CATCH-FINALLY
+try {
+  console.log("Trying...");
+  throw new Error("Something went wrong!");
+} catch (error) {
+  console.log("Caught:", error.message);
+} finally {
+  console.log("This always runs!");
+}
+
+// 3. THROWING CUSTOM ERRORS
+function divide(a, b) {
+  if (b === 0) {
+    throw new Error("Cannot divide by zero!");
+  }
+  return a / b;
+}
+
+try {
+  divide(10, 0);
+} catch (error) {
+  console.log(error.message); // "Cannot divide by zero!"
+}
+
+// 4. CUSTOM ERROR CLASS
+class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+function validateAge(age) {
+  if (age < 0) {
+    throw new ValidationError("Age cannot be negative");
+  }
+}
+
+try {
+  validateAge(-5);
+} catch (error) {
+  if (error instanceof ValidationError) {
+    console.log("Validation failed:", error.message);
+  }
+}
+
+// 5. ASYNC ERROR HANDLING
+async function fetchData() {
+  try {
+    const response = await fetch('/api/data');
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch:", error);
+    throw error; // Re-throw if needed
+  } finally {
+    console.log("Fetch attempt completed");
+  }
+}
+```
+
+### Resources
+
+- [MDN: try...catch](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch)
+
+---
+
+## Question 28: What are Object.keys(), Object.values(), and Object.entries()?
+
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain these Object methods and when you'd use each.
+
+### Answer
+
+These methods extract keys, values, or key-value pairs from objects.
+
+1. **Object.keys(obj)**
+   - Returns array of object's own property names
+   - Only enumerable properties
+   - Same order as for...in loop
+
+2. **Object.values(obj)**
+   - Returns array of object's own property values
+
+3. **Object.entries(obj)**
+   - Returns array of [key, value] pairs
+   - Useful for Object destructuring
+
+### Code Example
+
+```javascript
+const user = {
+  name: "Alice",
+  age: 25,
+  city: "Boston"
+};
+
+// 1. Object.keys()
+console.log(Object.keys(user)); // ["name", "age", "city"]
+
+// 2. Object.values()
+console.log(Object.values(user)); // ["Alice", 25, "Boston"]
+
+// 3. Object.entries()
+console.log(Object.entries(user));
+// [["name", "Alice"], ["age", 25], ["city", "Boston"]]
+
+// 4. ITERATING OVER OBJECTS
+Object.keys(user).forEach(key => {
+  console.log(`${key}: ${user[key]}`);
+});
+
+// With entries (cleaner)
+Object.entries(user).forEach(([key, value]) => {
+  console.log(`${key}: ${value}`);
+});
+
+// 5. CONVERTING OBJECT TO MAP
+const map = new Map(Object.entries(user));
+
+// 6. FILTERING OBJECT
+const filtered = Object.fromEntries(
+  Object.entries(user).filter(([key, value]) => typeof value === 'string')
+);
+// { name: "Alice", city: "Boston" }
+```
+
+### Resources
+
+- [MDN: Object.keys()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys)
+
+---
+
+## Question 29: What are find(), some(), and every() array methods?
+
+**Difficulty:** 🟢 Easy
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 5 minutes
+**Companies:** Google, Meta, Amazon
+
+### Question
+Explain these array methods and their differences.
+
+### Answer
+
+These methods search arrays but return different things.
+
+1. **find()**
+   - Returns **first element** that matches
+   - Returns `undefined` if not found
+
+2. **some()**
+   - Returns **boolean** - true if ANY element matches
+   - Short-circuits on first match
+
+3. **every()**
+   - Returns **boolean** - true if ALL elements match
+   - Short-circuits on first non-match
+
+### Code Example
+
+```javascript
+const numbers = [1, 2, 3, 4, 5];
+
+// 1. find() - returns first match
+const firstEven = numbers.find(n => n % 2 === 0);
+console.log(firstEven); // 2
+
+const notFound = numbers.find(n => n > 10);
+console.log(notFound); // undefined
+
+// 2. some() - returns boolean (ANY)
+const hasEven = numbers.some(n => n % 2 === 0);
+console.log(hasEven); // true
+
+const hasNegative = numbers.some(n => n < 0);
+console.log(hasNegative); // false
+
+// 3. every() - returns boolean (ALL)
+const allPositive = numbers.every(n => n > 0);
+console.log(allPositive); // true
+
+const allEven = numbers.every(n => n % 2 === 0);
+console.log(allEven); // false
+
+// 4. PRACTICAL EXAMPLES
+const users = [
+  { name: "Alice", age: 25, active: true },
+  { name: "Bob", age: 17, active: true },
+  { name: "Charlie", age: 30, active: false }
+];
+
+// Find first adult
+const firstAdult = users.find(u => u.age >= 18);
+console.log(firstAdult.name); // "Alice"
+
+// Check if any user is inactive
+const hasInactive = users.some(u => !u.active);
+console.log(hasInactive); // true
+
+// Check if all users are adults
+const allAdults = users.every(u => u.age >= 18);
+console.log(allAdults); // false
+```
+
+### Resources
+
+- [MDN: Array.prototype.find()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/find)
+
+---
+
+## Question 30: How does the 'this' keyword work in JavaScript?
+
+**Difficulty:** 🔴 Hard
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 10 minutes
+**Companies:** Google, Meta, Amazon, Microsoft, Apple
+
+### Question
+Explain how `this` works in different contexts. What determines its value?
+
+### Answer
+
+**`this`** refers to the object that is executing the current function. Its value depends on HOW the function is called.
+
+1. **Rules for `this`**
+   - Default: global object (or undefined in strict mode)
+   - Method call: object before the dot
+   - Constructor: new object being created
+   - Arrow function: lexical `this` from enclosing scope
+   - Explicit: call/apply/bind
+
+2. **Common Pitfalls**
+   - Losing `this` when passing methods as callbacks
+   - Arrow functions don't have own `this`
+   - Event handlers set `this` to element
+
+### Code Example
+
+```javascript
+// 1. GLOBAL CONTEXT
+console.log(this); // window (browser) or global (Node)
+
+function globalFunc() {
+  console.log(this); // window (or undefined in strict mode)
+}
+
+// 2. METHOD CALL
+const obj = {
+  name: "Alice",
+  greet() {
+    console.log(this.name); // "Alice" (this = obj)
+  }
+};
+
+obj.greet(); // this = obj
+
+// 3. LOST THIS
+const greet = obj.greet;
+greet(); // undefined (this = global/undefined)
+
+// 4. CONSTRUCTOR
+function Person(name) {
+  this.name = name; // this = new object
+}
+
+const alice = new Person("Alice");
+console.log(alice.name); // "Alice"
+
+// 5. ARROW FUNCTIONS
+const obj2 = {
+  name: "Bob",
+  greet: () => {
+    console.log(this.name); // undefined (lexical this from outer scope)
+  },
+  greetNormal() {
+    const inner = () => {
+      console.log(this.name); // "Bob" (arrow function inherits this)
+    };
+    inner();
+  }
+};
+
+// 6. EXPLICIT BINDING
+function greet() {
+  console.log(`Hello, ${this.name}!`);
+}
+
+const user = { name: "Alice" };
+
+greet.call(user);   // "Hello, Alice!"
+greet.apply(user);  // "Hello, Alice!"
+
+const boundGreet = greet.bind(user);
+boundGreet();       // "Hello, Alice!"
+
+// 7. EVENT HANDLERS
+button.addEventListener('click', function() {
+  console.log(this); // button element
+});
+
+button.addEventListener('click', () => {
+  console.log(this); // lexical this (not button!)
+});
+
+// 8. CLASS METHODS
+class Component {
+  name = "MyComponent";
+
+  regularMethod() {
+    console.log(this.name); // Loses 'this' when passed as callback
+  }
+
+  arrowMethod = () => {
+    console.log(this.name); // Preserves 'this'
+  };
+}
+
+const comp = new Component();
+setTimeout(comp.regularMethod, 100); // undefined
+setTimeout(comp.arrowMethod, 100);   // "MyComponent"
+```
+
+### Resources
+
+- [MDN: this](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this)
+- [JavaScript.info: Object methods, "this"](https://javascript.info/object-methods)
+
+---
+
+[← Back to JavaScript README](./README.md) | [Next: Async JavaScript →](./02-async-javascript.md)
+
+**Progress:** 30 of 30 core concept questions completed ✅
+
+## Summary
+
+This file covers 30 essential JavaScript core concepts:
+
+**Basics (Q1-Q10):**
+- Primitive & reference types
+- var/let/const
+- Hoisting
+- Closures
+- TDZ
+- Lexical & block scope
+- Variable shadowing
+- Higher-order functions
+- Pure functions
+- Memoization
+
+**Comparisons & Types (Q11-Q14):**
+- == vs ===
+- null vs undefined
+- typeof vs instanceof
+- Truthy & falsy values
+
+**Modern Features (Q15-Q22):**
+- Short-circuit evaluation
+- Optional chaining (?.)
+- Nullish coalescing (??)
+- Destructuring
+- Spread operator
+- Rest parameters
+- Default parameters
+- Template literals
+
+**Advanced Types (Q23-Q25):**
+- Symbol
+- BigInt
+- Strict mode
+
+**Functions & Context (Q26-Q30):**
+- Arrow vs regular functions
+- Error handling (try-catch)
+- Object methods (keys/values/entries)
+- Array search methods (find/some/every)
+- this keyword
+
+**Total:** 30/30 questions (100% complete!)

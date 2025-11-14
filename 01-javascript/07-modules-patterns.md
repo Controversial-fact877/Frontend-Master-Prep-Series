@@ -327,15 +327,1324 @@ const other = await import('./other.js');
 
 ---
 
-*[File continues with 29 more Q&A covering:]*
-*- Dynamic imports*
-*- Module patterns (Revealing, IIFE)*
-*- Singleton pattern*
-*- Factory pattern*
-*- Observer pattern*
-*- Tree shaking*
-*- Code splitting*
-*- Bundle optimization*
-*- Webpack/Vite configuration*
-*- And more...*
+## Question 2: Dynamic Import - How and When to Use It?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 8-10 minutes
+**Companies:** Google, Meta, Netflix, Airbnb
+
+### Question
+Explain dynamic imports in JavaScript. When should you use them and what are the benefits?
+
+### Answer
+
+**Dynamic Import** allows you to load ES6 modules asynchronously at runtime using the `import()` function (returns a Promise).
+
+**Key Points:**
+1. **Syntax**: `import()` is a function-like expression that returns a Promise
+2. **Code Splitting**: Enables splitting code into smaller chunks loaded on-demand
+3. **Conditional Loading**: Load modules based on runtime conditions
+4. **Performance**: Reduces initial bundle size, faster page loads
+5. **Top-level await**: Can use await with dynamic imports in ES modules
+
+### Code Example
+
+```javascript
+// 1. BASIC DYNAMIC IMPORT
+// ✅ Load module when needed
+button.addEventListener('click', async () => {
+  const module = await import('./heavy-chart-library.js');
+  module.renderChart(data);
+});
+
+// ❌ Static import loads immediately (slower initial load)
+import { renderChart } from './heavy-chart-library.js';
+button.addEventListener('click', () => renderChart(data));
+
+// 2. CONDITIONAL MODULE LOADING
+async function loadTranslations(locale) {
+  let translations;
+
+  if (locale === 'es') {
+    translations = await import('./translations/es.js');
+  } else if (locale === 'fr') {
+    translations = await import('./translations/fr.js');
+  } else {
+    translations = await import('./translations/en.js');
+  }
+
+  return translations.default;
+}
+
+// Usage
+const t = await loadTranslations('es');
+console.log(t.greeting); // "Hola"
+
+// 3. FEATURE DETECTION & POLYFILLS
+async function loadPolyfills() {
+  if (!('IntersectionObserver' in window)) {
+    await import('intersection-observer');
+  }
+
+  if (!window.fetch) {
+    await import('whatwg-fetch');
+  }
+}
+
+// 4. ROUTE-BASED CODE SPLITTING (React Router example)
+const routes = [
+  {
+    path: '/dashboard',
+    component: () => import('./pages/Dashboard.jsx')
+  },
+  {
+    path: '/profile',
+    component: () => import('./pages/Profile.jsx')
+  },
+  {
+    path: '/settings',
+    component: () => import('./pages/Settings.jsx')
+  }
+];
+
+// 5. LAZY LOADING IMAGES
+async function lazyLoadImages() {
+  const images = document.querySelectorAll('img[data-src]');
+
+  const { default: LazyLoad } = await import('vanilla-lazyload');
+
+  new LazyLoad({
+    elements_selector: 'img[data-src]'
+  });
+}
+
+// 6. ERROR HANDLING
+async function safeImport(modulePath) {
+  try {
+    const module = await import(modulePath);
+    return module;
+  } catch (error) {
+    console.error(`Failed to load module: ${modulePath}`, error);
+    // Fallback strategy
+    return import('./fallback-module.js');
+  }
+}
+
+// 7. PARALLEL DYNAMIC IMPORTS
+async function loadMultipleModules() {
+  const [
+    { default: Chart },
+    { default: Table },
+    { default: Map }
+  ] = await Promise.all([
+    import('./Chart.js'),
+    import('./Table.js'),
+    import('./Map.js')
+  ]);
+
+  return { Chart, Table, Map };
+}
+
+// 8. PRELOADING (hint to browser)
+// Add to <head>
+// <link rel="modulepreload" href="/heavy-module.js">
+
+// Then import when needed
+const module = await import('./heavy-module.js'); // Already preloaded!
+
+// 9. DYNAMIC IMPORT WITH DESTRUCTURING
+const { helper, util, formatter } = await import('./utils.js');
+
+// 10. IMPORT WITH FALLBACK
+async function importWithFallback(primaryPath, fallbackPath) {
+  try {
+    return await import(primaryPath);
+  } catch {
+    return await import(fallbackPath);
+  }
+}
+
+// Usage
+const module = await importWithFallback(
+  './cdn-module.js',
+  './local-module.js'
+);
+
+// 11. VITE/WEBPACK GLOB IMPORTS (build-time)
+// Vite
+const modules = import.meta.glob('./modules/*.js');
+// Returns: { './modules/a.js': () => import('./modules/a.js'), ... }
+
+for (const path in modules) {
+  modules[path]().then(mod => console.log(mod));
+}
+
+// 12. DYNAMIC IMPORT IN NODE.JS
+// ES module (Node >= 12)
+const config = await import('./config.json', {
+  assert: { type: 'json' }
+});
+
+// 13. REACT LAZY LOADING
+import { lazy, Suspense } from 'react';
+
+const HeavyComponent = lazy(() => import('./HeavyComponent'));
+
+function App() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HeavyComponent />
+    </Suspense>
+  );
+}
+
+// 14. ANALYTICS TRACKING (load after page interactive)
+window.addEventListener('load', async () => {
+  const { initAnalytics } = await import('./analytics.js');
+  initAnalytics();
+});
+
+// 15. A/B TESTING
+async function loadExperiment(variant) {
+  if (variant === 'A') {
+    return import('./experiments/variant-a.js');
+  } else {
+    return import('./experiments/variant-b.js');
+  }
+}
+```
+
+### Common Mistakes
+
+❌ **Wrong**: Not handling Promise rejection
+```javascript
+const module = await import('./module.js'); // May crash app
+```
+
+✅ **Correct**: Always use try-catch
+```javascript
+try {
+  const module = await import('./module.js');
+} catch (error) {
+  console.error('Module load failed:', error);
+}
+```
+
+❌ **Wrong**: Using dynamic import for critical above-fold code
+```javascript
+// Header component (critical!)
+const Header = await import('./Header.js'); // ❌ Slower
+```
+
+✅ **Correct**: Static import for critical path
+```javascript
+import Header from './Header.js'; // ✅ Bundled, immediate
+```
+
+### Follow-up Questions
+1. "How does dynamic import affect bundle size?"
+2. "Can you use dynamic import in CommonJS?"
+3. "What's the difference between import() and require()?"
+4. "How do bundlers handle dynamic imports?"
+
+### Resources
+- [MDN: Dynamic Import](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import)
+- [webpack: Code Splitting](https://webpack.js.org/guides/code-splitting/)
+- [Vite: Dynamic Import](https://vitejs.dev/guide/features.html#dynamic-import)
+
+---
+
+## Question 3: IIFE Pattern - What and Why?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 6-8 minutes
+**Companies:** Meta, Amazon, Netflix
+
+### Question
+Explain the IIFE (Immediately Invoked Function Expression) pattern. When is it useful?
+
+### Answer
+
+**IIFE (Immediately Invoked Function Expression)** is a JavaScript design pattern where a function is defined and executed immediately.
+
+**Key Points:**
+1. **Syntax**: `(function() { })()` or `(() => { })()`
+2. **Scope Isolation**: Creates private scope, preventing global pollution
+3. **Legacy Use**: Before ES6 modules, used for module pattern
+4. **Modern Use**: Less common now, but still useful for initialization
+5. **Avoid var Hoisting**: Pre-ES6 way to avoid var scope issues
+
+### Code Example
+
+```javascript
+// 1. BASIC IIFE SYNTAX
+(function() {
+  console.log('IIFE executed!');
+})();
+
+// Alternative syntax
+(function() {
+  console.log('Alternative syntax');
+}());
+
+// Arrow function IIFE
+(() => {
+  console.log('Arrow IIFE');
+})();
+
+// 2. PRIVATE VARIABLES (scope isolation)
+// ❌ Without IIFE - global pollution
+var counter = 0;
+function increment() { counter++; }
+// 'counter' is global (bad!)
+
+// ✅ With IIFE - encapsulated
+const counterModule = (function() {
+  let counter = 0; // Private!
+
+  return {
+    increment() { counter++; },
+    decrement() { counter--; },
+    getCount() { return counter; }
+  };
+})();
+
+counterModule.increment();
+console.log(counterModule.getCount()); // 1
+console.log(counterModule.counter); // undefined (private!)
+
+// 3. MODULE PATTERN (pre-ES6)
+const Calculator = (function() {
+  // Private variables
+  let result = 0;
+
+  // Private function
+  function log(operation) {
+    console.log(`${operation}: ${result}`);
+  }
+
+  // Public API
+  return {
+    add(num) {
+      result += num;
+      log('Add');
+      return this;
+    },
+    subtract(num) {
+      result -= num;
+      log('Subtract');
+      return this;
+    },
+    getResult() {
+      return result;
+    }
+  };
+})();
+
+Calculator.add(10).subtract(3);
+console.log(Calculator.getResult()); // 7
+
+// 4. AVOIDING var HOISTING ISSUES
+// ❌ Problem with var in loops
+var funcs = [];
+for (var i = 0; i < 3; i++) {
+  funcs.push(function() {
+    console.log(i); // All print 3!
+  });
+}
+funcs.forEach(f => f()); // 3, 3, 3
+
+// ✅ IIFE creates new scope per iteration
+var funcs2 = [];
+for (var i = 0; i < 3; i++) {
+  funcs2.push((function(index) {
+    return function() {
+      console.log(index);
+    };
+  })(i));
+}
+funcs2.forEach(f => f()); // 0, 1, 2
+
+// Modern solution: use let
+for (let i = 0; i < 3; i++) {
+  funcs.push(() => console.log(i));
+}
+
+// 5. NAMESPACE PATTERN
+const MyApp = (function() {
+  // Private
+  const config = { apiUrl: 'https://api.example.com' };
+
+  function init() {
+    console.log('App initialized');
+  }
+
+  // Public
+  return {
+    start() {
+      init();
+    },
+    getConfig() {
+      return { ...config }; // Return copy
+    }
+  };
+})();
+
+MyApp.start();
+
+// 6. REVEALING MODULE PATTERN
+const DataService = (function() {
+  let cache = {};
+
+  function fetchData(id) {
+    if (cache[id]) return cache[id];
+    const data = `Data for ${id}`;
+    cache[id] = data;
+    return data;
+  }
+
+  function clearCache() {
+    cache = {};
+  }
+
+  // Reveal public methods
+  return {
+    fetchData,
+    clearCache
+  };
+})();
+
+// 7. JQUERY PLUGIN PATTERN
+(function($) {
+  $.fn.myPlugin = function(options) {
+    const settings = $.extend({
+      color: 'red',
+      size: '10px'
+    }, options);
+
+    return this.css({
+      color: settings.color,
+      fontSize: settings.size
+    });
+  };
+})(jQuery);
+
+// Usage: $('p').myPlugin({ color: 'blue' });
+
+// 8. ASYNC IIFE (top-level await alternative)
+(async function() {
+  const response = await fetch('/api/data');
+  const data = await response.json();
+  console.log(data);
+})();
+
+// Modern: top-level await in ES modules
+// await fetch('/api/data');
+
+// 9. DEPENDENCY INJECTION
+const app = (function(window, document, $) {
+  // Use injected dependencies
+  function init() {
+    $(document).ready(() => {
+      console.log('App ready');
+    });
+  }
+
+  return { init };
+})(window, document, jQuery);
+
+// 10. SINGLETON PATTERN
+const Singleton = (function() {
+  let instance;
+
+  function createInstance() {
+    const object = { value: Math.random() };
+    return object;
+  }
+
+  return {
+    getInstance() {
+      if (!instance) {
+        instance = createInstance();
+      }
+      return instance;
+    }
+  };
+})();
+
+const a = Singleton.getInstance();
+const b = Singleton.getInstance();
+console.log(a === b); // true (same instance)
+
+// 11. INITIALIZATION CODE
+(function() {
+  // Run once on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM ready');
+  });
+
+  // Setup event listeners
+  setupEventListeners();
+
+  // Initialize app
+  init();
+})();
+
+// 12. IIFE WITH PARAMETERS
+const result = (function(a, b) {
+  return a + b;
+})(5, 10);
+
+console.log(result); // 15
+
+// 13. STRICT MODE ISOLATION
+(function() {
+  'use strict';
+  // Strict mode only in this scope
+  undeclaredVar = 10; // ReferenceError
+})();
+
+// 14. MODERN ALTERNATIVE: BLOCK SCOPE
+// Instead of IIFE
+{
+  const privateVar = 'encapsulated';
+  console.log(privateVar);
+}
+// console.log(privateVar); // ReferenceError
+
+// 15. WEBPACK MODULE WRAPPER (what bundlers do)
+// Webpack wraps each module in IIFE
+(function(module, exports, __webpack_require__) {
+  // Your module code
+  const dependency = __webpack_require__(1);
+  module.exports = { /* exports */ };
+})(/* module */, /* exports */, /* require */);
+```
+
+### Common Mistakes
+
+❌ **Wrong**: Forgetting parentheses
+```javascript
+function() { console.log('hi'); }(); // SyntaxError
+```
+
+✅ **Correct**: Wrap in parentheses
+```javascript
+(function() { console.log('hi'); })();
+```
+
+❌ **Wrong**: Using IIFE everywhere (modern code)
+```javascript
+(function() {
+  const data = 'private';
+})(); // Unnecessary in ES6 modules
+```
+
+✅ **Correct**: Use ES6 modules for encapsulation
+```javascript
+// module.js
+const data = 'private'; // Already encapsulated!
+export const publicData = 'public';
+```
+
+### Follow-up Questions
+1. "How does IIFE relate to closures?"
+2. "When would you use IIFE in modern JavaScript?"
+3. "What's the difference between IIFE and block scope?"
+4. "How do bundlers use IIFE pattern?"
+
+### Resources
+- [MDN: IIFE](https://developer.mozilla.org/en-US/docs/Glossary/IIFE)
+- [JavaScript Module Pattern](https://www.patterns.dev/posts/module-pattern/)
+
+---
+
+## Question 4: Singleton Pattern - Implementation and Use Cases
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 8-10 minutes
+**Companies:** Google, Amazon, Microsoft
+
+### Question
+Implement the Singleton pattern in JavaScript. When should you use it and what are the potential pitfalls?
+
+### Answer
+
+**Singleton Pattern** ensures a class has only one instance and provides a global point of access to it.
+
+**Key Points:**
+1. **Single Instance**: Only one instance exists throughout application lifetime
+2. **Global Access**: Accessible from anywhere in the application
+3. **Lazy Initialization**: Instance created when first needed
+4. **Use Cases**: Database connections, configuration, logging, cache
+5. **Caution**: Can be anti-pattern (global state, testing issues)
+
+### Code Example
+
+```javascript
+// 1. BASIC SINGLETON (ES6 CLASS)
+class Singleton {
+  constructor() {
+    if (Singleton.instance) {
+      return Singleton.instance;
+    }
+
+    this.data = [];
+    Singleton.instance = this;
+  }
+
+  addData(item) {
+    this.data.push(item);
+  }
+
+  getData() {
+    return this.data;
+  }
+}
+
+const s1 = new Singleton();
+const s2 = new Singleton();
+console.log(s1 === s2); // true (same instance!)
+
+s1.addData('item1');
+console.log(s2.getData()); // ['item1']
+
+// 2. SINGLETON WITH PRIVATE CONSTRUCTOR (using closure)
+const DatabaseConnection = (function() {
+  let instance;
+
+  function createInstance() {
+    const connection = {
+      host: 'localhost',
+      port: 5432,
+      connect() {
+        console.log(`Connected to ${this.host}:${this.port}`);
+      },
+      query(sql) {
+        console.log(`Executing: ${sql}`);
+      }
+    };
+    return connection;
+  }
+
+  return {
+    getInstance() {
+      if (!instance) {
+        instance = createInstance();
+      }
+      return instance;
+    }
+  };
+})();
+
+const db1 = DatabaseConnection.getInstance();
+const db2 = DatabaseConnection.getInstance();
+console.log(db1 === db2); // true
+
+// 3. MODERN SINGLETON (ES6 MODULE)
+// config.js
+let instance = null;
+
+class Config {
+  constructor() {
+    if (instance) {
+      throw new Error('Use Config.getInstance()');
+    }
+
+    this.settings = {
+      apiUrl: 'https://api.example.com',
+      timeout: 5000,
+      retries: 3
+    };
+  }
+
+  static getInstance() {
+    if (!instance) {
+      instance = new Config();
+    }
+    return instance;
+  }
+
+  get(key) {
+    return this.settings[key];
+  }
+
+  set(key, value) {
+    this.settings[key] = value;
+  }
+}
+
+export default Config.getInstance();
+
+// app.js
+import config from './config.js';
+console.log(config.get('apiUrl'));
+
+// 4. SINGLETON WITH INITIALIZATION
+class Logger {
+  static instance = null;
+
+  constructor() {
+    if (Logger.instance) {
+      return Logger.instance;
+    }
+
+    this.logs = [];
+    this.level = 'info';
+    Logger.instance = this;
+  }
+
+  static getInstance() {
+    if (!Logger.instance) {
+      Logger.instance = new Logger();
+    }
+    return Logger.instance;
+  }
+
+  log(message, level = 'info') {
+    const entry = {
+      timestamp: new Date(),
+      level,
+      message
+    };
+    this.logs.push(entry);
+    console.log(`[${level.toUpperCase()}] ${message}`);
+  }
+
+  error(message) {
+    this.log(message, 'error');
+  }
+
+  warn(message) {
+    this.log(message, 'warn');
+  }
+
+  getLogs() {
+    return [...this.logs];
+  }
+}
+
+// Usage
+const logger = Logger.getInstance();
+logger.log('App started');
+logger.error('Something went wrong');
+
+// 5. CACHE SINGLETON
+class Cache {
+  static instance = null;
+
+  constructor() {
+    if (Cache.instance) {
+      return Cache.instance;
+    }
+
+    this.cache = new Map();
+    this.maxSize = 100;
+    Cache.instance = this;
+  }
+
+  static getInstance() {
+    if (!Cache.instance) {
+      Cache.instance = new Cache();
+    }
+    return Cache.instance;
+  }
+
+  set(key, value, ttl = Infinity) {
+    if (this.cache.size >= this.maxSize) {
+      // Remove oldest entry
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+
+    this.cache.set(key, {
+      value,
+      expires: Date.now() + ttl
+    });
+  }
+
+  get(key) {
+    const item = this.cache.get(key);
+
+    if (!item) return null;
+
+    if (Date.now() > item.expires) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return item.value;
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+}
+
+const cache = Cache.getInstance();
+cache.set('user:1', { name: 'John' }, 60000);
+
+// 6. THREAD-SAFE SINGLETON (conceptual - JS is single-threaded)
+class ThreadSafeSingleton {
+  static instance = null;
+  static lock = false;
+
+  constructor() {
+    if (ThreadSafeSingleton.instance) {
+      return ThreadSafeSingleton.instance;
+    }
+
+    this.data = [];
+    ThreadSafeSingleton.instance = this;
+  }
+
+  static async getInstance() {
+    // Wait for lock
+    while (ThreadSafeSingleton.lock) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+
+    if (!ThreadSafeSingleton.instance) {
+      ThreadSafeSingleton.lock = true;
+      ThreadSafeSingleton.instance = new ThreadSafeSingleton();
+      ThreadSafeSingleton.lock = false;
+    }
+
+    return ThreadSafeSingleton.instance;
+  }
+}
+
+// 7. SINGLETON WITH DEPENDENCY INJECTION
+class ApiClient {
+  constructor(config) {
+    if (ApiClient.instance) {
+      return ApiClient.instance;
+    }
+
+    this.baseUrl = config.baseUrl;
+    this.timeout = config.timeout;
+    this.headers = config.headers || {};
+    ApiClient.instance = this;
+  }
+
+  async request(endpoint, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...this.headers, ...options.headers },
+      timeout: this.timeout
+    });
+    return response.json();
+  }
+}
+
+// Initialize once
+const api = new ApiClient({
+  baseUrl: 'https://api.example.com',
+  timeout: 5000,
+  headers: { 'Authorization': 'Bearer token' }
+});
+
+// 8. TESTING SINGLETON (reset for tests)
+class TestableService {
+  constructor() {
+    if (TestableService.instance) {
+      return TestableService.instance;
+    }
+
+    this.data = [];
+    TestableService.instance = this;
+  }
+
+  static reset() {
+    TestableService.instance = null;
+  }
+
+  // ... methods
+}
+
+// In tests
+beforeEach(() => {
+  TestableService.reset();
+});
+
+// 9. REACT CONTEXT AS SINGLETON (anti-pattern)
+// ❌ Bad: Global singleton in React
+const globalStore = new Store();
+
+function App() {
+  return <div>{globalStore.data}</div>;
+}
+
+// ✅ Good: Use Context for scoped singleton
+const StoreContext = createContext();
+
+function App() {
+  const [store] = useState(() => new Store());
+
+  return (
+    <StoreContext.Provider value={store}>
+      <Component />
+    </StoreContext.Provider>
+  );
+}
+
+// 10. WHEN NOT TO USE SINGLETON
+// ❌ Over-using singletons creates tight coupling
+class UserService {
+  constructor() {
+    this.db = Database.getInstance(); // Tight coupling!
+    this.cache = Cache.getInstance();
+  }
+}
+
+// ✅ Better: Dependency injection
+class UserService {
+  constructor(db, cache) {
+    this.db = db;
+    this.cache = cache;
+  }
+}
+
+// Usage
+const userService = new UserService(
+  Database.getInstance(),
+  Cache.getInstance()
+);
+```
+
+### Common Mistakes
+
+❌ **Wrong**: Not preventing direct instantiation
+```javascript
+class Singleton {
+  // Anyone can create new instances!
+}
+```
+
+✅ **Correct**: Enforce single instance
+```javascript
+class Singleton {
+  constructor() {
+    if (Singleton.instance) {
+      return Singleton.instance;
+    }
+    Singleton.instance = this;
+  }
+}
+```
+
+❌ **Wrong**: Using singleton for everything (global state hell)
+```javascript
+// Makes testing hard, tight coupling
+const config = Config.getInstance();
+const db = DB.getInstance();
+const cache = Cache.getInstance();
+```
+
+✅ **Correct**: Use dependency injection when possible
+```javascript
+class Service {
+  constructor(config, db, cache) {
+    this.config = config;
+    this.db = db;
+    this.cache = cache;
+  }
+}
+```
+
+### Follow-up Questions
+1. "How would you test code that uses singletons?"
+2. "What are alternatives to the singleton pattern?"
+3. "Can you implement a singleton in TypeScript?"
+4. "How does ES6 module system relate to singletons?"
+
+### Resources
+- [Singleton Pattern](https://www.patterns.dev/posts/singleton-pattern/)
+- [JavaScript Design Patterns](https://addyosmani.com/resources/essentialjsdesignpatterns/book/)
+
+---
+
+## Questions 5-20: Advanced Patterns & Module Concepts
+
+**Difficulty:** 🟡 Medium to 🔴 Hard
+**Frequency:** ⭐⭐⭐⭐
+**Consolidated for comprehensiveness**
+
+### Q5: Factory Pattern
+
+**Factory Pattern** creates objects without specifying exact class.
+
+```javascript
+// User factory
+function createUser(type, name) {
+  const users = {
+    admin: () => ({
+      name,
+      role: 'admin',
+      permissions: ['read', 'write', 'delete']
+    }),
+    guest: () => ({
+      name,
+      role: 'guest',
+      permissions: ['read']
+    }),
+    member: () => ({
+      name,
+      role: 'member',
+      permissions: ['read', 'write']
+    })
+  };
+
+  return users[type]();
+}
+
+const admin = createUser('admin', 'John');
+```
+
+### Q6: Observer Pattern (Pub/Sub)
+
+```javascript
+class EventEmitter {
+  constructor() {
+    this.events = {};
+  }
+
+  on(event, callback) {
+    if (!this.events[event]) {
+      this.events[event] = [];
+    }
+    this.events[event].push(callback);
+  }
+
+  emit(event, data) {
+    const callbacks = this.events[event];
+    if (callbacks) {
+      callbacks.forEach(cb => cb(data));
+    }
+  }
+
+  off(event, callback) {
+    if (!this.events[event]) return;
+    this.events[event] = this.events[event].filter(cb => cb !== callback);
+  }
+}
+
+// Usage
+const emitter = new EventEmitter();
+emitter.on('userLogin', user => console.log(`${user} logged in`));
+emitter.emit('userLogin', 'John');
+```
+
+### Q7: Module Pattern (Revealing Module)
+
+```javascript
+const Calculator = (function() {
+  let result = 0;
+
+  function add(x) { result += x; return this; }
+  function subtract(x) { result -= x; return this; }
+  function getResult() { return result; }
+  function reset() { result = 0; }
+
+  return { add, subtract, getResult, reset };
+})();
+
+Calculator.add(10).subtract(3);
+console.log(Calculator.getResult()); // 7
+```
+
+### Q8: Tree Shaking & Dead Code Elimination
+
+```javascript
+// utils.js - ❌ CommonJS (no tree shaking)
+module.exports = {
+  add: (a, b) => a + b,
+  subtract: (a, b) => a - b,
+  multiply: (a, b) => a * b // Unused but bundled!
+};
+
+// utils.js - ✅ ES6 (tree shakable)
+export const add = (a, b) => a + b;
+export const subtract = (a, b) => a - b;
+export const multiply = (a, b) => a * b; // Not imported = removed!
+
+// app.js
+import { add } from './utils.js'; // Only 'add' bundled
+```
+
+### Q9: Code Splitting Strategies
+
+```javascript
+// Route-based splitting
+const routes = {
+  '/home': () => import('./pages/Home.js'),
+  '/about': () => import('./pages/About.js'),
+  '/contact': () => import('./pages/Contact.js')
+};
+
+// Component-based splitting
+const HeavyChart = lazy(() => import('./HeavyChart'));
+
+// Vendor splitting (webpack)
+optimization: {
+  splitChunks: {
+    chunks: 'all',
+    cacheGroups: {
+      vendor: {
+        test: /node_modules/,
+        name: 'vendors'
+      }
+    }
+  }
+}
+```
+
+### Q10: Webpack Configuration Essentials
+
+```javascript
+// webpack.config.js
+module.exports = {
+  entry: './src/index.js',
+  output: {
+    filename: '[name].[contenthash].js',
+    path: path.resolve(__dirname, 'dist'),
+    clean: true
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: 'babel-loader'
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
+      }
+    ]
+  },
+  optimization: {
+    splitChunks: { chunks: 'all' },
+    runtimeChunk: 'single'
+  }
+};
+```
+
+### Q11: Vite vs Webpack
+
+**Vite**: Fast dev server (ESM), esbuild pre-bundling
+**Webpack**: Mature, extensive plugin ecosystem
+
+```javascript
+// vite.config.js
+export default {
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom']
+        }
+      }
+    }
+  }
+};
+```
+
+### Q12: Module Federation (Micro-frontends)
+
+```javascript
+// Webpack Module Federation
+new ModuleFederationPlugin({
+  name: 'app1',
+  filename: 'remoteEntry.js',
+  exposes: {
+    './Button': './src/Button'
+  },
+  shared: ['react', 'react-dom']
+});
+
+// Host app loads remote
+const RemoteButton = lazy(() => import('app1/Button'));
+```
+
+### Q13: Circular Dependencies
+
+```javascript
+// ❌ Circular dependency issue
+// a.js
+import { b } from './b.js';
+export const a = 'a' + b;
+
+// b.js
+import { a } from './a.js';
+export const b = 'b' + a; // Error: a is undefined
+
+// ✅ Fix: Refactor to remove circle
+// shared.js
+export const base = 'base';
+
+// a.js
+import { base } from './shared.js';
+export const a = 'a' + base;
+```
+
+### Q14: Barrel Exports (index.js pattern)
+
+```javascript
+// components/index.js
+export { default as Button } from './Button';
+export { default as Input } from './Input';
+export { default as Modal } from './Modal';
+
+// Usage
+import { Button, Input, Modal } from './components';
+
+// ⚠️ Can hurt tree shaking if not careful
+```
+
+### Q15: Side Effects in Modules
+
+```javascript
+// package.json
+{
+  "sideEffects": false // Enable aggressive tree shaking
+}
+
+// Or specify files with side effects
+{
+  "sideEffects": ["*.css", "./src/polyfills.js"]
+}
+
+// Module with side effects
+// polyfills.js
+if (!Array.prototype.includes) {
+  Array.prototype.includes = function() { /* ... */ };
+}
+```
+
+### Q16: Import Maps (Native Browser)
+
+```html
+<script type="importmap">
+{
+  "imports": {
+    "lodash": "https://cdn.skypack.dev/lodash",
+    "react": "https://cdn.skypack.dev/react"
+  }
+}
+</script>
+
+<script type="module">
+  import _ from 'lodash'; // Resolves to CDN
+  import React from 'react';
+</script>
+```
+
+### Q17: Namespace Pattern
+
+```javascript
+const MyApp = MyApp || {};
+
+MyApp.utils = {
+  formatDate(date) { /* ... */ },
+  parseJSON(str) { /* ... */ }
+};
+
+MyApp.api = {
+  fetchUser(id) { /* ... */ },
+  saveUser(user) { /* ... */ }
+};
+
+// Usage: MyApp.utils.formatDate(new Date());
+```
+
+### Q18: Mixin Pattern
+
+```javascript
+const canEat = {
+  eat(food) {
+    console.log(`${this.name} is eating ${food}`);
+  }
+};
+
+const canWalk = {
+  walk() {
+    console.log(`${this.name} is walking`);
+  }
+};
+
+class Person {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+Object.assign(Person.prototype, canEat, canWalk);
+
+const john = new Person('John');
+john.eat('pizza'); // Works!
+```
+
+### Q19: Lazy Initialization Pattern
+
+```javascript
+class ExpensiveService {
+  constructor() {
+    this._connection = null;
+  }
+
+  get connection() {
+    if (!this._connection) {
+      console.log('Creating expensive connection...');
+      this._connection = createDatabaseConnection();
+    }
+    return this._connection;
+  }
+
+  query(sql) {
+    return this.connection.execute(sql);
+  }
+}
+```
+
+### Q20: Best Practices Summary
+
+```javascript
+// 1. Use ES6 modules
+import { named } from './module.js'; // ✅
+const module = require('./module'); // ❌ (unless Node.js)
+
+// 2. Avoid default exports for libraries
+export { Button, Input }; // ✅ Named
+export default Button; // ❌ Harder to tree shake
+
+// 3. Keep modules focused (Single Responsibility)
+// ✅ utils/string.js, utils/array.js
+// ❌ utils.js (everything)
+
+// 4. Avoid circular dependencies
+// Use dependency injection or refactor
+
+// 5. Use dynamic imports for code splitting
+const module = await import('./heavy.js');
+
+// 6. Mark side-effect-free packages
+// package.json: "sideEffects": false
+
+// 7. Use barrel exports carefully
+// Can prevent tree shaking if misused
+
+// 8. Prefer named exports for better refactoring
+import { specificFunction } from './module';
+```
+
+### Resources
+- [MDN: JavaScript Modules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
+- [webpack: Module Federation](https://webpack.js.org/concepts/module-federation/)
+- [Patterns.dev](https://www.patterns.dev/)
+- [JavaScript Design Patterns](https://addyosmani.com/resources/essentialjsdesignpatterns/book/)
 

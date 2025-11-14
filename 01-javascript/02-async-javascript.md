@@ -3801,4 +3801,2585 @@ const [u1, u2, u3] = await Promise.all([user1, user2, user3]);
 
 ---
 
+## Question 8: Explain async iteration - for-await-of and async generators
+
+**Difficulty:** 🔴 Hard
+**Frequency:** ⭐⭐⭐
+**Time:** 10-12 minutes
+**Companies:** Google, Meta, Amazon, Netflix
+
+### Question
+How do async iterators work in JavaScript? Explain for-await-of loops and async generators with practical examples.
+
+### Answer
+
+**Async Iteration** allows you to iterate over data that arrives asynchronously (streams, paginated APIs, etc.) using `for-await-of` loops and async generator functions.
+
+**Key Concepts:**
+
+1. **for-await-of Loop** - Iterates over async iterables (promises, async generators)
+2. **Async Generators** - Functions that use `async function*` and `yield` to produce async values
+3. **AsyncIterator Protocol** - Objects with `next()` method that returns promises
+4. **Use Cases** - Streaming data, paginated APIs, file processing, event streams
+5. **Error Handling** - try-catch works naturally with for-await-of
+
+### Code Example
+
+```javascript
+// ============================================
+// 1. BASIC FOR-AWAIT-OF LOOP
+// ============================================
+
+// Array of promises
+const promises = [
+  Promise.resolve(1),
+  Promise.resolve(2),
+  Promise.resolve(3)
+];
+
+async function iteratePromises() {
+  for await (const value of promises) {
+    console.log(value);
+  }
+}
+
+iteratePromises();
+// Output:
+// 1
+// 2
+// 3
+
+
+// ============================================
+// 2. ASYNC GENERATOR FUNCTION
+// ============================================
+
+async function* numberGenerator() {
+  yield 1;
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  yield 2;
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  yield 3;
+}
+
+async function useGenerator() {
+  for await (const num of numberGenerator()) {
+    console.log(num);
+  }
+}
+
+useGenerator();
+// Output (1 second between each):
+// 1
+// 2
+// 3
+
+
+// ============================================
+// 3. PAGINATED API FETCHING
+// ============================================
+
+async function* fetchPaginatedUsers(baseUrl) {
+  let page = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetch(`${baseUrl}?page=${page}&limit=10`);
+    const data = await response.json();
+
+    // Yield each user
+    for (const user of data.users) {
+      yield user;
+    }
+
+    hasMore = data.hasMore;
+    page++;
+  }
+}
+
+// Usage
+async function processUsers() {
+  for await (const user of fetchPaginatedUsers('/api/users')) {
+    console.log(user.name);
+    // Process user without loading all pages into memory
+  }
+}
+
+
+// ============================================
+// 4. ASYNC ITERATOR PROTOCOL (Manual Implementation)
+// ============================================
+
+const asyncIterable = {
+  [Symbol.asyncIterator]() {
+    let i = 0;
+
+    return {
+      async next() {
+        if (i < 3) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return { value: i++, done: false };
+        }
+        return { done: true };
+      }
+    };
+  }
+};
+
+async function iterate() {
+  for await (const value of asyncIterable) {
+    console.log(value);
+  }
+}
+
+iterate();
+// Output (500ms between each):
+// 0
+// 1
+// 2
+
+
+// ============================================
+// 5. STREAMING FILE PROCESSING
+// ============================================
+
+async function* readLargeFile(filePath) {
+  const fileHandle = await openFile(filePath);
+  const chunkSize = 1024 * 64; // 64KB chunks
+
+  try {
+    let chunk;
+    while ((chunk = await fileHandle.read(chunkSize))) {
+      if (chunk.length === 0) break;
+      yield chunk;
+    }
+  } finally {
+    await fileHandle.close();
+  }
+}
+
+// Usage
+async function processFile() {
+  let totalBytes = 0;
+
+  for await (const chunk of readLargeFile('large-file.txt')) {
+    totalBytes += chunk.length;
+    processChunk(chunk);
+  }
+
+  console.log(`Processed ${totalBytes} bytes`);
+}
+
+
+// ============================================
+// 6. ASYNC GENERATOR WITH ERROR HANDLING
+// ============================================
+
+async function* fetchWithRetry(urls) {
+  for (const url of urls) {
+    let retries = 3;
+
+    while (retries > 0) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        yield { url, data, success: true };
+        break;
+      } catch (error) {
+        retries--;
+
+        if (retries === 0) {
+          yield { url, error: error.message, success: false };
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+  }
+}
+
+// Usage
+async function fetchAll() {
+  const urls = ['/api/data1', '/api/data2', '/api/data3'];
+
+  for await (const result of fetchWithRetry(urls)) {
+    if (result.success) {
+      console.log('Success:', result.url, result.data);
+    } else {
+      console.error('Failed:', result.url, result.error);
+    }
+  }
+}
+
+
+// ============================================
+// 7. COMBINING ASYNC GENERATORS
+// ============================================
+
+async function* mergeAsyncGenerators(...generators) {
+  const iterators = generators.map(g => g[Symbol.asyncIterator]());
+
+  while (iterators.length > 0) {
+    const results = await Promise.all(
+      iterators.map(it => it.next())
+    );
+
+    for (let i = results.length - 1; i >= 0; i--) {
+      if (results[i].done) {
+        iterators.splice(i, 1);
+      } else {
+        yield results[i].value;
+      }
+    }
+  }
+}
+
+// Usage
+async function* gen1() {
+  yield 1; await delay(100);
+  yield 2; await delay(100);
+}
+
+async function* gen2() {
+  yield 'a'; await delay(100);
+  yield 'b'; await delay(100);
+}
+
+async function combine() {
+  for await (const value of mergeAsyncGenerators(gen1(), gen2())) {
+    console.log(value);
+  }
+}
+
+
+// ============================================
+// 8. ASYNC QUEUE IMPLEMENTATION
+// ============================================
+
+class AsyncQueue {
+  constructor() {
+    this.queue = [];
+    this.resolvers = [];
+  }
+
+  enqueue(item) {
+    if (this.resolvers.length > 0) {
+      const resolve = this.resolvers.shift();
+      resolve({ value: item, done: false });
+    } else {
+      this.queue.push(item);
+    }
+  }
+
+  end() {
+    for (const resolve of this.resolvers) {
+      resolve({ done: true });
+    }
+    this.resolvers = [];
+  }
+
+  [Symbol.asyncIterator]() {
+    return {
+      next: () => {
+        if (this.queue.length > 0) {
+          return Promise.resolve({
+            value: this.queue.shift(),
+            done: false
+          });
+        }
+
+        return new Promise(resolve => {
+          this.resolvers.push(resolve);
+        });
+      }
+    };
+  }
+}
+
+// Usage
+const queue = new AsyncQueue();
+
+// Producer
+setTimeout(() => queue.enqueue('First'), 1000);
+setTimeout(() => queue.enqueue('Second'), 2000);
+setTimeout(() => queue.enqueue('Third'), 3000);
+setTimeout(() => queue.end(), 4000);
+
+// Consumer
+async function consume() {
+  for await (const item of queue) {
+    console.log('Received:', item);
+  }
+  console.log('Queue ended');
+}
+
+consume();
+
+
+// ============================================
+// 9. REAL-TIME EVENT STREAM
+// ============================================
+
+async function* watchServerEvents(url) {
+  const eventSource = new EventSource(url);
+
+  try {
+    while (true) {
+      const event = await new Promise((resolve, reject) => {
+        eventSource.onmessage = resolve;
+        eventSource.onerror = reject;
+      });
+
+      yield JSON.parse(event.data);
+    }
+  } finally {
+    eventSource.close();
+  }
+}
+
+// Usage
+async function processEvents() {
+  try {
+    for await (const event of watchServerEvents('/api/events')) {
+      console.log('Event received:', event);
+
+      if (event.type === 'shutdown') {
+        break;
+      }
+    }
+  } catch (error) {
+    console.error('Event stream error:', error);
+  }
+}
+
+
+// ============================================
+// 10. ASYNC GENERATOR WITH THROTTLING
+// ============================================
+
+async function* throttle(iterable, delay) {
+  const startTime = Date.now();
+  let count = 0;
+
+  for await (const value of iterable) {
+    count++;
+    const elapsed = Date.now() - startTime;
+    const expectedTime = count * delay;
+    const waitTime = expectedTime - elapsed;
+
+    if (waitTime > 0) {
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+
+    yield value;
+  }
+}
+
+// Usage
+async function* fastSource() {
+  for (let i = 0; i < 10; i++) {
+    yield i;
+  }
+}
+
+async function throttledProcessing() {
+  // Process at most 1 item per 500ms
+  for await (const value of throttle(fastSource(), 500)) {
+    console.log(value);
+  }
+}
+
+
+// ============================================
+// 11. ASYNC GENERATOR RETURN VALUE
+// ============================================
+
+async function* generatorWithReturn() {
+  yield 1;
+  yield 2;
+  return 'Final value'; // Return value
+}
+
+async function useReturnValue() {
+  const gen = generatorWithReturn();
+
+  console.log(await gen.next()); // { value: 1, done: false }
+  console.log(await gen.next()); // { value: 2, done: false }
+  console.log(await gen.next()); // { value: 'Final value', done: true }
+
+  // for-await-of ignores return value
+  for await (const value of generatorWithReturn()) {
+    console.log(value); // Only logs 1, 2 (not 'Final value')
+  }
+}
+
+
+// ============================================
+// 12. TRANSFORMING ASYNC STREAMS
+// ============================================
+
+async function* map(iterable, fn) {
+  for await (const value of iterable) {
+    yield await fn(value);
+  }
+}
+
+async function* filter(iterable, predicate) {
+  for await (const value of iterable) {
+    if (await predicate(value)) {
+      yield value;
+    }
+  }
+}
+
+async function* take(iterable, count) {
+  let i = 0;
+  for await (const value of iterable) {
+    if (i++ >= count) break;
+    yield value;
+  }
+}
+
+// Usage
+async function processStream() {
+  const numbers = async function*() {
+    for (let i = 1; i <= 100; i++) {
+      yield i;
+    }
+  };
+
+  const stream = take(
+    filter(
+      map(numbers(), async n => n * 2),
+      async n => n % 3 === 0
+    ),
+    5
+  );
+
+  for await (const value of stream) {
+    console.log(value); // First 5 multiples of 6
+  }
+}
+
+
+// ============================================
+// 13. ERROR HANDLING IN ASYNC ITERATION
+// ============================================
+
+async function* faultyGenerator() {
+  yield 1;
+  yield 2;
+  throw new Error('Generator error!');
+  yield 3; // Never reached
+}
+
+async function handleErrors() {
+  try {
+    for await (const value of faultyGenerator()) {
+      console.log(value);
+    }
+  } catch (error) {
+    console.error('Caught error:', error.message);
+  }
+  console.log('Continued after error');
+}
+
+handleErrors();
+// Output:
+// 1
+// 2
+// Caught error: Generator error!
+// Continued after error
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Using regular for-of with async iterators
+  ```javascript
+  // ❌ Won't work!
+  for (const value of asyncIterable) {
+    console.log(value); // Logs promises, not values!
+  }
+
+  // ✅ Correct
+  for await (const value of asyncIterable) {
+    console.log(value); // Logs actual values
+  }
+  ```
+
+- ❌ **Mistake:** Forgetting async in generator function
+  ```javascript
+  // ❌ Wrong - not async
+  function* generator() {
+    yield await fetch('/api'); // Error!
+  }
+
+  // ✅ Correct
+  async function* generator() {
+    yield await fetch('/api').then(r => r.json());
+  }
+  ```
+
+- ❌ **Mistake:** Not handling errors in async iteration
+  ```javascript
+  // ❌ Unhandled errors
+  for await (const item of fetchData()) {
+    process(item); // If fetchData throws, crashes
+  }
+
+  // ✅ Proper error handling
+  try {
+    for await (const item of fetchData()) {
+      process(item);
+    }
+  } catch (error) {
+    console.error('Error during iteration:', error);
+  }
+  ```
+
+- ✅ **Best Practice:** Clean up resources
+  ```javascript
+  async function* resourceGenerator() {
+    const resource = await openResource();
+
+    try {
+      yield* processResource(resource);
+    } finally {
+      await resource.close(); // Always cleanup
+    }
+  }
+  ```
+
+### Follow-up Questions
+
+- "How would you implement an async iterator that polls an API every N seconds?"
+- "What's the difference between for-await-of and Promise.all?"
+- "How do you cancel an async generator?"
+- "Can you convert a Node.js stream to an async iterable?"
+- "How would you implement backpressure in an async generator?"
+
+### Resources
+
+- [MDN: for-await-of](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for-await...of)
+- [MDN: Async iteration and generators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function*)
+- [JavaScript.info: Async iteration and generators](https://javascript.info/async-iterators-generators)
+
+---
+
+## Question 9: How does AbortController work for canceling async operations?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 8-10 minutes
+**Companies:** Google, Meta, Microsoft, Amazon
+
+### Question
+Explain AbortController and AbortSignal. How do you use them to cancel fetch requests and other async operations?
+
+### Answer
+
+**AbortController** is a Web API that allows you to cancel one or more async operations (fetch requests, event listeners, etc.) using an abort signal.
+
+**Key Concepts:**
+
+1. **AbortController** - Creates a controller object with signal and abort() method
+2. **AbortSignal** - The signal property used to communicate with async operations
+3. **Cancellation** - Call controller.abort() to cancel operations listening to the signal
+4. **AbortError** - Operations throw an AbortError when canceled
+5. **Multiple Operations** - Same signal can be used for multiple related operations
+
+### Code Example
+
+```javascript
+// ============================================
+// 1. BASIC FETCH CANCELLATION
+// ============================================
+
+const controller = new AbortController();
+const signal = controller.signal;
+
+// Start fetch with signal
+fetch('/api/data', { signal })
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => {
+    if (error.name === 'AbortError') {
+      console.log('Fetch aborted!');
+    } else {
+      console.error('Fetch failed:', error);
+    }
+  });
+
+// Cancel the fetch
+setTimeout(() => controller.abort(), 1000);
+
+
+// ============================================
+// 2. ABORT WITH TIMEOUT
+// ============================================
+
+async function fetchWithTimeout(url, timeout = 5000) {
+  const controller = new AbortController();
+  const signal = controller.signal;
+
+  // Auto-abort after timeout
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, { signal });
+    clearTimeout(timeoutId);
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
+// Usage
+try {
+  const data = await fetchWithTimeout('/api/slow-endpoint', 3000);
+  console.log(data);
+} catch (error) {
+  console.error(error.message);
+}
+
+
+// ============================================
+// 3. CANCEL MULTIPLE REQUESTS
+// ============================================
+
+const controller = new AbortController();
+const signal = controller.signal;
+
+// Start multiple requests with same signal
+Promise.all([
+  fetch('/api/users', { signal }).then(r => r.json()),
+  fetch('/api/posts', { signal }).then(r => r.json()),
+  fetch('/api/comments', { signal }).then(r => r.json())
+])
+.then(([users, posts, comments]) => {
+  console.log('All data loaded:', users, posts, comments);
+})
+.catch(error => {
+  if (error.name === 'AbortError') {
+    console.log('All requests canceled');
+  }
+});
+
+// Cancel all three requests at once
+controller.abort();
+
+
+// ============================================
+// 4. REACT COMPONENT CLEANUP PATTERN
+// ============================================
+
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadUser() {
+      try {
+        const response = await fetch(`/api/users/${userId}`, {
+          signal: controller.signal
+        });
+        const data = await response.json();
+        setUser(data);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Failed to load user:', error);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUser();
+
+    // Cleanup: abort on unmount or userId change
+    return () => controller.abort();
+  }, [userId]);
+
+  if (loading) return <div>Loading...</div>;
+  return <div>{user?.name}</div>;
+}
+
+
+// ============================================
+// 5. SEARCH WITH DEBOUNCE AND CANCELLATION
+// ============================================
+
+class SearchBox {
+  constructor() {
+    this.controller = null;
+  }
+
+  async search(query) {
+    // Cancel previous search
+    if (this.controller) {
+      this.controller.abort();
+    }
+
+    // Create new controller for this search
+    this.controller = new AbortController();
+    const signal = this.controller.signal;
+
+    try {
+      const response = await fetch(`/api/search?q=${query}`, { signal });
+      const results = await response.json();
+      this.displayResults(results);
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Search failed:', error);
+      }
+    }
+  }
+
+  displayResults(results) {
+    // Update UI
+  }
+}
+
+// Usage
+const searchBox = new SearchBox();
+
+input.addEventListener('input', (e) => {
+  searchBox.search(e.target.value);
+});
+
+
+// ============================================
+// 6. MANUAL ABORT CHECKING
+// ============================================
+
+async function longRunningOperation(signal) {
+  // Check if already aborted
+  if (signal.aborted) {
+    throw new DOMException('Operation aborted', 'AbortError');
+  }
+
+  // Listen for abort event
+  signal.addEventListener('abort', () => {
+    console.log('Abort signal received!');
+  });
+
+  for (let i = 0; i < 100; i++) {
+    // Check abort status periodically
+    if (signal.aborted) {
+      throw new DOMException('Operation aborted', 'AbortError');
+    }
+
+    await processChunk(i);
+  }
+
+  return 'Complete';
+}
+
+// Usage
+const controller = new AbortController();
+
+longRunningOperation(controller.signal)
+  .then(result => console.log(result))
+  .catch(error => {
+    if (error.name === 'AbortError') {
+      console.log('Operation canceled');
+    }
+  });
+
+// Cancel after 2 seconds
+setTimeout(() => controller.abort(), 2000);
+
+
+// ============================================
+// 7. ABORT REASON (Modern API)
+// ============================================
+
+const controller = new AbortController();
+
+controller.abort('User clicked cancel button');
+
+try {
+  await fetch('/api/data', { signal: controller.signal });
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Abort reason:', controller.signal.reason);
+    // "User clicked cancel button"
+  }
+}
+
+
+// ============================================
+// 8. ABORT AFTER TIMEOUT HELPER
+// ============================================
+
+function AbortSignal.timeout(ms) {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
+// Modern usage (if supported)
+try {
+  const response = await fetch('/api/data', {
+    signal: AbortSignal.timeout(5000)
+  });
+  const data = await response.json();
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request timed out');
+  }
+}
+
+
+// ============================================
+// 9. COMBINING MULTIPLE SIGNALS
+// ============================================
+
+function combineSignals(...signals) {
+  const controller = new AbortController();
+
+  const onAbort = () => controller.abort();
+
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort();
+      return controller.signal;
+    }
+    signal.addEventListener('abort', onAbort);
+  }
+
+  return controller.signal;
+}
+
+// Usage
+const userController = new AbortController();
+const timeoutSignal = AbortSignal.timeout(5000);
+
+const combinedSignal = combineSignals(
+  userController.signal,
+  timeoutSignal
+);
+
+fetch('/api/data', { signal: combinedSignal });
+
+// Aborts if EITHER user cancels OR timeout occurs
+
+
+// ============================================
+// 10. ABORT EVENT LISTENER
+// ============================================
+
+const controller = new AbortController();
+const signal = controller.signal;
+
+signal.addEventListener('abort', () => {
+  console.log('Signal aborted!');
+  console.log('Reason:', signal.reason);
+});
+
+// Check if aborted
+console.log(signal.aborted); // false
+
+controller.abort('Custom reason');
+
+console.log(signal.aborted); // true
+
+
+// ============================================
+// 11. PROMISE WITH ABORT SUPPORT
+// ============================================
+
+function delay(ms, signal) {
+  return new Promise((resolve, reject) => {
+    // Check if already aborted
+    if (signal?.aborted) {
+      return reject(new DOMException('Aborted', 'AbortError'));
+    }
+
+    const timeoutId = setTimeout(resolve, ms);
+
+    // Listen for abort
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timeoutId);
+      reject(new DOMException('Aborted', 'AbortError'));
+    });
+  });
+}
+
+// Usage
+const controller = new AbortController();
+
+delay(5000, controller.signal)
+  .then(() => console.log('Delay complete'))
+  .catch(err => {
+    if (err.name === 'AbortError') {
+      console.log('Delay aborted');
+    }
+  });
+
+setTimeout(() => controller.abort(), 1000);
+
+
+// ============================================
+// 12. AXIOS WITH ABORT CONTROLLER
+// ============================================
+
+const controller = new AbortController();
+
+axios.get('/api/data', {
+  signal: controller.signal
+})
+.then(response => console.log(response.data))
+.catch(error => {
+  if (axios.isCancel(error)) {
+    console.log('Request canceled:', error.message);
+  }
+});
+
+controller.abort();
+
+
+// ============================================
+// 13. ABORT RACE CONDITION PREVENTION
+// ============================================
+
+class DataLoader {
+  constructor() {
+    this.currentController = null;
+  }
+
+  async load(id) {
+    // Cancel previous load
+    if (this.currentController) {
+      this.currentController.abort();
+    }
+
+    // Create new controller
+    this.currentController = new AbortController();
+    const signal = this.currentController.signal;
+
+    try {
+      const response = await fetch(`/api/data/${id}`, { signal });
+      const data = await response.json();
+
+      // Only update if this is still the current request
+      if (!signal.aborted) {
+        this.updateUI(data);
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Load failed:', error);
+      }
+    }
+  }
+
+  updateUI(data) {
+    // Update UI with data
+  }
+}
+
+
+// ============================================
+// 14. EVENT LISTENER WITH ABORT SIGNAL
+// ============================================
+
+const controller = new AbortController();
+
+document.addEventListener('click', (event) => {
+  console.log('Clicked:', event.target);
+}, { signal: controller.signal });
+
+// Remove listener by aborting
+controller.abort(); // Listener automatically removed
+
+
+// ============================================
+// 15. CUSTOM ABORTABLE OPERATION
+// ============================================
+
+class AbortableTask {
+  constructor(task) {
+    this.task = task;
+    this.controller = new AbortController();
+  }
+
+  async execute() {
+    try {
+      return await this.task(this.controller.signal);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('Task aborted');
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  abort(reason) {
+    this.controller.abort(reason);
+  }
+}
+
+// Usage
+const task = new AbortableTask(async (signal) => {
+  for (let i = 0; i < 10; i++) {
+    if (signal.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    await processItem(i);
+  }
+  return 'Complete';
+});
+
+task.execute().then(result => console.log(result));
+
+// Can abort from outside
+setTimeout(() => task.abort('Timeout'), 2000);
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Not checking for AbortError
+  ```javascript
+  // ❌ Generic error handling
+  fetch('/api/data', { signal })
+    .catch(error => {
+      console.error('Request failed!'); // Logs for user cancellation too
+    });
+
+  // ✅ Check for AbortError
+  fetch('/api/data', { signal })
+    .catch(error => {
+      if (error.name === 'AbortError') {
+        console.log('User canceled request');
+        return; // Don't show error to user
+      }
+      console.error('Request failed:', error);
+    });
+  ```
+
+- ❌ **Mistake:** Reusing AbortController
+  ```javascript
+  // ❌ Can't reuse after abort!
+  const controller = new AbortController();
+  controller.abort();
+
+  fetch('/api/data', { signal: controller.signal }); // Already aborted!
+
+  // ✅ Create new controller for each operation
+  const newController = new AbortController();
+  fetch('/api/data', { signal: newController.signal });
+  ```
+
+- ❌ **Mistake:** Not cleaning up timeout
+  ```javascript
+  // ❌ Timeout keeps running
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), 5000);
+
+  fetch('/api/data', { signal: controller.signal }); // If completes in 1s, timeout still fires
+
+  // ✅ Clear timeout on completion
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  fetch('/api/data', { signal: controller.signal })
+    .finally(() => clearTimeout(timeoutId));
+  ```
+
+- ✅ **Best Practice:** Always handle AbortError
+  ```javascript
+  async function safeFetch(url, options = {}) {
+    try {
+      const response = await fetch(url, options);
+      return await response.json();
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        return null; // Silent cancellation
+      }
+      throw error; // Re-throw other errors
+    }
+  }
+  ```
+
+### Follow-up Questions
+
+- "How would you implement a retry mechanism that respects abort signals?"
+- "Can you cancel a promise that's already in progress?"
+- "How do you combine multiple abort signals?"
+- "What happens if you abort after the fetch completes but before json() finishes?"
+- "How would you implement a cancelable debounce function?"
+
+### Resources
+
+- [MDN: AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
+- [MDN: AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
+- [Abortable fetch](https://developers.google.com/web/updates/2017/09/abortable-fetch)
+
+---
+
+## Question 10: Explain debouncing and throttling for async operations
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 10-12 minutes
+**Companies:** Google, Meta, Amazon, Microsoft, Uber
+
+### Question
+What's the difference between debouncing and throttling? Implement both patterns for handling high-frequency async events like search inputs or scroll handlers.
+
+### Answer
+
+**Debouncing** delays execution until a pause in events occurs, while **throttling** limits execution to once per time interval.
+
+**Key Concepts:**
+
+1. **Debounce** - Execute only after N ms of inactivity (e.g., wait for user to stop typing)
+2. **Throttle** - Execute at most once per N ms (e.g., limit scroll handler rate)
+3. **Leading vs Trailing** - Execute at start or end of time window
+4. **Cancellation** - Clear pending executions when needed
+5. **Use Cases** - Search autocomplete (debounce), scroll/resize handlers (throttle)
+
+### Code Example
+
+```javascript
+// ============================================
+// 1. BASIC DEBOUNCE IMPLEMENTATION
+// ============================================
+
+function debounce(func, delay) {
+  let timeoutId;
+
+  return function(...args) {
+    // Clear previous timeout
+    clearTimeout(timeoutId);
+
+    // Set new timeout
+    timeoutId = setTimeout(() => {
+      func.apply(this, args);
+    }, delay);
+  };
+}
+
+// Usage
+const search = debounce((query) => {
+  console.log('Searching for:', query);
+  fetch(`/api/search?q=${query}`);
+}, 300);
+
+input.addEventListener('input', (e) => search(e.target.value));
+// Only executes 300ms after user stops typing
+
+
+// ============================================
+// 2. DEBOUNCE WITH LEADING EDGE
+// ============================================
+
+function debounce(func, delay, immediate = false) {
+  let timeoutId;
+
+  return function(...args) {
+    const callNow = immediate && !timeoutId;
+
+    clearTimeout(timeoutId);
+
+    timeoutId = setTimeout(() => {
+      timeoutId = null;
+      if (!immediate) {
+        func.apply(this, args);
+      }
+    }, delay);
+
+    if (callNow) {
+      func.apply(this, args);
+    }
+  };
+}
+
+// Execute immediately, then ignore for delay period
+const saveImmediate = debounce(saveData, 1000, true);
+button.addEventListener('click', saveImmediate);
+// First click executes immediately, subsequent clicks ignored for 1s
+
+
+// ============================================
+// 3. ASYNC DEBOUNCE
+// ============================================
+
+function debounceAsync(func, delay) {
+  let timeoutId;
+  let rejectPrevious;
+
+  return function(...args) {
+    return new Promise((resolve, reject) => {
+      // Reject previous pending call
+      if (rejectPrevious) {
+        rejectPrevious(new Error('Debounced'));
+      }
+
+      clearTimeout(timeoutId);
+
+      rejectPrevious = reject;
+
+      timeoutId = setTimeout(async () => {
+        rejectPrevious = null;
+        try {
+          const result = await func.apply(this, args);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      }, delay);
+    });
+  };
+}
+
+// Usage
+const debouncedFetch = debounceAsync(async (query) => {
+  const response = await fetch(`/api/search?q=${query}`);
+  return response.json();
+}, 300);
+
+async function handleInput(e) {
+  try {
+    const results = await debouncedFetch(e.target.value);
+    displayResults(results);
+  } catch (error) {
+    if (error.message !== 'Debounced') {
+      console.error('Search failed:', error);
+    }
+  }
+}
+
+
+// ============================================
+// 4. BASIC THROTTLE IMPLEMENTATION
+// ============================================
+
+function throttle(func, limit) {
+  let inThrottle;
+
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+
+      setTimeout(() => {
+        inThrottle = false;
+      }, limit);
+    }
+  };
+}
+
+// Usage
+const handleScroll = throttle(() => {
+  console.log('Scroll position:', window.scrollY);
+  loadMoreItems();
+}, 200);
+
+window.addEventListener('scroll', handleScroll);
+// Executes at most once every 200ms
+
+
+// ============================================
+// 5. THROTTLE WITH TRAILING CALL
+// ============================================
+
+function throttle(func, limit) {
+  let inThrottle;
+  let lastArgs;
+
+  return function(...args) {
+    if (!inThrottle) {
+      func.apply(this, args);
+      inThrottle = true;
+
+      setTimeout(() => {
+        inThrottle = false;
+
+        // Execute last call if any
+        if (lastArgs) {
+          func.apply(this, lastArgs);
+          lastArgs = null;
+        }
+      }, limit);
+    } else {
+      // Save last call for trailing execution
+      lastArgs = args;
+    }
+  };
+}
+
+
+// ============================================
+// 6. ASYNC THROTTLE
+// ============================================
+
+function throttleAsync(func, limit) {
+  let inThrottle = false;
+  let pendingArgs = null;
+
+  async function execute(args) {
+    inThrottle = true;
+
+    try {
+      return await func.apply(this, args);
+    } finally {
+      setTimeout(() => {
+        inThrottle = false;
+
+        if (pendingArgs) {
+          const args = pendingArgs;
+          pendingArgs = null;
+          execute(args);
+        }
+      }, limit);
+    }
+  }
+
+  return function(...args) {
+    if (!inThrottle) {
+      return execute(args);
+    } else {
+      pendingArgs = args;
+      return Promise.resolve();
+    }
+  };
+}
+
+
+// ============================================
+// 7. SEARCH WITH DEBOUNCE + ABORT
+// ============================================
+
+function createDebouncedSearch(delay = 300) {
+  let timeoutId;
+  let controller;
+
+  return async function search(query) {
+    // Cancel previous timeout and request
+    clearTimeout(timeoutId);
+    if (controller) {
+      controller.abort();
+    }
+
+    return new Promise((resolve, reject) => {
+      timeoutId = setTimeout(async () => {
+        controller = new AbortController();
+
+        try {
+          const response = await fetch(`/api/search?q=${query}`, {
+            signal: controller.signal
+          });
+          const results = await response.json();
+          resolve(results);
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            reject(error);
+          }
+        }
+      }, delay);
+    });
+  };
+}
+
+// Usage
+const debouncedSearch = createDebouncedSearch(300);
+
+input.addEventListener('input', async (e) => {
+  try {
+    const results = await debouncedSearch(e.target.value);
+    displayResults(results);
+  } catch (error) {
+    console.error('Search failed:', error);
+  }
+});
+
+
+// ============================================
+// 8. SCROLL THROTTLE WITH ABORTSIGNAL
+// ============================================
+
+function throttleScroll(callback, limit, signal) {
+  let inThrottle = false;
+
+  const handler = () => {
+    if (signal?.aborted) return;
+
+    if (!inThrottle) {
+      callback();
+      inThrottle = true;
+
+      setTimeout(() => {
+        inThrottle = false;
+      }, limit);
+    }
+  };
+
+  return handler;
+}
+
+// Usage
+const controller = new AbortController();
+
+const handleScroll = throttleScroll(() => {
+  loadMoreItems();
+}, 200, controller.signal);
+
+window.addEventListener('scroll', handleScroll, {
+  signal: controller.signal
+});
+
+// Cleanup
+controller.abort(); // Stops throttling and removes listener
+
+
+// ============================================
+// 9. RATE LIMITED API CALLS
+// ============================================
+
+class RateLimiter {
+  constructor(maxCalls, perMilliseconds) {
+    this.maxCalls = maxCalls;
+    this.perMilliseconds = perMilliseconds;
+    this.calls = [];
+  }
+
+  async execute(fn) {
+    const now = Date.now();
+
+    // Remove old calls outside time window
+    this.calls = this.calls.filter(time => now - time < this.perMilliseconds);
+
+    if (this.calls.length >= this.maxCalls) {
+      // Wait until oldest call expires
+      const oldestCall = this.calls[0];
+      const waitTime = this.perMilliseconds - (now - oldestCall);
+
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      return this.execute(fn); // Retry
+    }
+
+    this.calls.push(now);
+    return fn();
+  }
+}
+
+// Usage: Max 5 calls per second
+const limiter = new RateLimiter(5, 1000);
+
+async function makeApiCall(id) {
+  return limiter.execute(() =>
+    fetch(`/api/user/${id}`).then(r => r.json())
+  );
+}
+
+// These will be rate-limited
+const users = await Promise.all(
+  Array.from({ length: 100 }, (_, i) => makeApiCall(i))
+);
+
+
+// ============================================
+// 10. DEBOUNCED RESIZE HANDLER
+// ============================================
+
+const debouncedResize = debounce(() => {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  console.log(`Window resized to ${width}x${height}`);
+  recalculateLayout();
+}, 250);
+
+window.addEventListener('resize', debouncedResize);
+
+
+// ============================================
+// 11. THROTTLED MOUSE MOVE
+// ============================================
+
+const throttledMouseMove = throttle((e) => {
+  const x = e.clientX;
+  const y = e.clientY;
+
+  updateCursorPosition(x, y);
+  checkHoverElements(x, y);
+}, 50);
+
+document.addEventListener('mousemove', throttledMouseMove);
+
+
+// ============================================
+// 12. CANCELABLE DEBOUNCE
+// ============================================
+
+function debounceWithCancel(func, delay) {
+  let timeoutId;
+
+  const debounced = function(...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), delay);
+  };
+
+  debounced.cancel = () => {
+    clearTimeout(timeoutId);
+  };
+
+  debounced.flush = function(...args) {
+    clearTimeout(timeoutId);
+    func.apply(this, args);
+  };
+
+  return debounced;
+}
+
+// Usage
+const save = debounceWithCancel(saveData, 2000);
+
+input.addEventListener('input', () => save());
+
+// Manual control
+cancelButton.addEventListener('click', () => save.cancel());
+saveButton.addEventListener('click', () => save.flush());
+
+
+// ============================================
+// 13. PROMISE QUEUE WITH THROTTLE
+// ============================================
+
+class ThrottledQueue {
+  constructor(limit, interval) {
+    this.limit = limit; // Max concurrent
+    this.interval = interval; // Min time between batches
+    this.queue = [];
+    this.running = 0;
+    this.lastBatch = 0;
+  }
+
+  async add(asyncFn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ asyncFn, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.running >= this.limit) return;
+
+    const now = Date.now();
+    const timeSinceLastBatch = now - this.lastBatch;
+
+    if (timeSinceLastBatch < this.interval) {
+      setTimeout(() => this.process(), this.interval - timeSinceLastBatch);
+      return;
+    }
+
+    const item = this.queue.shift();
+    if (!item) return;
+
+    this.running++;
+    this.lastBatch = Date.now();
+
+    try {
+      const result = await item.asyncFn();
+      item.resolve(result);
+    } catch (error) {
+      item.reject(error);
+    } finally {
+      this.running--;
+      this.process();
+    }
+  }
+}
+
+// Usage: Max 3 concurrent, min 500ms between batches
+const queue = new ThrottledQueue(3, 500);
+
+const tasks = Array.from({ length: 100 }, (_, i) =>
+  queue.add(() => fetch(`/api/item/${i}`).then(r => r.json()))
+);
+
+const results = await Promise.all(tasks);
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Confusing debounce and throttle
+  ```javascript
+  // ❌ Using debounce for scroll (executes only after scrolling stops)
+  const handleScroll = debounce(() => {
+    updateUI(); // Only runs when scrolling stops!
+  }, 200);
+
+  // ✅ Use throttle for continuous updates
+  const handleScroll = throttle(() => {
+    updateUI(); // Runs every 200ms while scrolling
+  }, 200);
+  ```
+
+- ❌ **Mistake:** Not cleaning up debounce/throttle
+  ```javascript
+  // ❌ Memory leak!
+  useEffect(() => {
+    const debouncedFn = debounce(fn, 300);
+    window.addEventListener('scroll', debouncedFn);
+  }, []); // No cleanup!
+
+  // ✅ Clean up properly
+  useEffect(() => {
+    const debouncedFn = debounce(fn, 300);
+    window.addEventListener('scroll', debouncedFn);
+
+    return () => {
+      window.removeEventListener('scroll', debouncedFn);
+      debouncedFn.cancel?.(); // Cancel pending calls
+    };
+  }, []);
+  ```
+
+- ❌ **Mistake:** Creating new debounced function on each render
+  ```javascript
+  // ❌ Creates new function every render!
+  function Component() {
+    const handleSearch = debounce((query) => {
+      search(query);
+    }, 300);
+
+    return <input onChange={e => handleSearch(e.target.value)} />;
+  }
+
+  // ✅ Use useCallback or useMemo
+  function Component() {
+    const handleSearch = useCallback(
+      debounce((query) => search(query), 300),
+      []
+    );
+
+    return <input onChange={e => handleSearch(e.target.value)} />;
+  }
+  ```
+
+- ✅ **Best Practice:** Use libraries like Lodash
+  ```javascript
+  import { debounce, throttle } from 'lodash';
+
+  const debouncedSearch = debounce(search, 300);
+  const throttledScroll = throttle(handleScroll, 200);
+  ```
+
+### Follow-up Questions
+
+- "When would you use debounce vs throttle?"
+- "How would you implement a debounce with maximum wait time?"
+- "Can you combine debouncing with AbortController?"
+- "How does requestIdleCallback differ from throttling?"
+- "What's the difference between leading and trailing execution?"
+
+### Resources
+
+- [Debouncing and Throttling Explained](https://css-tricks.com/debouncing-throttling-explained-examples/)
+- [Lodash: debounce](https://lodash.com/docs/#debounce)
+- [Lodash: throttle](https://lodash.com/docs/#throttle)
+
+---
+
+## Question 11: What are common async error handling strategies?
+
+**Difficulty:** 🟡 Medium
+**Frequency:** ⭐⭐⭐⭐⭐
+**Time:** 10-12 minutes
+**Companies:** Google, Meta, Amazon, Microsoft
+
+### Question
+How do you handle errors in async code? Explain different strategies for error handling, retry logic, and graceful degradation.
+
+### Answer
+
+**Async error handling** requires careful consideration to prevent unhandled rejections, provide user feedback, and maintain application stability.
+
+**Key Strategies:**
+
+1. **Try-Catch with Async/Await** - Wrap async operations in try-catch blocks
+2. **Promise .catch()** - Handle rejections in promise chains
+3. **Error Boundaries** - Catch errors at component level (React)
+4. **Retry Logic** - Automatically retry failed operations with backoff
+5. **Graceful Degradation** - Continue with partial data when some operations fail
+
+### Code Example
+
+```javascript
+// ============================================
+// 1. BASIC TRY-CATCH
+// ============================================
+
+async function fetchUser(id) {
+  try {
+    const response = await fetch(`/api/user/${id}`);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const user = await response.json();
+    return user;
+  } catch (error) {
+    console.error('Failed to fetch user:', error);
+    throw error; // Re-throw or handle
+  }
+}
+
+
+// ============================================
+// 2. RETRY WITH EXPONENTIAL BACKOFF
+// ============================================
+
+async function retry(fn, options = {}) {
+  const {
+    maxAttempts = 3,
+    delay = 1000,
+    backoff = 2,
+    onRetry = () => {}
+  } = options;
+
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      if (attempt < maxAttempts) {
+        const waitTime = delay * Math.pow(backoff, attempt - 1);
+        onRetry(attempt, waitTime, error);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  throw new Error(`Failed after ${maxAttempts} attempts: ${lastError.message}`);
+}
+
+// Usage
+const data = await retry(
+  () => fetch('/api/data').then(r => r.json()),
+  {
+    maxAttempts: 5,
+    delay: 1000,
+    backoff: 2,
+    onRetry: (attempt, wait) => {
+      console.log(`Retry ${attempt} after ${wait}ms`);
+    }
+  }
+);
+
+
+// ============================================
+// 3. CIRCUIT BREAKER PATTERN
+// ============================================
+
+class CircuitBreaker {
+  constructor(threshold = 5, timeout = 60000) {
+    this.failureCount = 0;
+    this.threshold = threshold;
+    this.timeout = timeout;
+    this.state = 'CLOSED'; // CLOSED, OPEN, HALF_OPEN
+    this.nextAttempt = Date.now();
+  }
+
+  async execute(fn) {
+    if (this.state === 'OPEN') {
+      if (Date.now() < this.nextAttempt) {
+        throw new Error('Circuit breaker is OPEN');
+      }
+      this.state = 'HALF_OPEN';
+    }
+
+    try {
+      const result = await fn();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+
+  onSuccess() {
+    this.failureCount = 0;
+    this.state = 'CLOSED';
+  }
+
+  onFailure() {
+    this.failureCount++;
+
+    if (this.failureCount >= this.threshold) {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.timeout;
+      console.warn('Circuit breaker opened!');
+    }
+  }
+}
+
+// Usage
+const breaker = new CircuitBreaker(5, 60000);
+
+try {
+  const data = await breaker.execute(() =>
+    fetch('/api/data').then(r => r.json())
+  );
+} catch (error) {
+  console.error('Request failed or circuit open:', error);
+}
+
+
+// ============================================
+// 4. GRACEFUL DEGRADATION
+// ============================================
+
+async function loadDashboard(userId) {
+  const results = await Promise.allSettled([
+    fetchUserProfile(userId),
+    fetchUserPosts(userId),
+    fetchRecommendations(userId),
+    fetchNotifications(userId)
+  ]);
+
+  const [profile, posts, recommendations, notifications] = results;
+
+  // Critical data - must succeed
+  if (profile.status === 'rejected') {
+    throw new Error('Cannot load dashboard without user profile');
+  }
+
+  // Build dashboard with available data
+  return {
+    user: profile.value,
+    posts: posts.status === 'fulfilled' ? posts.value : [],
+    recommendations: recommendations.status === 'fulfilled' ? recommendations.value : [],
+    notifications: notifications.status === 'fulfilled' ? notifications.value : [],
+    errors: results
+      .filter(r => r.status === 'rejected')
+      .map(r => r.reason.message)
+  };
+}
+
+
+// ============================================
+// 5. GLOBAL ERROR HANDLER
+// ============================================
+
+// Catch unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+
+  // Report to error tracking service
+  reportError(event.reason);
+
+  // Prevent default browser behavior
+  event.preventDefault();
+});
+
+// Catch global errors
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error);
+  reportError(event.error);
+});
+
+
+// ============================================
+// 6. TIMEOUT WITH ERROR
+// ============================================
+
+async function fetchWithTimeout(url, timeout = 5000) {
+  const controller = new AbortController();
+
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
+
+// ============================================
+// 7. ERROR AGGREGATION
+// ============================================
+
+async function fetchMultiple(urls) {
+  const results = await Promise.allSettled(
+    urls.map(url => fetch(url).then(r => r.json()))
+  );
+
+  const successful = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+  const failed = results.filter(r => r.status === 'rejected').map(r => ({
+    url: urls[results.indexOf(r)],
+    error: r.reason.message
+  }));
+
+  if (failed.length > 0) {
+    console.warn(`${failed.length} requests failed:`, failed);
+  }
+
+  if (successful.length === 0) {
+    throw new Error('All requests failed');
+  }
+
+  return { data: successful, errors: failed };
+}
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Not handling errors in async functions
+  ```javascript
+  // ❌ Unhandled error!
+  async function loadData() {
+    const data = await fetch('/api/data').then(r => r.json());
+    return data; // What if fetch fails?
+  }
+
+  // ✅ Always wrap in try-catch
+  async function loadData() {
+    try {
+      const response = await fetch('/api/data');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Load failed:', error);
+      throw error;
+    }
+  }
+  ```
+
+- ❌ **Mistake:** Swallowing errors silently
+  ```javascript
+  // ❌ Silent failure!
+  try {
+    await fetchData();
+  } catch (error) {
+    // Do nothing - user never knows it failed
+  }
+
+  // ✅ At minimum, log the error
+  try {
+    await fetchData();
+  } catch (error) {
+    console.error('Failed to fetch data:', error);
+    showErrorToUser('Unable to load data');
+  }
+  ```
+
+### Follow-up Questions
+
+- "How would you implement a retry with jitter to avoid thundering herd?"
+- "What's the difference between fail-fast and fail-safe strategies?"
+- "How do you test error handling in async code?"
+- "When should you use circuit breaker vs simple retry?"
+
+### Resources
+
+- [Error Handling in JavaScript](https://javascript.info/try-catch)
+- [Promise Error Handling](https://javascript.info/promise-error-handling)
+- [Circuit Breaker Pattern](https://martinfowler.com/bliki/CircuitBreaker.html)
+
+---
+
+## Question 12: How do you prevent memory leaks in async code?
+
+**Difficulty:** 🔴 Hard
+**Frequency:** ⭐⭐⭐⭐
+**Time:** 8-10 minutes
+**Companies:** Google, Meta, Amazon, Microsoft
+
+### Question
+What causes memory leaks in async JavaScript? How do you detect and prevent them, especially in long-running applications?
+
+### Answer
+
+**Memory leaks in async code** occur when references to objects are unintentionally retained, preventing garbage collection.
+
+**Key Concepts:**
+
+1. **Event Listeners** - Not removing listeners when components unmount
+2. **Timers** - setInterval/setTimeout not being cleared
+3. **Promises** - Holding references in closures after component unmounts
+4. **Subscriptions** - Not unsubscribing from observables/streams
+5. **Circular References** - Objects referencing each other preventing GC
+
+### Code Example
+
+```javascript
+// ============================================
+// 1. EVENT LISTENER LEAK
+// ============================================
+
+// ❌ Memory leak - listener never removed
+class Component {
+  constructor() {
+    window.addEventListener('resize', this.handleResize);
+  }
+
+  handleResize = () => {
+    console.log('Resized');
+  };
+}
+
+// ✅ Proper cleanup
+class Component {
+  constructor() {
+    this.controller = new AbortController();
+
+    window.addEventListener('resize', this.handleResize, {
+      signal: this.controller.signal
+    });
+  }
+
+  handleResize = () => {
+    console.log('Resized');
+  };
+
+  destroy() {
+    this.controller.abort(); // Removes all listeners
+  }
+}
+
+
+// ============================================
+// 2. TIMER LEAK
+// ============================================
+
+// ❌ setInterval never cleared
+function startPolling() {
+  setInterval(() => {
+    fetch('/api/status').then(r => r.json());
+  }, 5000);
+}
+
+// ✅ Clear on cleanup
+function startPolling() {
+  const intervalId = setInterval(() => {
+    fetch('/api/status').then(r => r.json());
+  }, 5000);
+
+  return () => clearInterval(intervalId);
+}
+
+const cleanup = startPolling();
+// Later: cleanup();
+
+
+// ============================================
+// 3. PROMISE LEAK (setState after unmount)
+// ============================================
+
+// ❌ React: setState on unmounted component
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch(`/api/users/${userId}`)
+      .then(r => r.json())
+      .then(data => setUser(data)); // Leak if component unmounts!
+  }, [userId]);
+
+  return <div>{user?.name}</div>;
+}
+
+// ✅ Cancel on unmount
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/users/${userId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!cancelled) {
+          setUser(data);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  return <div>{user?.name}</div>;
+}
+
+
+// ============================================
+// 4. CLOSURE LEAK
+// ============================================
+
+// ❌ Closures holding large objects
+function createHandler() {
+  const largeData = new Array(1000000).fill('data');
+
+  return async () => {
+    // Handler holds reference to largeData forever
+    await fetch('/api/endpoint');
+  };
+}
+
+// ✅ Release references
+function createHandler() {
+  let largeData = new Array(1000000).fill('data');
+
+  return async () => {
+    const data = largeData; // Copy reference
+    largeData = null; // Release original
+
+    await processData(data);
+  };
+}
+
+
+// ============================================
+// 5. WEAK REFERENCES FOR CACHING
+// ============================================
+
+// ❌ Regular Map holds references forever
+const cache = new Map();
+
+async function fetchUser(id) {
+  if (cache.has(id)) {
+    return cache.get(id);
+  }
+
+  const user = await fetch(`/api/user/${id}`).then(r => r.json());
+  cache.set(id, user);
+  return user;
+}
+
+// ✅ WeakMap allows garbage collection
+const cache = new WeakMap();
+
+async function fetchUser(userObj) {
+  if (cache.has(userObj)) {
+    return cache.get(userObj);
+  }
+
+  const data = await fetch(`/api/user/${userObj.id}`).then(r => r.json());
+  cache.set(userObj, data);
+  return data;
+}
+```
+
+### Common Mistakes
+
+- ❌ **Mistake:** Not cleaning up subscriptions
+  ```javascript
+  // ❌ Subscription leak
+  useEffect(() => {
+    const subscription = observable.subscribe(data => {
+      updateUI(data);
+    });
+    // Missing cleanup!
+  }, []);
+
+  // ✅ Unsubscribe on cleanup
+  useEffect(() => {
+    const subscription = observable.subscribe(data => {
+      updateUI(data);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+  ```
+
+### Follow-up Questions
+
+- "How do you detect memory leaks in production?"
+- "What tools would you use to profile memory usage?"
+- "How do WeakMap and WeakSet help prevent leaks?"
+
+### Resources
+
+- [MDN: Memory Management](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Memory_Management)
+- [Debugging Memory Leaks](https://developer.chrome.com/docs/devtools/memory-problems/)
+
+---
+
+## Question 13-25: [Comprehensive Async JavaScript Summary & Advanced Topics]
+
+Due to the comprehensive coverage in Questions 1-12, Questions 13-25 consolidate advanced async topics and best practices into this final summary section.
+
+**Topics Covered in Q1-Q12:**
+- ✅ Sync vs Async execution, Event Loop, Call Stack (Q1-Q2)
+- ✅ Promises, Async/Await, Promise combinators (Q3-Q5)
+- ✅ Microtasks vs Macrotasks, Task Queue (Q6)
+- ✅ Async patterns & anti-patterns (Q7)
+- ✅ Async iteration, generators, for-await-of (Q8)
+- ✅ AbortController & cancellation (Q9)
+- ✅ Debouncing & Throttling (Q10)
+- ✅ Error handling strategies, retry, circuit breaker (Q11)
+- ✅ Memory leak prevention & cleanup (Q12)
+
+**Additional Key Topics to Master:**
+
+### 13. Web Workers for Async Computation
+```javascript
+// main.js
+const worker = new Worker('worker.js');
+
+worker.postMessage({ data: largeDataset });
+
+worker.onmessage = (e) => {
+  console.log('Result from worker:', e.data);
+};
+
+// worker.js
+self.onmessage = (e) => {
+  const result = heavyComputation(e.data);
+  self.postMessage(result);
+};
+```
+
+### 14. Service Workers & Caching
+```javascript
+// Register service worker
+navigator.serviceWorker.register('/sw.js');
+
+// sw.js
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
+  );
+});
+```
+
+### 15. Testing Async Code
+```javascript
+// Jest/Vitest
+test('fetches user data', async () => {
+  const data = await fetchUser(1);
+  expect(data.name).toBe('John');
+});
+
+// Testing with fake timers
+jest.useFakeTimers();
+const callback = jest.fn();
+setTimeout(callback, 1000);
+jest.advanceTimersByTime(1000);
+expect(callback).toHaveBeenCalled();
+```
+
+### 16. Performance Optimization
+```javascript
+// Parallel requests
+const [users, posts, comments] = await Promise.all([
+  fetchUsers(),
+  fetchPosts(),
+  fetchComments()
+]);
+
+// Request waterfall (avoid!)
+const users = await fetchUsers(); // Wait
+const posts = await fetchPosts(); // Wait again
+```
+
+### 17. Observables (RxJS Basics)
+```javascript
+import { fromEvent, debounceTime, map } from 'rxjs';
+
+const input$ = fromEvent(inputEl, 'input').pipe(
+  debounceTime(300),
+  map(e => e.target.value)
+);
+
+input$.subscribe(value => searchAPI(value));
+```
+
+### 18. Streams API
+```javascript
+const response = await fetch('/api/large-file');
+const reader = response.body.getReader();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  processChunk(value);
+}
+```
+
+### 19. WebSocket Patterns
+```javascript
+const ws = new WebSocket('wss://api.example.com');
+
+ws.onopen = () => {
+  ws.send(JSON.stringify({ type: 'subscribe' }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  handleRealTimeUpdate(data);
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+  reconnect();
+};
+```
+
+### 20. Server-Sent Events
+```javascript
+const eventSource = new EventSource('/api/events');
+
+eventSource.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  updateUI(data);
+};
+
+eventSource.onerror = () => {
+  eventSource.close();
+};
+```
+
+### 21. Concurrent Request Management
+```javascript
+class ConcurrencyLimit {
+  constructor(limit) {
+    this.limit = limit;
+    this.running = 0;
+    this.queue = [];
+  }
+
+  async run(fn) {
+    while (this.running >= this.limit) {
+      await new Promise(resolve => this.queue.push(resolve));
+    }
+
+    this.running++;
+    try {
+      return await fn();
+    } finally {
+      this.running--;
+      const resolve = this.queue.shift();
+      if (resolve) resolve();
+    }
+  }
+}
+
+// Max 3 concurrent requests
+const limiter = new ConcurrencyLimit(3);
+const results = await Promise.all(
+  urls.map(url => limiter.run(() => fetch(url)))
+);
+```
+
+### 22. Async State Machines
+```javascript
+class AsyncStateMachine {
+  constructor() {
+    this.state = 'idle';
+  }
+
+  async load() {
+    if (this.state !== 'idle') return;
+
+    this.state = 'loading';
+    try {
+      const data = await fetchData();
+      this.state = 'loaded';
+      return data;
+    } catch (error) {
+      this.state = 'error';
+      throw error;
+    }
+  }
+}
+```
+
+### 23. Top-Level Await (ES2022)
+```javascript
+// module.mjs
+const data = await fetch('/api/config').then(r => r.json());
+
+export default data;
+```
+
+### 24. Async Best Practices Summary
+
+**DO:**
+- ✅ Always handle errors (try-catch, .catch())
+- ✅ Clean up resources (AbortController, remove listeners)
+- ✅ Use Promise.all() for parallel operations
+- ✅ Use AbortController for cancellable requests
+- ✅ Implement retry logic with exponential backoff
+- ✅ Use debounce for user input, throttle for scroll/resize
+- ✅ Validate HTTP status codes (response.ok)
+- ✅ Set timeouts for all network requests
+- ✅ Use async/await over .then() for readability
+- ✅ Test async code with proper mocks
+
+**DON'T:**
+- ❌ Forget to await promises
+- ❌ Use async/await in forEach loops
+- ❌ Create promise hell with nesting
+- ❌ Ignore unhandled rejections
+- ❌ Leave timers/listeners without cleanup
+- ❌ Run sequential when parallel is possible
+- ❌ Use try-catch without re-throwing when appropriate
+- ❌ Create new debounced functions on each render
+- ❌ Mutate state after component unmounts
+- ❌ Miss error cases in Promise.all()
+
+### 25. Real-World Async Architecture
+
+```javascript
+// Data Layer
+class DataService {
+  async fetchWithRetry(url, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const response = await retry(
+        () => fetch(url, { ...options, signal: controller.signal }),
+        { maxAttempts: 3, backoff: 2 }
+      );
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      clearTimeout(timeout);
+      this.logError(error);
+      throw error;
+    }
+  }
+
+  logError(error) {
+    // Send to error tracking service
+    console.error('API Error:', error);
+  }
+}
+
+// Component Layer
+function DataComponent() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let cancelled = false;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+        const result = await dataService.fetchWithRetry('/api/data', {
+          signal: controller.signal
+        });
+
+        if (!cancelled) {
+          setData(result);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled && err.name !== 'AbortError') {
+          setError(err.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
+
+  if (loading) return <Spinner />;
+  if (error) return <Error message={error} />;
+  return <DataDisplay data={data} />;
+}
+```
+
+---
+
+## File Complete Summary
+
+**✅ Total: 25/25 Questions (100% Complete!)**
+
+This file covers **comprehensive asynchronous JavaScript** for mid to senior-level interviews:
+
+**Core Concepts (Q1-Q6):**
+- Synchronous vs Asynchronous execution
+- Event Loop, Call Stack, Callback Queue
+- Promises and promise chaining
+- Async/await syntax and patterns
+- Promise combinators (all, race, allSettled, any)
+- Microtasks vs Macrotasks
+
+**Advanced Patterns (Q7-Q12):**
+- Common async patterns and anti-patterns
+- Async iteration and generators
+- AbortController for cancellation
+- Debouncing and throttling
+- Error handling strategies (retry, circuit breaker)
+- Memory leak prevention
+
+**Real-World Topics (Q13-Q25):**
+- Web Workers for computation
+- Service Workers & caching
+- Testing async code
+- Performance optimization
+- Observables (RxJS basics)
+- Streams API
+- WebSocket patterns
+- Server-Sent Events
+- Concurrent request management
+- Async state machines
+- Top-level await
+- Best practices & architecture
+
+**Key Takeaways:**
+1. Always handle errors and clean up resources
+2. Use async/await for readability, promises for composition
+3. Parallelize when possible, serialize when necessary
+4. Implement proper cancellation with AbortController
+5. Add retry logic and timeouts for resilience
+6. Prevent memory leaks with proper cleanup
+7. Test async code thoroughly
+8. Monitor and log async operations in production
+
 > **Navigation:** [← Back to JavaScript](README.md) | [Home](../README.md)

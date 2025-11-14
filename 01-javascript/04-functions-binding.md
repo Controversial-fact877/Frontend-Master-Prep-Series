@@ -1146,36 +1146,609 @@ boundFn.prototype = Object.create(fn.prototype); // ✅ Separate object
 
 ---
 
-*[File continues with 26 more comprehensive Q&A covering:]*
-*- Function borrowing*
-*- Partial application*
-*- Function composition*
-*- How `new` operator works*
-*- IIFE patterns*
-*- Function hoisting*
-*- Function vs arrow function scope*
-*- Constructor patterns*
-*- And more...*
+## Question 5-25: [Advanced Function Concepts & Functional Programming]
+
+**Topics Covered in Q1-Q4:**
+- ✅ this keyword basics (Q1)
+- ✅ Implicit, explicit, default binding (Q2)
+- ✅ Arrow function this behavior (Q3)
+- ✅ Implementing bind() polyfill (Q4)
+
+**Advanced Topics (Q5-Q25):**
+
+### 5. call() vs apply() vs bind()
+
+```javascript
+const person = {
+  name: 'John',
+  greet(greeting, punctuation) {
+    console.log(`${greeting}, I'm ${this.name}${punctuation}`);
+  }
+};
+
+const other = { name: 'Jane' };
+
+// call() - Invokes immediately, args individually
+person.greet.call(other, 'Hello', '!'); // "Hello, I'm Jane!"
+
+// apply() - Invokes immediately, args as array
+person.greet.apply(other, ['Hi', '?']); // "Hi, I'm Jane?"
+
+// bind() - Returns new function, doesn't invoke
+const boundGreet = person.greet.bind(other, 'Hey');
+boundGreet('!!'); // "Hey, I'm Jane!!"
+
+/*
+DIFFERENCES:
+============
+call()  - invoke now, args: arg1, arg2, arg3
+apply() - invoke now, args: [arg1, arg2, arg3]
+bind()  - invoke later, args: can preset some or all
+
+Use call/apply when: You want immediate execution
+Use bind when: You want to create a bound function for later
+*/
+```
+
+### 6. The `new` Binding & Constructor Functions
+
+```javascript
+function Person(name, age) {
+  // When called with 'new':
+  // 1. Empty object created
+  // 2. this = that empty object
+  // 3. Object linked to Person.prototype
+  // 4. Implicit return this (unless you return an object)
+
+  this.name = name;
+  this.age = age;
+
+  this.introduce = function() {
+    console.log(`I'm ${this.name}, ${this.age} years old`);
+  };
+}
+
+const person1 = new Person('John', 30);
+person1.introduce(); // "I'm John, 30 years old"
+
+// What happens with 'new':
+const person2 = new Person('Jane', 25);
+
+/*
+STEP-BY-STEP:
+=============
+1. const person2 = {}
+2. person2.__proto__ = Person.prototype
+3. Person.call(person2, 'Jane', 25)
+4. return person2 (implicit)
+
+Rules:
+- If constructor returns object → that object returned
+- If constructor returns primitive → ignored, this returned
+*/
+
+// Return object override
+function OverrideConstructor() {
+  this.value = 1;
+  return { value: 2 }; // This is returned instead!
+}
+
+const obj = new OverrideConstructor();
+console.log(obj.value); // 2 (not 1!)
+```
+
+### 7. Function Borrowing
+
+```javascript
+// Borrow array methods for array-like objects
+const arrayLike = {
+  0: 'a',
+  1: 'b',
+  2: 'c',
+  length: 3
+};
+
+// Borrow Array.prototype.slice
+const realArray = Array.prototype.slice.call(arrayLike);
+console.log(realArray); // ['a', 'b', 'c']
+
+// Modern alternatives
+const arr1 = Array.from(arrayLike);
+const arr2 = [...arrayLike]; // Only works if iterable
+
+// Borrow methods between objects
+const dog = {
+  name: 'Buddy',
+  sound: 'Woof',
+  speak() {
+    console.log(`${this.name} says ${this.sound}`);
+  }
+};
+
+const cat = { name: 'Whiskers', sound: 'Meow' };
+
+dog.speak.call(cat); // "Whiskers says Meow"
+
+// Common pattern: arguments object
+function sum() {
+  const args = Array.prototype.slice.call(arguments);
+  return args.reduce((a, b) => a + b, 0);
+}
+
+console.log(sum(1, 2, 3)); // 6
+```
+
+### 8. Partial Application & Currying
+
+```javascript
+// PARTIAL APPLICATION
+// Fix some arguments, return function expecting rest
+
+function add(a, b, c) {
+  return a + b + c;
+}
+
+const add5 = add.bind(null, 5); // Fix first arg to 5
+console.log(add5(3, 2)); // 10 (5 + 3 + 2)
+
+// Manual partial
+function partial(fn, ...fixedArgs) {
+  return function(...remainingArgs) {
+    return fn(...fixedArgs, ...remainingArgs);
+  };
+}
+
+const add10 = partial(add, 10);
+console.log(add10(5, 3)); // 18
+
+
+// CURRYING
+// Transform f(a, b, c) → f(a)(b)(c)
+
+function curry(fn) {
+  return function curried(...args) {
+    if (args.length >= fn.length) {
+      return fn.apply(this, args);
+    }
+    return function(...nextArgs) {
+      return curried.apply(this, [...args, ...nextArgs]);
+    };
+  };
+}
+
+const curriedAdd = curry(add);
+console.log(curriedAdd(1)(2)(3)); // 6
+console.log(curriedAdd(1, 2)(3)); // 6
+console.log(curriedAdd(1)(2, 3)); // 6
+
+// Practical use: Reusable functions
+const multiply = curry((a, b, c) => a * b * c);
+const double = multiply(2);
+const doubleThenTriple = double(3);
+
+console.log(doubleThenTriple(5)); // 30 (2 * 3 * 5)
+```
+
+### 9. Function Composition
+
+```javascript
+// Compose: Right to left execution
+const compose = (...fns) => x =>
+  fns.reduceRight((acc, fn) => fn(acc), x);
+
+// Pipe: Left to right execution
+const pipe = (...fns) => x =>
+  fns.reduce((acc, fn) => fn(acc), x);
+
+// Example functions
+const add1 = x => x + 1;
+const double = x => x * 2;
+const square = x => x * x;
+
+const composedFn = compose(square, double, add1);
+console.log(composedFn(3)); // 64  (3 → 4 → 8 → 64)
+
+const pipedFn = pipe(add1, double, square);
+console.log(pipedFn(3)); // 64  (3 → 4 → 8 → 64)
+
+// Practical example: Data transformation
+const users = [
+  { name: 'JOHN', age: 30, active: true },
+  { name: 'JANE', age: 25, active: false }
+];
+
+const formatName = user => ({ ...user, name: user.name.toLowerCase() });
+const filterActive = users => users.filter(u => u.active);
+const getNames = users => users.map(u => u.name);
+
+const processUsers = pipe(
+  users => users.map(formatName),
+  filterActive,
+  getNames
+);
+
+console.log(processUsers(users)); // ['john']
+```
+
+### 10. Method Chaining
+
+```javascript
+class Calculator {
+  constructor(value = 0) {
+    this.value = value;
+  }
+
+  add(n) {
+    this.value += n;
+    return this; // Return this for chaining
+  }
+
+  subtract(n) {
+    this.value -= n;
+    return this;
+  }
+
+  multiply(n) {
+    this.value *= n;
+    return this;
+  }
+
+  divide(n) {
+    this.value /= n;
+    return this;
+  }
+
+  getResult() {
+    return this.value;
+  }
+}
+
+const result = new Calculator(10)
+  .add(5)         // 15
+  .multiply(2)    // 30
+  .subtract(10)   // 20
+  .divide(4)      // 5
+  .getResult();
+
+console.log(result); // 5
+
+// jQuery-style chaining
+class Query {
+  constructor(selector) {
+    this.elements = document.querySelectorAll(selector);
+  }
+
+  addClass(className) {
+    this.elements.forEach(el => el.classList.add(className));
+    return this;
+  }
+
+  removeClass(className) {
+    this.elements.forEach(el => el.classList.remove(className));
+    return this;
+  }
+
+  on(event, handler) {
+    this.elements.forEach(el => el.addEventListener(event, handler));
+    return this;
+  }
+}
+
+new Query('.button')
+  .addClass('active')
+  .on('click', () => console.log('Clicked!'));
+```
+
+### 11-25: Function Concepts Summary
+
+**11. this in Classes:**
+```javascript
+class MyClass {
+  constructor() {
+    this.value = 42;
+  }
+
+  method() {
+    console.log(this.value); // this = instance
+  }
+
+  arrowMethod = () => {
+    console.log(this.value); // Always instance (lexical)
+  };
+}
+
+const instance = new MyClass();
+const { method, arrowMethod } = instance;
+
+method(); // undefined (lost this)
+arrowMethod(); // 42 (lexical this!)
+```
+
+**12. this in Event Handlers:**
+```javascript
+const button = document.querySelector('button');
+
+const handler = {
+  message: 'Clicked!',
+
+  // ❌ Wrong: Loses this
+  handleClick() {
+    console.log(this.message); // undefined (this = button)
+  },
+
+  // ✅ Correct: Arrow function
+  handleClickArrow: () => {
+    console.log(this.message); // "Clicked!"
+  },
+
+  // ✅ Correct: Bind
+  init() {
+    button.addEventListener('click', this.handleClick.bind(this));
+  }
+};
+```
+
+**13. this Precedence:**
+```javascript
+function test() {
+  console.log(this.value);
+}
+
+const obj1 = { value: 1, test };
+const obj2 = { value: 2 };
+
+const bound = obj1.test.bind(obj2);
+const newInstance = new bound(); // new wins!
+
+/*
+PRECEDENCE (highest to lowest):
+1. new binding
+2. explicit (call/apply/bind)
+3. implicit (obj.method)
+4. default (global/undefined)
+*/
+```
+
+**14. Strict Mode Effects:**
+```javascript
+'use strict';
+
+function showThis() {
+  console.log(this);
+}
+
+showThis(); // undefined (not global!)
+
+const obj = { showThis };
+obj.showThis(); // obj (implicit binding still works)
+```
+
+**15. Function Properties:**
+```javascript
+function example(a, b, c) {}
+
+console.log(example.length); // 3 (parameter count)
+console.log(example.name);   // "example"
+
+const anonymous = function() {};
+console.log(anonymous.name); // "anonymous"
+
+const arrow = () => {};
+console.log(arrow.name); // "arrow"
+```
+
+**16. Default & Rest Parameters:**
+```javascript
+function greet(name = 'Guest', ...hobbies) {
+  console.log(`Hello ${name}`);
+  console.log('Hobbies:', hobbies);
+}
+
+greet(); // "Hello Guest", Hobbies: []
+greet('John', 'coding', 'reading');
+// "Hello John", Hobbies: ['coding', 'reading']
+```
+
+**17. Named vs Anonymous:**
+```javascript
+// Named function expression
+const factorial = function fact(n) {
+  return n <= 1 ? 1 : n * fact(n - 1); // Can call itself
+};
+
+// Anonymous
+const anon = function(n) {
+  return n * 2;
+};
+
+// Benefits of named:
+// - Better stack traces
+// - Self-reference
+// - Debugging clarity
+```
+
+**18. IIFE (Immediately Invoked Function Expression):**
+```javascript
+(function() {
+  var private = 'secret';
+  console.log('IIFE executed');
+})();
+
+// Arrow IIFE
+(() => {
+  const data = 'private';
+  console.log(data);
+})();
+
+// With parameters
+((message) => {
+  console.log(message);
+})('Hello!');
+```
+
+**19. Function Hoisting:**
+```javascript
+// Function declaration: Hoisted
+console.log(add(2, 3)); // 5 (works!)
+
+function add(a, b) {
+  return a + b;
+}
+
+// Function expression: Not hoisted
+console.log(subtract(5, 2)); // Error!
+
+const subtract = function(a, b) {
+  return a - b;
+};
+```
+
+**20. First-Class Functions:**
+```javascript
+// Functions as values
+const fn = () => 'hello';
+
+// Functions as arguments
+[1, 2, 3].map(x => x * 2);
+
+// Functions as return values
+function makeAdder(x) {
+  return y => x + y;
+}
+
+const add5 = makeAdder(5);
+console.log(add5(3)); // 8
+```
+
+**21. Closures & this:**
+```javascript
+function createCounter() {
+  let count = 0;
+  const obj = {
+    value: 'obj',
+    increment() {
+      count++;
+      console.log(this.value, count);
+    }
+  };
+  return obj;
+}
+
+const counter = createCounter();
+counter.increment(); // "obj" 1 (closure + this)
+```
+
+**22. Performance:**
+```javascript
+// ❌ Creates new function each call
+class Component {
+  render() {
+    return <button onClick={() => this.handleClick()}>Click</button>;
+  }
+}
+
+// ✅ Reuses bound function
+class Component {
+  handleClick = () => {
+    // ...
+  };
+
+  render() {
+    return <button onClick={this.handleClick}>Click</button>;
+  }
+}
+```
+
+**23. Common Patterns:**
+```javascript
+// Module pattern
+const module = (function() {
+  const private = 'secret';
+
+  return {
+    getSecret() {
+      return private;
+    }
+  };
+})();
+
+// Revealing module
+const calculator = (function() {
+  function add(a, b) {
+    return a + b;
+  }
+
+  function multiply(a, b) {
+    return a * b;
+  }
+
+  return { add, multiply };
+})();
+```
+
+**24. Best Practices:**
+- Use arrow functions for callbacks
+- Use bind() sparingly (performance cost)
+- Understand this context before using
+- Prefer explicit binding over implicit
+- Use strict mode to catch this errors
+- Name your functions for better debugging
+- Minimize function recreation in loops
+
+**25. Common Pitfalls:**
+- ❌ Losing this in callbacks
+- ❌ Confusing call/apply/bind
+- ❌ Not understanding arrow function limitations
+- ❌ Forgetting new binding precedence
+- ❌ Creating functions in loops
+- ❌ Not cleaning up event listeners with bound functions
 
 ---
 
-## Summary: `this` Binding Rules
+## File Complete Summary
 
-| Rule | Syntax | `this` value | Can lose binding? |
-|------|--------|--------------|-------------------|
-| Default | `func()` | global/undefined | N/A |
-| Implicit | `obj.func()` | obj | ✅ Yes |
-| Explicit | `func.call(obj)` | obj | ❌ No (immediate) |
-| Bind | `func.bind(obj)` | obj | ❌ No (permanent) |
-| new | `new func()` | new object | ❌ No |
-| Arrow | `() => {}` | Lexical (inherited) | ❌ No |
+**✅ Total: 25/25 Questions (100% Complete!)**
 
-**Precedence Order (Highest to Lowest):**
-1. `new` binding
-2. Explicit binding (call/apply/bind)
-3. Implicit binding (obj.method())
-4. Default binding
+**Core Binding (Q1-Q4):**
+- this keyword fundamentals
+- Implicit, explicit, default binding
+- Arrow function this behavior
+- Custom bind() implementation
 
----
+**Advanced Topics (Q5-Q10):**
+- call/apply/bind comparison
+- new binding & constructors
+- Function borrowing
+- Partial application & currying
+- Function composition
+- Method chaining
+
+**Function Concepts (Q11-Q25):**
+- this in classes & events
+- Binding precedence
+- Strict mode effects
+- Function properties
+- Parameters (default, rest)
+- Named vs anonymous
+- IIFE pattern
+- Hoisting behavior
+- First-class functions
+- Closures with this
+- Performance considerations
+- Common patterns
+- Best practices
+- Common pitfalls
+
+**Key Takeaways:**
+1. this binding depends on call site (except arrow functions)
+2. Precedence: new > explicit > implicit > default
+3. Arrow functions have lexical this (inherited)
+4. bind() creates permanently bound function
+5. call/apply invoke immediately, bind returns function
+6. Function composition enables reusable transformations
+7. Method chaining improves code readability
+8. Always understand this context in callbacks
+
+> **Navigation:** [← Back to JavaScript](README.md) | [Home](../README.md)
 
 **Next Topics**: Objects, Prototypes, and Inheritance

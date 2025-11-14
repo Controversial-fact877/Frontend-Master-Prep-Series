@@ -1423,22 +1423,616 @@ function test() {
 
 ---
 
-*[Continue with Questions 7-20 covering Event Loop, Task Queue, Microtasks, etc.]*
+## Question 7-25: [Execution Context Deep Dive - Event Loop, Memory, & Runtime Behavior]
+
+**Topics Covered in Q1-Q6:**
+- ✅ Execution Context basics (Q1)
+- ✅ Creation vs Execution phases (Q2)
+- ✅ Call Stack mechanics (Q3)
+- ✅ Stack vs Heap memory (Q4)
+- ✅ Lexical Environment (Q5)
+- ✅ Scope Chain (Q6)
+
+**Critical Advanced Topics (Q7-Q25):**
+
+### 7. The Event Loop - How JavaScript Handles Concurrency
+
+**Most Frequently Asked Topic in Interviews**
+
+```javascript
+console.log('1 - Synchronous');
+
+setTimeout(() => console.log('2 - Macrotask'), 0);
+
+Promise.resolve().then(() => console.log('3 - Microtask'));
+
+console.log('4 - Synchronous');
+
+// Output:
+// 1 - Synchronous
+// 4 - Synchronous
+// 3 - Microtask (microtask queue processed first!)
+// 2 - Macrotask
+
+/*
+EVENT LOOP CYCLE:
+==================
+1. Execute all synchronous code (call stack)
+2. Process ALL microtasks (Promise callbacks, queueMicrotask)
+3. Process ONE macrotask (setTimeout, setInterval, I/O)
+4. Render (if browser)
+5. Repeat from step 2
+*/
+```
+
+### 8. this Binding in Different Execution Contexts
+
+```javascript
+// Global context
+console.log(this); // Window (browser) or global (Node.js)
+
+// Function context
+function regularFunction() {
+  console.log(this); // Global in non-strict, undefined in strict mode
+}
+
+// Method context
+const obj = {
+  name: 'Object',
+  method() {
+    console.log(this.name); // "Object" (this = obj)
+  }
+};
+
+// Arrow function context
+const arrow = () => {
+  console.log(this); // Lexical this (from enclosing scope)
+};
+
+// Constructor context
+function Person(name) {
+  this.name = name; // this = new empty object
+}
+const person = new Person('John');
+
+// Explicit binding
+regularFunction.call({ name: 'Explicit' }); // this = { name: 'Explicit' }
+```
+
+### 9. Variable Environment vs Lexical Environment
+
+```javascript
+function outer() {
+  var varVariable = 'var';
+  let letVariable = 'let';
+  const constVariable = 'const';
+
+  function inner() {
+    console.log(varVariable); // Accessible
+    console.log(letVariable); // Accessible
+  }
+
+  inner();
+}
+
+/*
+VARIABLE ENVIRONMENT:
+- Contains var declarations and function declarations
+- Part of execution context
+
+LEXICAL ENVIRONMENT:
+- Contains let, const, and function parameters
+- Has reference to outer lexical environment (scope chain)
+- Enforces Temporal Dead Zone (TDZ)
+*/
+```
+
+### 10. Global Execution Context
+
+```javascript
+// Global variables become properties of global object
+var globalVar = 'I am global';
+let globalLet = 'I am also global';
+
+console.log(window.globalVar); // 'I am global' (browser)
+console.log(window.globalLet); // undefined (let/const don't attach to window)
+
+/*
+GLOBAL EXECUTION CONTEXT:
+==========================
+Created before any code runs
+
+Creation Phase:
+- Global object created (window/global)
+- 'this' bound to global object
+- Variable environment setup
+- Lexical environment setup
+- Outer environment = null (no parent scope)
+
+Execution Phase:
+- Variable assignment
+- Function execution
+*/
+```
+
+### 11. Function Execution Context
+
+```javascript
+function calculate(a, b) {
+  var result = a + b;
+  let intermediate = a * 2;
+
+  return result;
+}
+
+calculate(5, 3);
+
+/*
+FUNCTION EXECUTION CONTEXT (for calculate):
+===========================================
+
+Creation Phase:
+1. Arguments object created: { 0: 5, 1: 3, length: 2 }
+2. Parameters: a = 5, b = 3
+3. 'this' determined (depends on call site)
+4. Variable environment: result = undefined
+5. Lexical environment: intermediate in TDZ
+6. Outer environment = Global Lexical Environment
+
+Execution Phase:
+1. result = 8
+2. intermediate = 10
+3. return 8
+4. Context popped from call stack
+*/
+```
+
+### 12. Arrow Functions & Execution Context
+
+```javascript
+const obj = {
+  name: 'Object',
+
+  regularMethod() {
+    console.log(this.name); // "Object"
+
+    setTimeout(function() {
+      console.log(this.name); // undefined (this = window/global)
+    }, 100);
+  },
+
+  arrowMethod() {
+    console.log(this.name); // "Object"
+
+    setTimeout(() => {
+      console.log(this.name); // "Object" (lexical this!)
+    }, 100);
+  }
+};
+
+/*
+ARROW FUNCTION DIFFERENCES:
+============================
+✗ No own 'this' (inherits from enclosing scope)
+✗ No arguments object
+✗ Cannot be used as constructor (new)
+✗ No prototype property
+✗ No super binding
+✅ Concise syntax
+✅ Implicit return
+*/
+```
+
+### 13. IIFE (Immediately Invoked Function Expression) & Scope
+
+```javascript
+(function() {
+  var private = 'I am private';
+  let alsoPrivate = 'Me too';
+
+  console.log('IIFE executed!');
+})();
+
+console.log(typeof private); // 'undefined' (not in global scope)
+
+// Modern alternative: Block scope
+{
+  let blockScoped = 'Private';
+  const alsoBlockScoped = 'Also private';
+}
+
+console.log(typeof blockScoped); // 'undefined'
+
+/*
+IIFE EXECUTION CONTEXT:
+========================
+1. Function created and immediately invoked
+2. New execution context created
+3. Variables scoped to function (private)
+4. Context destroyed after execution
+5. Variables garbage collected
+
+Use cases:
+- Module pattern (pre-ES6)
+- Avoid global namespace pollution
+- Create private scope
+*/
+```
+
+### 14. Nested Function Contexts & Closure
+
+```javascript
+function outer(x) {
+  let outerVar = 'outer';
+
+  function middle(y) {
+    let middleVar = 'middle';
+
+    function inner(z) {
+      let innerVar = 'inner';
+
+      console.log(x, y, z); // Access all parameters
+      console.log(outerVar, middleVar, innerVar); // Access all variables
+    }
+
+    return inner;
+  }
+
+  return middle;
+}
+
+const middleFn = outer(1);
+const innerFn = middleFn(2);
+innerFn(3);
+
+/*
+NESTED EXECUTION CONTEXTS:
+===========================
+
+Call Stack:           Scope Chains:
+[global]
+[outer]               outer → global
+[middle]              middle → outer → global
+[inner] ← current     inner → middle → outer → global
+
+Closure:
+inner retains reference to middle and outer lexical environments
+even after middle and outer have returned!
+*/
+```
+
+### 15. Recursion & Stack Overflow
+
+```javascript
+// ❌ Stack overflow
+function infiniteRecursion() {
+  return infiniteRecursion(); // Never ends!
+}
+
+// infiniteRecursion(); // RangeError: Maximum call stack size exceeded
+
+// ✅ Tail call optimization (limited browser support)
+function factorial(n, acc = 1) {
+  if (n <= 1) return acc;
+  return factorial(n - 1, n * acc); // Tail position
+}
+
+console.log(factorial(5)); // 120
+
+// ✅ Iterative alternative (always safe)
+function factorialIterative(n) {
+  let result = 1;
+  for (let i = 2; i <= n; i++) {
+    result *= i;
+  }
+  return result;
+}
+
+/*
+CALL STACK LIMITS:
+==================
+Chrome: ~10,000-15,000 frames
+Firefox: ~50,000 frames
+Node.js: ~10,000-12,000 frames
+
+Stack overflow prevention:
+1. Add base case (termination condition)
+2. Use iteration instead of recursion
+3. Implement trampolining for deep recursion
+4. Use tail call optimization (if supported)
+*/
+```
+
+### 16. Garbage Collection & Memory Lifecycle
+
+```javascript
+function createLeak() {
+  const huge = new Array(1000000).fill('data');
+
+  return function() {
+    // Closure keeps 'huge' in memory!
+    console.log(huge.length);
+  };
+}
+
+const leak = createLeak(); // 'huge' never garbage collected
+
+// ✅ Prevent leak
+function createNoLeak() {
+  let huge = new Array(1000000).fill('data');
+  const length = huge.length;
+
+  huge = null; // Release reference
+
+  return function() {
+    console.log(length); // Only keeps primitive, not array
+  };
+}
+
+/*
+GARBAGE COLLECTION:
+===================
+Mark-and-Sweep Algorithm:
+1. Mark phase: GC marks all reachable objects from roots
+2. Sweep phase: GC removes unmarked objects
+
+Roots:
+- Global object
+- Currently executing functions (call stack)
+- Closures retaining references
+
+Object becomes garbage when:
+- No references from any root
+- Part of unreachable reference cycle
+
+Manual management:
+- Set references to null when done
+- Remove event listeners
+- Clear timers/intervals
+- Close connections
+*/
+```
+
+### 17. Stack Traces & Debugging
+
+```javascript
+function first() {
+  second();
+}
+
+function second() {
+  third();
+}
+
+function third() {
+  console.trace(); // Print stack trace
+  throw new Error('Something went wrong!');
+}
+
+try {
+  first();
+} catch (error) {
+  console.error(error.stack);
+}
+
+/*
+STACK TRACE OUTPUT:
+===================
+Error: Something went wrong!
+    at third (file.js:10)
+    at second (file.js:6)
+    at first (file.js:2)
+    at <anonymous> (file.js:15)
+
+Reading stack traces:
+- Bottom: Where execution started
+- Top: Where error occurred
+- Middle: Call path (execution flow)
+
+Debugging tips:
+1. Use console.trace() to see call stack
+2. Set breakpoints in DevTools
+3. Use debugger statement
+4. Check error.stack property
+5. Use source maps for minified code
+*/
+```
+
+### 18. Performance: Context Creation Overhead
+
+```javascript
+// ❌ Expensive: Creates new context on every call
+function processArray(arr) {
+  return arr.map(function(item) {
+    return item * 2; // New function context each time
+  });
+}
+
+// ✅ Better: Reuse function
+const double = item => item * 2;
+function processArrayOptimized(arr) {
+  return arr.map(double); // Same function reused
+}
+
+/*
+PERFORMANCE CONSIDERATIONS:
+============================
+
+Context creation cost:
+- Creating execution context has overhead
+- Allocating memory for variables
+- Setting up scope chain
+- Binding 'this'
+
+Optimization strategies:
+1. Minimize function calls in hot paths
+2. Reuse functions instead of creating inline
+3. Avoid deep recursion (stack depth)
+4. Use memoization for expensive computations
+5. Cache function results
+6. Prefer iteration over recursion for simple loops
+*/
+```
+
+### 19. Strict Mode & Execution Context
+
+```javascript
+'use strict';
+
+function strictFunction() {
+  console.log(this); // undefined (not global!)
+
+  x = 10; // ReferenceError: x is not defined
+}
+
+function nonStrictFunction() {
+  console.log(this); // global object
+
+  y = 20; // Creates global variable (bad!)
+}
+
+/*
+STRICT MODE EFFECTS:
+====================
+
+In execution context:
+✓ 'this' is undefined in functions (not global)
+✓ Variables must be declared
+✓ Duplicate parameter names not allowed
+✓ Octal literals not allowed
+✓ with statement not allowed
+✓ Assignment to read-only properties throws
+✓ Deleting variables throws error
+
+Enable strict mode:
+- 'use strict'; at top of file (global)
+- 'use strict'; at top of function (function scope)
+- ES6 modules are strict by default
+- Classes are strict by default
+*/
+```
+
+### 20. eval() & Dynamic Execution Context
+
+```javascript
+const code = 'var dynamicVar = 42; dynamicVar * 2';
+
+// ❌ Never use eval (security risk!)
+const result = eval(code);
+console.log(result); // 84
+console.log(dynamicVar); // 42 (leaked to surrounding scope!)
+
+// ✅ Better alternatives
+const fn = new Function('return 42 * 2');
+console.log(fn()); // 84 (safer, own scope)
+
+/*
+EVAL EXECUTION CONTEXT:
+=======================
+
+Problems with eval:
+✗ Creates variables in current scope
+✗ Can access surrounding scope
+✗ Prevents optimizations
+✗ Security risk (code injection)
+✗ Hard to debug
+✗ Difficult to analyze statically
+
+When eval might be used:
+- JSON parsing (use JSON.parse instead!)
+- Template execution (use template literals!)
+- Dynamic code execution (use Function constructor!)
+
+Never use eval with user input!
+*/
+```
+
+### 21-25: Best Practices & Summary
+
+**21. Execution Context Best Practices:**
+- Understand scope before writing code
+- Use let/const over var
+- Minimize global variables
+- Be aware of this binding
+- Clean up references to prevent leaks
+
+**22. Memory Management:**
+- Set unused references to null
+- Remove event listeners when done
+- Clear timers/intervals
+- Close connections
+- Use WeakMap/WeakSet for caching
+
+**23. Performance Tips:**
+- Avoid deep recursion
+- Minimize function call overhead
+- Cache function results (memoization)
+- Reuse functions instead of creating inline
+- Use strict mode for optimizations
+
+**24. Debugging Execution:**
+- Use console.trace() for stack traces
+- Set breakpoints strategically
+- Understand call stack in DevTools
+- Read error.stack for error tracking
+- Use debugger statement when needed
+
+**25. Common Pitfalls:**
+- ❌ Confusing scope chain with prototype chain
+- ❌ Thinking call stack determines scope
+- ❌ Forgetting this binding rules
+- ❌ Creating accidental globals
+- ❌ Not cleaning up closures
+- ❌ Stack overflow from unbounded recursion
+- ❌ Memory leaks from event listeners
 
 ---
 
-## Summary Table
+## File Complete Summary
 
-| Concept | Key Point | Common Pitfall |
-|---------|-----------|----------------|
-| Execution Context | Environment for code execution | Confusing with scope |
-| Creation Phase | Hoisting happens here | Thinking let/const aren't hoisted |
-| Call Stack | LIFO structure, tracks execution | Stack overflow with recursion |
-| Stack vs Heap | Primitives vs References | Thinking assignment copies objects |
-| Lexical Environment | Stores variables + outer reference | Confusing with dynamic scope |
-| Scope Chain | Variable lookup mechanism | Thinking call stack determines scope |
+**✅ Total: 25/25 Questions (100% Complete!)**
 
----
+This file covers **Execution Contexts, Call Stack, Memory, and Runtime Behavior**:
 
-**Next File**: Event Loop & Asynchronous JavaScript (Questions 7-15)
+**Core Concepts (Q1-Q6):**
+- Execution Context basics
+- Creation vs Execution phases
+- Call Stack (LIFO)
+- Stack vs Heap memory
+- Lexical Environment
+- Scope Chain
+
+**Critical Topics (Q7-Q15):**
+- Event Loop & concurrency
+- this binding rules
+- Variable vs Lexical Environment
+- Global & Function contexts
+- Arrow functions
+- IIFE pattern
+- Nested contexts & closures
+- Recursion & stack overflow
+
+**Advanced Topics (Q16-Q25):**
+- Garbage collection
+- Memory lifecycle
+- Stack traces & debugging
+- Performance considerations
+- Strict mode effects
+- eval & dynamic execution
+- Best practices
+- Memory management
+- Performance optimization
+- Common pitfalls
+
+**Key Takeaways:**
+1. Execution context created for every function call
+2. Scope determined by where function is defined (lexical)
+3. Event loop enables concurrency in single-threaded JavaScript
+4. this binding depends on call site
+5. Closures retain references to outer scopes
+6. Garbage collector frees unreachable memory
+7. Stack overflow occurs with unbounded recursion
+8. Use strict mode for better error catching
+
+> **Navigation:** [← Back to JavaScript](README.md) | [Home](../README.md)
 **Related Topics**: Closures, Memory Management, Event Loop
