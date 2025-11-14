@@ -24,7 +24,7 @@ Structured Q&A, coding problems, and interactive flashcards covering the complet
 - **4-Week Sprint** → [Complete Study Plan](./resources/study-plan-4-weeks.md)
 - **Interview Tomorrow?** → [Pre-Interview 30 Flashcards](./14-flashcards/curated-decks/pre-interview-30.md)
 - **Daily Practice** → [Essential 50 Flashcards](./14-flashcards/curated-decks/essential-50.md)
-- **Interactive Study** → [Flashcard Web App](./14-flashcards/interactive-app/)
+- **Interactive Study** → [Flashcard Web App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)
 
 ---
 
@@ -85,7 +85,7 @@ Each problem includes:
 
 **Two Formats:**
 - 📝 **Markdown** - Read/edit easily in GitHub
-- 📱 **[Interactive Web App](./14-flashcards/interactive-app/)** - Spaced repetition with progress tracking
+- 📱 **[Interactive Web App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)** - Spaced repetition with progress tracking
 
 ---
 
@@ -115,8 +115,9 @@ Frontend-Master-Prep-Series/
 │   └── 07-company-questions/
 ├── 14-flashcards/          # Active recall system
 │   ├── curated-decks/      # Essential 50, Pre-Interview 30
-│   ├── by-topic/           # JavaScript, React, TypeScript, etc.
-│   └── interactive-app/    # Web app with spaced repetition
+│   └── by-topic/           # JavaScript, React, TypeScript, etc.
+├── index.html              # 📱 Interactive flashcard app (GitHub Pages)
+├── assets/js/              # App logic with Tailwind CSS
 └── resources/              # Study guides, checklists, learning paths
 ```
 
@@ -212,7 +213,7 @@ Frontend-Master-Prep-Series/
 
 ### For Last-Minute Review:
 
-1. **[Interactive Flashcard App](./14-flashcards/interactive-app/)** (30 min)
+1. **[Interactive Flashcard App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)** (30 min)
 2. **Pre-Interview 30 deck** (15 minutes before interview)
 3. **Company-specific problems** (if interviewing at FAANG)
 
