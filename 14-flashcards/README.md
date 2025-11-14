@@ -66,18 +66,19 @@ Review cards on this schedule for long-term retention:
 
 ## 📱 Interactive Web App
 
-Use our [interactive flashcard app](./interactive-app/) for:
-- ✅ Automatic progress tracking
+Use our **[interactive flashcard app](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)** (deployed at root) for:
+- ✅ Automatic progress tracking with SM-2 algorithm
 - ✅ Spaced repetition built-in
-- ✅ Performance analytics
-- ✅ Mobile-friendly interface
-- ✅ Offline support
+- ✅ Performance analytics and streak tracking
+- ✅ Modern UI with Tailwind CSS
+- ✅ Mobile-friendly responsive design
+- ✅ LocalStorage for progress persistence
 
-**Deploy to GitHub Pages:**
-```bash
-# Your repo will be accessible at:
-# https://maurya-sachin.github.io/Frontend-Master-Prep-Series/14-flashcards/interactive-app/
-```
+**Features:**
+- 📚 Study Mode - Interactive flashcard flipping
+- 📊 Progress Dashboard - Track mastery and streaks
+- ⚙️ Settings - Customize cards per day
+- 🎯 4-button rating system (Again, Hard, Good, Easy)
 
 ---
 
