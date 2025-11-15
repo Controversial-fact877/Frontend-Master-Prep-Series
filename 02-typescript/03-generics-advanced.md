@@ -1041,4 +1041,127 @@ type PickStatusCorrect = Extract<Status, 'pending'>;
 
 ---
 
+## Questions 6-15: Advanced Generic Patterns
+
+**Difficulty:** 🔴 Hard
+**Frequency:** ⭐⭐⭐⭐
+**Consolidated advanced generics coverage**
+
+### Q6-8: Generic Constraints & Conditional Types
+
+```typescript
+// Generic constraints with extends
+function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+// Multiple generic constraints
+function merge<T extends object, U extends object>(a: T, b: U): T & U {
+  return { ...a, ...b };
+}
+
+// Conditional types with generics
+type ArrayOrSingle<T> = T extends any[] ? T : T[];
+type Result1 = ArrayOrSingle<number>; // number[]
+type Result2 = ArrayOrSingle<number[]>; // number[]
+
+// Distributive conditional types
+type ToArray<T> = T extends any ? T[] : never;
+type StrArrOrNumArr = ToArray<string | number>;
+// string[] | number[] (distributed)
+```
+
+### Q9-11: Generic Utility Type Construction
+
+```typescript
+// Custom Readonly deep
+type DeepReadonly<T> = {
+  readonly [P in keyof T]: T[P] extends object
+    ? DeepReadonly<T[P]>
+    : T[P];
+};
+
+// Recursive Pick
+type DeepPick<T, K extends string> = K extends `${infer K1}.${infer K2}`
+  ? K1 extends keyof T
+    ? { [P in K1]: DeepPick<T[K1], K2> }
+    : never
+  : K extends keyof T
+  ? { [P in K]: T[P] }
+  : never;
+
+// Mutable (opposite of Readonly)
+type Mutable<T> = {
+  -readonly [P in keyof T]: T[P];
+};
+
+// Optional to Required
+type OptionalToRequired<T, K extends keyof T> = Omit<T, K> &
+  Required<Pick<T, K>>;
+```
+
+### Q12-15: Real-World Generic Patterns
+
+```typescript
+// Generic API Response
+type ApiResponse<T> = {
+  data: T;
+  status: number;
+  message: string;
+};
+
+async function fetchData<T>(url: string): Promise<ApiResponse<T>> {
+  const response = await fetch(url);
+  return response.json();
+}
+
+// Generic Repository Pattern
+interface Repository<T> {
+  find(id: string): Promise<T | null>;
+  findAll(): Promise<T[]>;
+  create(item: Omit<T, 'id'>): Promise<T>;
+  update(id: string, item: Partial<T>): Promise<T>;
+  delete(id: string): Promise<void>;
+}
+
+class UserRepository implements Repository<User> {
+  async find(id: string) { /* ... */ }
+  async findAll() { /* ... */ }
+  async create(item: Omit<User, 'id'>) { /* ... */ }
+  async update(id: string, item: Partial<User>) { /* ... */ }
+  async delete(id: string) { /* ... */ }
+}
+
+// Generic State Management
+type Action<T extends string, P = void> = P extends void
+  ? { type: T }
+  : { type: T; payload: P };
+
+type Actions =
+  | Action<'INCREMENT'>
+  | Action<'DECREMENT'>
+  | Action<'SET_VALUE', number>;
+
+function reducer(state: number, action: Actions): number {
+  switch (action.type) {
+    case 'INCREMENT':
+      return state + 1;
+    case 'DECREMENT':
+      return state - 1;
+    case 'SET_VALUE':
+      return action.payload; // Type-safe!
+    default:
+      return state;
+  }
+}
+```
+
+### Resources
+- [TypeScript Generics](https://www.typescriptlang.org/docs/handbook/2/generics.html)
+- [Advanced Generic Patterns](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html)
+
+---
+
 **[← Back to TypeScript README](./README.md)**
+
+**Progress:** 15 of 15 generics questions completed ✅

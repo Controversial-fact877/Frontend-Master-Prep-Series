@@ -428,4 +428,180 @@ function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
 
 ---
 
+## Questions 4-15: TypeScript + React Patterns
+
+**Difficulty:** 🟡 Medium to 🔴 Hard
+**Frequency:** ⭐⭐⭐⭐⭐
+**Consolidated React TypeScript patterns**
+
+### Q4-6: Component Props & Children
+
+```typescript
+// Props with children
+interface ButtonProps {
+  onClick: () => void;
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary';
+}
+
+const Button: React.FC<ButtonProps> = ({ onClick, children, variant = 'primary' }) => (
+  <button onClick={onClick} className={variant}>
+    {children}
+  </button>
+);
+
+// Specific children types
+interface ListProps {
+  children: React.ReactElement<ItemProps> | React.ReactElement<ItemProps>[];
+}
+
+// Optional children
+interface CardProps {
+  title: string;
+  children?: React.ReactNode;
+}
+```
+
+### Q7-9: Hooks Typing
+
+```typescript
+// useState with explicit type
+const [user, setUser] = useState<User | null>(null);
+const [count, setCount] = useState<number>(0);
+
+// useRef for DOM elements
+const inputRef = useRef<HTMLInputElement>(null);
+inputRef.current?.focus();
+
+// useRef for mutable values
+const renderCount = useRef<number>(0);
+
+// useReducer with discriminated unions
+type Action =
+  | { type: 'INCREMENT' }
+  | { type: 'DECREMENT' }
+  | { type: 'SET'; payload: number };
+
+function reducer(state: number, action: Action): number {
+  switch (action.type) {
+    case 'INCREMENT': return state + 1;
+    case 'DECREMENT': return state - 1;
+    case 'SET': return action.payload;
+  }
+}
+
+const [state, dispatch] = useReducer(reducer, 0);
+
+// Custom hooks with generics
+function useLocalStorage<T>(key: string, initialValue: T) {
+  const [value, setValue] = useState<T>(() => {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : initialValue;
+  });
+
+  const setStoredValue = (newValue: T) => {
+    setValue(newValue);
+    localStorage.setItem(key, JSON.stringify(newValue));
+  };
+
+  return [value, setStoredValue] as const;
+}
+```
+
+### Q10-12: Event Handlers & Forms
+
+```typescript
+// Event handlers
+const handleClick: React.MouseEventHandler<HTMLButtonElement> = (e) => {
+  console.log(e.currentTarget);
+};
+
+const handleChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+  console.log(e.target.value);
+};
+
+const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
+  e.preventDefault();
+};
+
+// Form component with controlled inputs
+interface FormData {
+  email: string;
+  password: string;
+}
+
+const LoginForm: React.FC = () => {
+  const [formData, setFormData] = useState<FormData>({
+    email: '',
+    password: ''
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <input name="email" value={formData.email} onChange={handleInputChange} />
+      <input name="password" type="password" value={formData.password} onChange={handleInputChange} />
+    </form>
+  );
+};
+```
+
+### Q13-15: Advanced Patterns
+
+```typescript
+// Generic component
+interface ListProps<T> {
+  items: T[];
+  renderItem: (item: T) => React.ReactNode;
+}
+
+function List<T>({ items, renderItem }: ListProps<T>) {
+  return <div>{items.map(renderItem)}</div>;
+}
+
+// Usage
+<List items={users} renderItem={(user) => <div>{user.name}</div>} />
+
+// Higher-Order Component (HOC)
+function withLoading<P extends object>(
+  Component: React.ComponentType<P>
+): React.FC<P & { loading: boolean }> {
+  return ({ loading, ...props }) => {
+    if (loading) return <div>Loading...</div>;
+    return <Component {...(props as P)} />;
+  };
+}
+
+// Render props pattern
+interface MouseTrackerProps {
+  render: (position: { x: number; y: number }) => React.ReactNode;
+}
+
+const MouseTracker: React.FC<MouseTrackerProps> = ({ render }) => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      setPosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMove);
+    return () => window.removeEventListener('mousemove', handleMove);
+  }, []);
+
+  return <>{render(position)}</>;
+};
+```
+
+### Resources
+- [React TypeScript Cheatsheet](https://react-typescript-cheatsheet.netlify.app/)
+- [React TypeScript Docs](https://react.dev/learn/typescript)
+
+---
+
 **[← Back to TypeScript README](./README.md)**
+
+**Progress:** 15 of 15 React TypeScript questions completed ✅
