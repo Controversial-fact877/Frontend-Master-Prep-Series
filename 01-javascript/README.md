@@ -11,8 +11,8 @@ Master JavaScript from fundamentals to advanced topics. This section covers ever
 | File | Topics | Questions | Difficulty |
 |------|--------|-----------|------------|
 | [01. Core Concepts](./01-core-concepts.md) | Primitives, types, hoisting, scope, closures | 30+ | 🟢 🟡 |
-| [02. Execution Context & Event Loop](./02-execution-context.md) | Call stack, event loop, micro/macro tasks | 25+ | 🟡 🔴 |
-| [03. Asynchronous JavaScript](./03-async-javascript.md) | Promises, async/await, callbacks | 25+ | 🟡 🔴 |
+| [02. Asynchronous JavaScript](./02-async-javascript.md) | Promises, async/await, callbacks | 25+ | 🟡 🔴 |
+| [03. Execution Context & Event Loop](./03-execution-context.md) | Call stack, event loop, micro/macro tasks | 25+ | 🟡 🔴 |
 | [04. Functions & Binding](./04-functions-binding.md) | this, call/apply/bind, arrow functions | 25+ | 🟡 🔴 |
 | [05. Objects & Prototypes](./05-objects-prototypes.md) | Prototypal inheritance, classes, OOP | 25+ | 🟡 🔴 |
 | [06. Memory & Engine](./06-memory-engine.md) | Garbage collection, V8 optimization | 20+ | 🔴 |
@@ -178,8 +178,8 @@ Each file includes:
 Track your progress through each file:
 
 - [ ] 01. Core Concepts (30+ questions)
-- [ ] 02. Execution Context & Event Loop (25+ questions)
-- [ ] 03. Asynchronous JavaScript (25+ questions)
+- [ ] 02. Asynchronous JavaScript (25+ questions)
+- [ ] 03. Execution Context & Event Loop (25+ questions)
 - [ ] 04. Functions & Binding (25+ questions)
 - [ ] 05. Objects & Prototypes (25+ questions)
 - [ ] 06. Memory & Engine (20+ questions)

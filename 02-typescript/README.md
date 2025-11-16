@@ -10,12 +10,12 @@ Master TypeScript from basics to advanced patterns. Essential for modern fronten
 
 | File | Topics | Questions | Difficulty |
 |------|--------|-----------|------------|
-| [01. TypeScript Fundamentals](./01-fundamentals.md) | Types, interfaces, type inference | 15+ | 🟢 🟡 |
-| [02. Advanced Types](./02-advanced-types.md) | Union, intersection, mapped, conditional types | 20+ | 🟡 🔴 |
-| [03. Generics](./03-generics.md) | Generic functions, constraints, utility types | 15+ | 🟡 🔴 |
-| [04. TypeScript with React](./04-react-typescript.md) | Component props, hooks typing, patterns | 20+ | 🟡 |
-| [05. TypeScript with Next.js](./05-nextjs-typescript.md) | API routes, SSR, Server Components typing | 10+ | 🟡 🔴 |
-| [06. Common Patterns & Pitfalls](./06-patterns-pitfalls.md) | Best practices, type guards, troubleshooting | 10+ | 🟡 |
+| [01. TypeScript Fundamentals](./01-fundamentals.md) | Types, interfaces, type inference | 15 | 🟢 🟡 |
+| [02. Advanced Types](./02-advanced-types.md) | Union, intersection, mapped, conditional types | 15 | 🟡 🔴 |
+| [03. Generics & Advanced](./03-generics-advanced.md) | Generic functions, constraints, utility types | 15 | 🟡 🔴 |
+| [04. TypeScript with React](./04-typescript-react.md) | Component props, hooks typing, patterns | 15 | 🟡 |
+| [05. TypeScript with Next.js](./05-typescript-nextjs.md) | API routes, SSR, Server Components typing | 15 | 🟡 🔴 |
+| [06. Best Practices](./06-typescript-best-practices.md) | Best practices, type guards, troubleshooting | 15 | 🟡 |
 
 **Total:** 90+ questions
 
@@ -52,12 +52,12 @@ Master TypeScript from basics to advanced patterns. Essential for modern fronten
 
 ## 📊 Progress Tracking
 
-- [ ] 01. TypeScript Fundamentals (15+ questions)
-- [ ] 02. Advanced Types (20+ questions)
-- [ ] 03. Generics (15+ questions)
-- [ ] 04. TypeScript with React (20+ questions)
-- [ ] 05. TypeScript with Next.js (10+ questions)
-- [ ] 06. Common Patterns & Pitfalls (10+ questions)
+- [ ] 01. TypeScript Fundamentals (15 questions)
+- [ ] 02. Advanced Types (15 questions)
+- [ ] 03. Generics & Advanced (15 questions)
+- [ ] 04. TypeScript with React (15 questions)
+- [ ] 05. TypeScript with Next.js (15 questions)
+- [ ] 06. Best Practices (15 questions)
 
 ---
 
