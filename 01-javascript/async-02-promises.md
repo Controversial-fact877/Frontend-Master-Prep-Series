@@ -4,7 +4,7 @@
 
 ---
 
-## Question 3: How do Promises work in JavaScript? Explain promise chaining and error handling
+## Question 1: How do Promises work in JavaScript? Explain promise chaining and error handling
 
 **Difficulty:** 🟡 Medium
 **Frequency:** ⭐⭐⭐⭐⭐
@@ -521,7 +521,7 @@ Promise.resolve(Promise.resolve(42)).then(v => console.log(v)); // 42 (flattened
 
 ---
 
-## Question 5: Explain Promise.all, Promise.race, Promise.allSettled, and Promise.any
+## Question 2: Explain Promise.all, Promise.race, Promise.allSettled, and Promise.any
 
 **Difficulty:** 🟡 Medium
 **Frequency:** ⭐⭐⭐⭐
@@ -1142,7 +1142,7 @@ async function getFirstNSuccesses(promises, n) {
 
 ---
 
-## Question 11: What are common async error handling strategies?
+## Question 3: What are common async error handling strategies?
 
 **Difficulty:** 🟡 Medium
 **Frequency:** ⭐⭐⭐⭐⭐
