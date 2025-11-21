@@ -4,7 +4,7 @@
 
 ---
 
-## Question 7: What are common async patterns and anti-patterns in JavaScript?
+## Question 1: What are common async patterns and anti-patterns in JavaScript?
 
 **Difficulty:** 🟡 Medium
 **Frequency:** ⭐⭐⭐⭐
@@ -784,7 +784,7 @@ Kitchen keeps burning food. After 5 burnt dishes, stop sending orders for 10 min
 
 ---
 
-## Question 9: How does AbortController work for canceling async operations?
+## Question 2: How does AbortController work for canceling async operations?
 
 **Difficulty:** 🟡 Medium
 **Frequency:** ⭐⭐⭐⭐
@@ -1472,7 +1472,7 @@ searchInput.on('change', async (query) => {
 
 ---
 
-## Question 10: Explain debouncing and throttling for async operations
+## Question 3: Explain debouncing and throttling for async operations
 
 **Difficulty:** 🟡 Medium
 **Frequency:** ⭐⭐⭐⭐⭐
@@ -2155,7 +2155,7 @@ window.addEventListener('scroll', updateScrollPos);
 
 ---
 
-## Question 12: How do you prevent memory leaks in async code?
+## Question 4: How do you prevent memory leaks in async code?
 
 **Difficulty:** 🔴 Hard
 **Frequency:** ⭐⭐⭐⭐
