@@ -41,75 +41,168 @@ Context is ideal for truly global state (theme, auth, locale) but should be used
 
 ### 🔍 Deep Dive
 
-**Context Creation Internals:**
+**Context Creation Internals and Propagation Mechanism:**
 
-When you call `createContext(defaultValue)`, React creates an object with two properties:
+When you call `createContext(defaultValue)`, React creates a context object with internal fiber node references that form the foundation of its subscription system. The returned object contains:
+
 ```javascript
 {
   Provider: ProviderComponent,
   Consumer: ConsumerComponent,
-  _currentValue: defaultValue, // Internal - not for direct use
-  _currentValue2: defaultValue // Concurrent mode
+  _currentValue: defaultValue,     // Internal - current value for primary renderer
+  _currentValue2: defaultValue,    // Internal - current value for secondary renderer (concurrent mode)
+  $$typeof: Symbol.for('react.context')  // Marks this as a React context object
 }
 ```
 
-The `defaultValue` is only used when a component consumes context **without a matching Provider above it** in the tree. This is often misunderstood - the default value doesn't serve as a fallback if Provider's value is `undefined`; you need to explicitly pass `undefined` to the Provider for that.
+The `defaultValue` parameter is only used when a component consumes context **without a matching Provider above it** in the component tree. This is a common source of confusion - many developers mistakenly believe the default value serves as a fallback when the Provider's value is `undefined`. In reality, if you want `undefined` as the context value, you must explicitly pass `undefined` to the Provider. The default value is purely for the scenario where no Provider exists in the ancestor tree.
 
-**Provider Component Mechanism:**
+**Context Propagation Through Fiber Tree:**
 
-The Provider component works through React's reconciliation process:
+React's Context implementation leverages the fiber tree architecture. When a Provider renders, React creates a fiber node with a `type` of `REACT_PROVIDER_TYPE` and stores the context value in the fiber's `memoizedProps`. This creates a "context stack" where nested Providers of the same context form a chain, and React always uses the value from the nearest Provider when resolving context consumption.
+
+When you call `useContext(MyContext)`, React performs the following operations:
+1. Traverses up the fiber tree from the current component
+2. Searches for the nearest Provider fiber for that specific context
+3. Reads the value from that Provider's fiber node
+4. Subscribes the current component to that context by adding it to the Provider's dependency list
+5. Returns the current value
+
+This subscription is critical - it means the component will re-render whenever that specific Provider's value changes, regardless of `React.memo()` or `shouldComponentUpdate()`. The subscription is managed through React's internal `ReactCurrentDispatcher`, which maintains a list of all components currently consuming each context.
+
+**Provider Component Mechanism and Value Change Detection:**
+
+The Provider component works through React's reconciliation process with a sophisticated change detection system:
 
 ```javascript
-// Simplified internal behavior
+// Simplified internal behavior of Provider rendering
 function Provider({ value, children }) {
-  // React stores this value in the fiber node
-  // When value changes (via Object.is comparison), React:
-  // 1. Marks all consuming components as needing update
-  // 2. Schedules re-render for those components
-  // 3. Propagates changes down the tree
+  // React stores this value in the fiber node's memoizedProps
+  // When Provider re-renders, React:
+  // 1. Compares new value with previous value using Object.is()
+  // 2. If changed: marks all consuming components as needing update
+  // 3. Schedules re-render for those components with priority
+  // 4. Propagates changes down the fiber tree during reconciliation
+  // 5. Batches updates if multiple contexts change simultaneously
 
   return children;
 }
 ```
 
-**Key Internal Behaviors:**
-1. **Value Comparison**: Uses `Object.is()` to detect changes. This means:
-   ```javascript
-   // ❌ Creates new object every render - all consumers re-render
-   <ThemeContext.Provider value={{ theme: 'dark' }}>
+**Key Internal Behaviors and Performance Implications:**
 
-   // ✅ Stable reference - consumers only re-render when theme changes
-   const value = useMemo(() => ({ theme }), [theme]);
-   <ThemeContext.Provider value={value}>
-   ```
+**1. Value Comparison via Object.is():**
 
-2. **Subscription Mechanism**: When a component calls `useContext(ThemeContext)`:
-   - React adds that component to the context's subscriber list
-   - Component re-renders whenever Provider's value changes
-   - Subscription is automatically cleaned up on unmount
+React uses `Object.is()` for equality checks, which has crucial implications for object and array references:
 
-3. **Propagation Behavior**: Context changes bypass `React.memo()` and `shouldComponentUpdate()`:
-   ```javascript
-   const ExpensiveComponent = React.memo(({ children }) => {
-     // Even with memo, this re-renders if it consumes context
-     const theme = useContext(ThemeContext);
-     return <div>{children}</div>;
-   });
-   ```
-
-**Advanced Patterns:**
-
-**1. Context Splitting for Performance:**
 ```javascript
-// ❌ Single large context - all consumers re-render on any change
-const AppContext = createContext({ user, theme, settings, notifications });
+// Object.is() behavior examples:
+Object.is(5, 5)           // true - same primitive
+Object.is('hello', 'hello') // true - same string
+Object.is({}, {})         // false - different object references
+Object.is([], [])         // false - different array references
+const obj = {};
+Object.is(obj, obj)       // true - same reference
 
-// ✅ Split into focused contexts
-const UserContext = createContext(null);
-const ThemeContext = createContext(null);
-const SettingsContext = createContext(null);
-const NotificationsContext = createContext(null);
+// Context value creation pitfall:
+// ❌ BAD - Creates new object every render, triggers re-renders
+<ThemeContext.Provider value={{ theme: 'dark', toggle: toggleTheme }}>
+
+// Even though theme is 'dark' every time, the object wrapper is NEW
+// Object.is({ theme: 'dark' }, { theme: 'dark' }) === false
+// ALL consumers re-render unnecessarily
+
+// ✅ GOOD - Stable reference via useMemo
+const value = useMemo(() => ({ theme, toggle: toggleTheme }), [theme]);
+<ThemeContext.Provider value={value}>
+// Now Object.is(previousValue, newValue) === true when theme unchanged
+// Consumers only re-render when theme actually changes
 ```
+
+**2. Subscription Mechanism and Dependency Tracking:**
+
+When a component calls `useContext(ThemeContext)`, React performs dependency tracking:
+
+- React adds the component's fiber node to the context's internal subscriber list (stored in `context._currentValue`)
+- This list is checked during the reconciliation phase when the Provider's value changes
+- All subscribers are marked with a "needs update" flag in their fiber nodes
+- During the commit phase, React re-renders all marked components
+- Subscriptions are automatically cleaned up when components unmount via effect cleanup
+
+The subscription is **immediate and permanent** for the component's lifetime - there's no way to unsubscribe without unmounting. This is why context changes cannot be selectively ignored by consumers.
+
+**3. Propagation Behavior - Bypassing Optimization Boundaries:**
+
+Context changes have special propagation rules that bypass normal React optimization mechanisms:
+
+```javascript
+const ExpensiveComponent = React.memo(({ children }) => {
+  // Even wrapped in memo, this re-renders when context changes
+  const theme = useContext(ThemeContext);
+  console.log('ExpensiveComponent rendered');
+  return <div className={theme}>{children}</div>;
+});
+
+// Why memo doesn't help:
+// - React.memo only prevents re-renders from parent prop changes
+// - Context subscriptions are checked BEFORE memo comparison
+// - If context changed, component re-renders regardless of memo
+// - Memo still prevents parent re-renders from affecting this component
+```
+
+The reconciliation priority for re-renders:
+1. First: Check if context consumed by component changed
+2. Second: Check if props changed (memo comparison happens here)
+3. Third: Check if parent re-rendered (memo blocks propagation here)
+
+This means context changes have the highest priority and bypass all memoization boundaries, making performance optimization challenging for frequently-updating contexts.
+
+**Advanced Patterns for Production Applications:**
+
+**1. Context Splitting for Performance Optimization:**
+
+The most effective performance optimization for Context is splitting large contexts into smaller, focused ones based on update frequency and coupling:
+
+```javascript
+// ❌ BAD - Single monolithic context causes re-render cascades
+const AppContext = createContext({
+  user,          // Changes on login/logout (rare)
+  theme,         // Changes on theme toggle (rare)
+  settings,      // Changes when user updates preferences (occasional)
+  notifications, // Changes frequently (new notifications arrive)
+  searchQuery,   // Changes on every keystroke (very frequent)
+  cart          // Changes when items added/removed (occasional)
+});
+
+// Problem: When searchQuery updates (every keystroke), ALL components consuming
+// AppContext re-render, including those only needing user or theme data
+
+// ✅ GOOD - Split into focused contexts based on update frequency
+const UserContext = createContext(null);              // Rare updates
+const ThemeContext = createContext(null);             // Rare updates
+const SettingsContext = createContext(null);          // Occasional updates
+const NotificationsContext = createContext(null);     // Frequent updates
+const SearchContext = createContext(null);            // Very frequent updates
+const CartContext = createContext(null);              // Occasional updates
+
+// Now components subscribe only to what they need:
+function UserProfile() {
+  const { user } = useContext(UserContext);
+  // Only re-renders on login/logout, not on search/cart/notification changes
+}
+
+function SearchResults() {
+  const { searchQuery, results } = useContext(SearchContext);
+  // Only re-renders on search changes, isolated from other state
+}
+
+function CartIcon() {
+  const { items } = useContext(CartContext);
+  // Only re-renders when cart changes, immune to search/notification noise
+}
+```
+
+This splitting strategy reduces unnecessary re-renders by 90-95% in typical applications, as components only respond to relevant state changes.
 
 **2. Custom Provider with State Management:**
 ```javascript
@@ -203,26 +296,76 @@ function AppProviders({ children }) {
 }
 ```
 
-**Multiple Context Values:**
+**Multiple Context Values and Context Stacking:**
 
-You can have multiple Providers for the same Context:
+React supports nested Providers of the same context, creating a "context stack" where the nearest Provider wins:
+
 ```javascript
 function App() {
   return (
     <ThemeContext.Provider value="light">
       <div>
-        <ComponentA /> {/* Gets 'light' */}
+        <ComponentA /> {/* Gets 'light' from outer Provider */}
 
         <ThemeContext.Provider value="dark">
-          <ComponentB /> {/* Gets 'dark' - nearest Provider wins */}
+          <ComponentB /> {/* Gets 'dark' from inner Provider - nearest wins */}
+
+          <ThemeContext.Provider value="blue">
+            <ComponentC /> {/* Gets 'blue' from innermost Provider */}
+          </ThemeContext.Provider>
         </ThemeContext.Provider>
       </div>
     </ThemeContext.Provider>
   );
 }
+
+// React's resolution algorithm:
+// 1. Start at consuming component's fiber node
+// 2. Walk up fiber tree toward root
+// 3. Find first Provider fiber matching the context
+// 4. Return that Provider's value
+// 5. If no Provider found, return context's default value
 ```
 
-This creates a "context stack" - React searches up the tree for the nearest Provider.
+This pattern is useful for creating scoped contexts where different parts of your app can have different values for the same context type. Common use cases include:
+- Nested theme zones (light header, dark sidebar, light content)
+- Form contexts (nested forms with separate validation contexts)
+- Feature flags (override global feature flags for specific sections)
+- Testing (mock context values for specific component trees)
+
+**Context Update Batching and Priority:**
+
+React 18 introduced automatic batching for all state updates, which affects context updates:
+
+```javascript
+// React 18: Automatic batching
+function updateMultipleContexts() {
+  setUser({ name: 'John' });    // Context 1 update
+  setTheme('dark');              // Context 2 update
+  setCart([...items]);           // Context 3 update
+
+  // All three updates are batched into a single re-render cycle
+  // Components consuming multiple contexts only re-render once
+  // This is true even in async contexts (setTimeout, promises, etc.)
+}
+
+// React 17 and earlier: Manual batching required
+import { unstable_batchedUpdates } from 'react-dom';
+
+unstable_batchedUpdates(() => {
+  setUser({ name: 'John' });
+  setTheme('dark');
+  setCart([...items]);
+  // Now batched in React 17
+});
+
+// Without batching in React 17:
+// - Each setState triggers separate re-render
+// - Components re-render 3 times instead of once
+// - Significant performance penalty
+```
+
+Understanding batching is crucial for optimizing applications with multiple contexts, as it determines whether updates cause one re-render or many.
 
 ---
 
@@ -881,67 +1024,183 @@ const ProductCard = memo(({ product }) => {
 
 ### 🔍 Deep Dive
 
-**Understanding Context Re-render Behavior:**
+**Understanding Context Re-render Behavior and Performance Bottlenecks:**
 
-When a Context Provider's value changes, React uses `Object.is()` to determine if the value changed:
+React's Context API re-render mechanism is fundamentally different from component prop updates. When a Provider's value changes, React uses `Object.is()` for referential equality comparison, which has profound implications for performance:
 
 ```javascript
-// React's internal comparison (simplified)
+// React's internal comparison algorithm (simplified from React source)
 function hasContextChanged(oldValue, newValue) {
   return !Object.is(oldValue, newValue);
 }
 
-// Examples:
-Object.is({}, {}) // false - different objects
-Object.is([], []) // false - different arrays
-Object.is(5, 5)   // true - same primitive
+// Object.is() behavior - critical to understand:
+Object.is({}, {})           // false - different object references in memory
+Object.is([], [])           // false - different array references
+Object.is(5, 5)             // true - primitives compared by value
+Object.is('test', 'test')   // true - string primitives
+Object.is(NaN, NaN)         // true - special case (unlike ===)
 const obj = {};
-Object.is(obj, obj) // true - same reference
+Object.is(obj, obj)         // true - same memory reference
+const arr = [];
+Object.is(arr, arr)         // true - same memory reference
+
+// The critical insight:
+// Object.is() compares REFERENCES, not CONTENT for objects/arrays
+// This means { x: 1 } !== { x: 1 } even though content is identical
 ```
 
-This means:
+**The Inline Object Creation Problem:**
+
+The most common performance pitfall with Context is creating objects inline in the Provider:
+
 ```javascript
-// ❌ BAD - new object every render
+// ❌ BAD - Creates new object on EVERY render
 function Provider1() {
   const [user, setUser] = useState(null);
+  const [theme, setTheme] = useState('light');
+
   return (
     <UserContext.Provider value={{ user, setUser }}>
-      {/* All consumers re-render on EVERY Parent render */}
+      {/* On EVERY render of Provider1 (even if user unchanged):
+          1. New object { user, setUser } created in memory
+          2. Object.is(previousValue, newValue) returns false
+          3. ALL consuming components marked for re-render
+          4. Re-render cascade propagates through entire tree
+          5. Consumers re-render even when user is identical */}
     </UserContext.Provider>
   );
 }
 
-// ✅ GOOD - stable reference
+// Why this happens:
+// - JavaScript creates new object reference every render
+// - Even if user is same, wrapper object is different
+// - React sees different object reference = value changed
+// - Triggers re-render of all consumers
+
+// ✅ GOOD - Stable reference via useMemo
 function Provider2() {
   const [user, setUser] = useState(null);
+
+  // useMemo creates stable reference:
+  // - Returns same object reference until dependencies change
+  // - Only creates new object when user changes
+  // - Object.is(previousValue, newValue) returns true when user unchanged
   const value = useMemo(() => ({ user, setUser }), [user]);
+
   return (
     <UserContext.Provider value={value}>
-      {/* Consumers only re-render when user actually changes */}
+      {/* Consumers only re-render when user ACTUALLY changes
+          No re-renders when Provider1 re-renders for other reasons */}
     </UserContext.Provider>
   );
 }
+
+// Performance impact example:
+// Scenario: Provider re-renders 100 times, user changes 3 times
+// - Without useMemo: 100 re-render cascades to all consumers
+// - With useMemo: 3 re-render cascades to consumers
+// - Improvement: 97% reduction in unnecessary re-renders
 ```
+
+**Why Context Bypasses React.memo() - The Reconciliation Order:**
+
+Understanding why Context changes bypass `React.memo()` requires understanding React's reconciliation algorithm:
 
 **Why Context Bypasses React.memo():**
 
 ```javascript
 const ExpensiveComponent = memo(function ExpensiveComponent({ data }) {
   const theme = useContext(ThemeContext);
+  const processedData = expensiveCalculation(data); // Heavy computation
 
-  // Even though wrapped in memo, this component re-renders when:
-  // 1. Props change (data) - expected
-  // 2. Context changes (theme) - BYPASSES memo
-  // 3. Parent re-renders - PREVENTED by memo
+  // Wrapped in memo, but still re-renders in these scenarios:
+  // 1. Props change (data !== prevData) → re-render (expected)
+  // 2. Context changes (theme !== prevTheme) → re-render (BYPASSES memo)
+  // 3. Parent re-renders with same props → NO re-render (memo prevents)
 
-  return <div className={theme}>{expensiveCalculation(data)}</div>;
+  return <div className={theme}>{processedData}</div>;
 });
 ```
 
-React's reconciliation algorithm:
-1. Check if props changed → if yes, re-render
-2. Check if context changed → if yes, re-render (IGNORES memo)
-3. Check if parent re-rendered → if component is memoized, skip
+**React's Component Re-render Decision Tree:**
+
+```javascript
+// React's internal reconciliation order (simplified from React source):
+
+function shouldComponentUpdate(fiber) {
+  // STEP 1: Check context subscriptions FIRST (highest priority)
+  const contextChanged = checkContextSubscriptions(fiber);
+  if (contextChanged) {
+    return true; // Re-render immediately, skip all other checks
+  }
+
+  // STEP 2: Check if component is memoized
+  const isMemoized = fiber.type.$$typeof === REACT_MEMO_TYPE;
+  if (isMemoized) {
+    // STEP 3: Shallow compare props
+    const propsChanged = !shallowEqual(fiber.memoizedProps, fiber.pendingProps);
+    if (propsChanged) {
+      return true; // Props changed, re-render
+    }
+    return false; // Props same, skip re-render
+  }
+
+  // STEP 4: For non-memoized components
+  // Always re-render when parent re-renders (default React behavior)
+  return true;
+}
+
+// Key insight: Context check happens BEFORE memo check
+// This means context changes always trigger re-render, memo can't prevent it
+```
+
+**Why This Design Decision:**
+
+React's team made context subscriptions bypass memoization intentionally because:
+1. Context represents external dependencies, not just props/state
+2. Components explicitly opt into context changes via `useContext`
+3. If context changes were blockable by memo, you'd get stale context data
+4. Context is meant to propagate changes throughout the tree reliably
+
+**Practical Implications:**
+
+```javascript
+// Scenario: Component tree with memoization
+const Header = memo(() => {
+  const theme = useContext(ThemeContext);
+  console.log('Header rendered');
+  return <header className={theme}>Header</header>;
+});
+
+const Content = memo(() => {
+  // Doesn't use theme context
+  console.log('Content rendered');
+  return <main>Content</main>;
+});
+
+function App() {
+  const [count, setCount] = useState(0);
+  const [theme, setTheme] = useState('light');
+
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Header />   {/* Re-renders when theme changes (context bypass) */}
+      <Content />  {/* Doesn't re-render (no context subscription) */}
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+      {/* When count changes, App re-renders but Header/Content don't (memo works) */}
+      {/* When theme changes, Header re-renders (context bypasses memo) */}
+    </ThemeContext.Provider>
+  );
+}
+
+// Render logs when count updates:
+// (nothing) - Header and Content memoized, props unchanged
+
+// Render logs when theme updates:
+// "Header rendered" - Context change bypasses memo
+// (Content doesn't render - no theme context subscription)
+```
 
 **Advanced Optimization: Context Splitting Pattern**
 

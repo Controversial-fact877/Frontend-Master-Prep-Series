@@ -384,122 +384,378 @@ jobs:
 
 **Tree-Shaking Mechanics:**
 
-Tree-shaking requires ES modules (import/export, not CommonJS). Webpack's DCE (Dead Code Elimination) analyzes dependency graph:
+Tree-shaking requires ES modules (import/export, not CommonJS). Webpack's DCE (Dead Code Elimination) analyzes dependency graph through a multi-phase process that occurs during the compilation and optimization pipeline. Understanding this process is critical for senior engineers optimizing large-scale applications.
 
-1. **Mark** - Webpack marks exported symbols
-2. **Analyze** - Tracks which exports are actually used
-3. **Eliminate** - Removes unused exports
-4. **Minify** - Terser removes dead code blocks
+**The Four-Phase Tree-Shaking Process:**
 
-**Example:**
+1. **Mark Phase** - Webpack marks all exported symbols as potential exports
+   - Parses AST (Abstract Syntax Tree) of every module
+   - Identifies `export` statements and creates export graph
+   - Time complexity: O(n) where n = number of modules
+   - Example: 1000 modules with 5 exports each = 5000 exports marked
+
+2. **Analyze Phase** - Tracks which exports are actually imported
+   - Walks dependency graph from entry point
+   - Marks imports as "used" references
+   - Detects side effects (mutations, global state changes)
+   - Time: ~500ms for medium apps (10k modules)
+
+3. **Eliminate Phase** - Removes unused exports from bundle
+   - Webpack flags unused exports with `/* unused harmony export */`
+   - Does NOT remove code yet (that's Terser's job)
+   - Only marks for removal in final step
+
+4. **Minify Phase** - Terser removes flagged dead code
+   - Removes unreachable code blocks
+   - Removes unused variables and functions
+   - Performs constant folding and expression simplification
+   - Time: ~2-5s for large apps (100k LOC)
+
+**Detailed Example with AST Analysis:**
 ```javascript
-// math.js
+// math.js (source)
 export function add(a, b) { return a + b; }  // Used
 export function subtract(a, b) { return a - b; }  // Unused
+export const PI = 3.14159;  // Unused
 
 // app.js
 import { add } from './math';  // Only add imported
 console.log(add(2, 3));
 
-// Webpack analysis:
-// subtract() never referenced → marked for removal
-// Terser removes: "export function subtract..."
+// === Webpack Analysis Steps ===
+
+// Step 1: Mark Phase (AST parsed)
+// math.js exports:
+// - add (function declaration)
+// - subtract (function declaration)
+// - PI (const declaration)
+
+// Step 2: Analyze Phase (dependency graph)
+// Entry: app.js
+//   → imports { add } from './math'
+//   → add marked as USED
+//   → subtract marked as UNUSED
+//   → PI marked as UNUSED
+
+// Step 3: Eliminate Phase (webpack output before minify)
+/* harmony export */ export function add(a, b) { return a + b; }
+/* unused harmony export subtract */
+// function subtract(a, b) { return a - b; }  // Commented by webpack
+/* unused harmony export PI */
+// const PI = 3.14159;  // Commented by webpack
+
+// Step 4: Minify Phase (Terser removes comments and dead code)
+export function add(a,b){return a+b}
+// subtract and PI completely removed from final bundle
 ```
 
-**Bundle Size Formula:**
+**Bundle Size Reduction Formula:**
 ```
 Final Size = (Source Code + Dependencies) - (Unused Code) - (Compression)
-           = Base JS - Tree-shaken - (Gzip/Brotli)
+           = Base JS - Tree-shaken - Minified - (Gzip/Brotli)
 
-Example:
-- React: 42KB (gzipped 13KB)
-- Redux: 8KB (gzipped 2KB)
-- Lodash: 24KB (gzipped 4KB, but 70% unused)
-  → With tree-shaking: 7KB (gzipped 1.5KB)
+Real-world example breakdown:
+Source files:
+- React: 120KB (unminified)
+- Redux: 30KB (unminified)
+- Lodash: 72KB (unminified, 304 functions)
+- App code: 200KB (unminified)
+Total: 422KB
 
-Total: 74KB → 20.5KB final (4x smaller)
+After tree-shaking:
+- React: 120KB (all used, no reduction)
+- Redux: 30KB (all used, no reduction)
+- Lodash: 15KB (only 8 functions used, 79% removed)
+- App code: 150KB (dead code removed, 25% reduction)
+Total: 315KB (25% reduction from tree-shaking)
+
+After minification:
+Total: 190KB (40% reduction from minification)
+
+After Gzip:
+Total: 57KB (70% reduction from compression)
+
+After Brotli:
+Total: 47KB (75% reduction from compression)
+
+Final savings: 422KB → 47KB (89% reduction!)
 ```
 
-**Webpack vs Vite Performance:**
+**Webpack vs Vite Architecture Comparison:**
 
-| Aspect | Webpack | Vite |
-|--------|---------|------|
-| **Dev Speed** | Slow (bundles everything) | Fast (ESM, lazy loading) |
-| **Build Time** | 20-40s (small app) | 2-5s (smaller bundler) |
-| **Bundle Size** | Optimized if configured | Similar to Webpack |
-| **Config** | Complex (100+ lines) | Simple (10-20 lines) |
-| **Ecosystem** | Huge (loaders, plugins) | Growing |
+| Aspect | Webpack | Vite | Impact |
+|--------|---------|------|--------|
+| **Dev Server Start** | 15-30s | 300-500ms | 30-60x faster |
+| **Build Mechanism** | Bundle entire app | ESM + esbuild | Different approach |
+| **HMR Speed** | 2-5s | 50-200ms | 10-25x faster |
+| **Production Build** | 20-45s | 5-15s | 3-4x faster |
+| **Bundle Size** | Optimized | Similar (Rollup) | Comparable |
+| **Config Complexity** | 100-300 lines | 10-50 lines | 3-10x simpler |
+| **Plugin Ecosystem** | 10,000+ plugins | 500+ plugins | More mature |
+| **Memory Usage** | 500MB-2GB | 100-300MB | 3-5x less |
+| **Watch Mode CPU** | 25-40% (bundling) | 2-5% (on-demand) | 5-10x efficient |
 
-**Code Splitting Strategies:**
+**Why Vite is Faster - Technical Deep Dive:**
 
-1. **Route-Based**: Separate chunk per route (fastest apparent load)
-   - Home: 45KB
-   - Dashboard: 120KB
-   - Settings: 35KB
-   - Users only load current route
+Webpack bundles EVERYTHING upfront:
+```
+Cold Start:
+1. Parse all 1000 source files (5s)
+2. Build complete dependency graph (3s)
+3. Bundle into chunks (4s)
+4. Transpile with Babel (8s)
+5. Serve bundle (200ms)
+Total: ~20 seconds
 
-2. **Component-Based**: Split heavy components
-   - Large grids, editors, modals
-   - Load when mounted or on-demand
+HMR (file change):
+1. Detect change (50ms)
+2. Rebuild affected modules (1s)
+3. Rebuild dependency graph (500ms)
+4. Re-bundle entire chunk (2s)
+5. Send update to browser (100ms)
+Total: ~3.6 seconds
+```
 
-3. **Vendor Splitting**: React, libraries separate
-   - Browsers cache vendor bundles longer
-   - App code updates without redownloading React
+Vite uses native ESM + esbuild:
+```
+Cold Start:
+1. Pre-bundle dependencies (esbuild, 200ms)
+2. Start dev server (100ms)
+3. Serve source files as-is (no bundling)
+4. Browser requests modules on-demand
+Total: ~300ms
 
-4. **Threshold-Based**: Split chunks > 50KB
-   - Prevents any single chunk from being too large
-   - Webpack can auto-split on file size
+HMR (file change):
+1. Detect change (20ms)
+2. Transpile only changed file (30ms, esbuild is 10-100x faster than Babel)
+3. Send update to browser (50ms)
+4. Browser hot-swaps module
+Total: ~100ms
+```
 
-**Compression Algorithms:**
+**Code Splitting Strategies with Performance Metrics:**
 
-- **Gzip** - Standard HTTP compression
-  - JavaScript: 60-70% reduction
-  - CSS: 70-80% reduction
-  - Browser support: 99%+
-
-- **Brotli** - Newer, better compression
-  - JavaScript: 65-75% reduction
-  - CSS: 75-85% reduction
-  - Browser support: 85%+ (modern browsers)
-
-- **Strategy**: Serve both, let browser choose
-  - Gzip: ~20KB for 50KB JS
-  - Brotli: ~15KB for same JS
-
-**Dependency Duplication Problem:**
+1. **Route-Based Splitting** (Optimal for SPAs)
 ```javascript
-// npm list shows duplicates:
-react@18.2.0
-├── node_modules/react
-redux-form
-├── redux@4.0.0
-├── node_modules/redux
-redux-thunk
-├── redux@4.0.1  // Different version!
-└── node_modules/redux  // Takes extra space
+// Each route = separate chunk
+const Home = lazy(() => import('./pages/Home'));          // 45KB
+const Dashboard = lazy(() => import('./pages/Dashboard')); // 120KB
+const Settings = lazy(() => import('./pages/Settings'));   // 35KB
+const Admin = lazy(() => import('./pages/Admin'));         // 80KB
 
-// Fix: npm dedupe
-// Before: 25KB × 2 = 50KB
-// After: 25KB (single copy)
+// Without splitting: 280KB initial load
+// With splitting: 45KB initial + load others on navigation
+// Improvement: 84% reduction in initial load
+
+// User metrics:
+// - FCP: 3.2s → 0.9s (72% faster)
+// - TTI: 5.1s → 1.4s (73% faster)
+// - Bounce rate: 35% → 12% (66% reduction)
 ```
 
-**Lazy Loading Waterfall:**
+2. **Component-Based Splitting** (Heavy components only)
+```javascript
+// Split components > 50KB
+const DataGrid = lazy(() => import('./DataGrid'));        // 150KB
+const ChartEditor = lazy(() => import('./ChartEditor'));  // 200KB
+const PDFViewer = lazy(() => import('./PDFViewer'));      // 180KB
+
+// Load on-demand when user opens feature
+// Dashboard without grids: 80KB → loads in 600ms
+// Dashboard with grids: 230KB → loads in 1.8s
+// But user only pays cost when using feature
+```
+
+3. **Vendor Splitting** (Aggressive caching)
+```javascript
+// webpack.config.js
+splitChunks: {
+  cacheGroups: {
+    reactVendor: {
+      test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+      name: 'react-vendor',
+      priority: 20,
+      // 42KB, changes rarely (cache for weeks)
+    },
+    uiLibrary: {
+      test: /[\\/]node_modules[\\/](@mui)[\\/]/,
+      name: 'ui-vendor',
+      priority: 15,
+      // 180KB, changes rarely
+    },
+    common: {
+      minChunks: 2,
+      priority: 5,
+      name: 'common',
+      // 25KB, shared utilities
+    },
+  },
+}
+
+// Cache efficiency:
+// - react-vendor.js: Cached 30 days (99% cache hit rate)
+// - app.js: Updated daily (0% cache hit rate)
+// Net effect: User downloads React once, app code frequently
+// Bandwidth saved: 42KB × 10 visits = 420KB saved per user
+```
+
+4. **Threshold-Based Splitting** (Automatic optimization)
+```javascript
+splitChunks: {
+  chunks: 'all',
+  maxSize: 150000,  // 150KB max per chunk
+  minSize: 20000,   // 20KB min per chunk
+}
+
+// Webpack auto-splits large chunks
+// Before: main.js (450KB)
+// After:
+//   - main.js (140KB)
+//   - chunk-vendors.js (150KB)
+//   - chunk-common.js (120KB)
+//   - chunk-utils.js (40KB)
+// Parallel downloads = faster overall load
+```
+
+**Compression Algorithms - Technical Comparison:**
+
+**Gzip (Deflate Algorithm):**
+- Compression ratio: 60-75% for JavaScript
+- Speed: 5-10 MB/s compression, 50-100 MB/s decompression
+- Browser support: 99.9% (IE6+)
+- CPU overhead: Low (browser decompresses in ~10ms for 100KB)
+- Best for: Universal compatibility
+
+**Brotli (Modern Algorithm):**
+- Compression ratio: 70-80% for JavaScript (10-20% better than Gzip)
+- Speed: 1-2 MB/s compression, 30-60 MB/s decompression
+- Browser support: 95%+ (Chrome 50+, Firefox 44+, Safari 11+)
+- CPU overhead: Slightly higher (browser decompresses in ~15ms for 100KB)
+- Best for: Modern browsers, maximum compression
+
+**Real-world compression example:**
+```javascript
+// Original file: app.js (150KB uncompressed)
+
+// Gzip compression:
+app.js.gz → 45KB (70% reduction)
+Transfer time (4G): 45KB ÷ 1MB/s = 45ms
+Decompression: ~8ms
+Total: 53ms
+
+// Brotli compression:
+app.js.br → 38KB (75% reduction)
+Transfer time (4G): 38KB ÷ 1MB/s = 38ms
+Decompression: ~12ms
+Total: 50ms
+
+// Difference: 3ms faster with Brotli
+// On 3G (384 Kbps = 48 KB/s):
+// - Gzip: 45KB ÷ 48KB/s = 937ms
+// - Brotli: 38KB ÷ 48KB/s = 791ms
+// Difference: 146ms faster (16% improvement)
+
+// Recommendation: Serve both, let browser choose
+Accept-Encoding: gzip, deflate, br
+→ Server responds with Brotli if supported
+→ Falls back to Gzip for older browsers
+```
+
+**Dependency Duplication Problem (npm/yarn hell):**
+```bash
+# Detect duplicates
+$ npm ls lodash
+myapp@1.0.0
+├─┬ redux-form@8.3.0
+│ └── lodash@4.17.20
+├─┬ redux-thunk@2.3.0
+│ └── lodash@4.17.21  # Different version!
+└─┬ react-table@7.7.0
+  └── lodash@4.17.15  # Another version!
+
+# Impact: 3 copies × 24KB = 72KB wasted
+
+# Fix 1: npm dedupe (automatic)
+$ npm dedupe
+$ npm ls lodash
+myapp@1.0.0
+└── lodash@4.17.21  # Single copy
+
+# Fix 2: Webpack alias (force single version)
+resolve: {
+  alias: {
+    lodash: path.resolve(__dirname, 'node_modules/lodash'),
+  },
+}
+
+# Fix 3: Use lodash-es (tree-shakable)
+import { map, filter } from 'lodash-es';
+// Only included functions bundled (3KB vs 24KB)
+```
+
+**Lazy Loading Waterfall Optimization:**
 
 ```
-Initial Load:
-1. main.js (50KB) - Downloaded
-2. React app boots
-3. User clicks "Dashboard"
-4. dashboard.chunk.js (120KB) - Downloaded
-5. Dashboard renders (adds ~300ms delay)
+=== Without Optimization (Waterfall Problem) ===
+0ms:    main.js downloaded (50KB, 400ms on 3G)
+400ms:  React boots, app renders
+500ms:  User clicks "Dashboard"
+500ms:  dashboard.chunk.js starts downloading (120KB, 960ms on 3G)
+1460ms: Dashboard renders
+Total: 1460ms from click to render
 
-Improvement with prefetch:
-1. main.js (50KB) - Downloaded
-2. <link rel="prefetch" href="dashboard.chunk.js">
-3. Browser downloads during idle time
-4. User clicks "Dashboard"
-5. dashboard.chunk.js - Already cached!
-6. Dashboard renders instantly
+=== With Prefetch Optimization ===
+0ms:    main.js downloaded (50KB, 400ms on 3G)
+400ms:  React boots, app renders
+        <link rel="prefetch" href="dashboard.chunk.js">
+        Browser downloads during idle time (low priority)
+500ms:  User clicks "Dashboard"
+500ms:  dashboard.chunk.js already in cache!
+520ms:  Dashboard renders (cache lookup ~20ms)
+Total: 20ms from click to render (73x faster!)
+
+=== With Preload (Even More Aggressive) ===
+0ms:    main.js downloaded (50KB)
+        <link rel="preload" href="dashboard.chunk.js" as="script">
+        Browser downloads immediately (high priority)
+200ms:  dashboard.chunk.js downloaded in parallel
+400ms:  React boots
+500ms:  User clicks "Dashboard"
+500ms:  Dashboard renders instantly (already loaded)
+Total: 0ms from click to render (instant!)
+
+// Trade-off: Preload increases initial bandwidth
+// Use prefetch for likely routes (80% probability)
+// Use preload for critical routes (100% probability)
+```
+
+**Advanced Tree-Shaking with Side Effects:**
+
+```javascript
+// package.json optimization
+{
+  "name": "my-lib",
+  "sideEffects": false  // No side effects, safe to tree-shake
+}
+
+// OR specify files with side effects
+{
+  "sideEffects": [
+    "*.css",           // CSS has side effects (global styles)
+    "./src/polyfills.js"  // Polyfills have side effects
+  ]
+}
+
+// Impact on tree-shaking:
+// Without sideEffects flag:
+// - Webpack assumes every module has side effects
+// - Cannot remove unused imports
+// - Example: import 'lodash/map' pulls entire lodash
+
+// With sideEffects: false:
+// - Webpack knows it's safe to remove unused code
+// - Tree-shaking removes 70-90% of unused library code
+// - Example: import { map } from 'lodash-es' only includes map
 ```
 
 </details>
@@ -1252,169 +1508,465 @@ jobs:
 <details>
 <summary><strong>🔍 Deep Dive</strong></summary>
 
-**Build Performance Components:**
+**Build Performance Components - The Complete Pipeline:**
 
-The webpack compilation pipeline has distinct phases:
+The webpack compilation pipeline has five distinct phases, each with specific optimization opportunities. Understanding these phases is essential for diagnosing and fixing build performance bottlenecks in production applications.
 
-1. **Entry Resolution** (100-500ms)
-   - Locate entry files
-   - Parse package.json
-   - Resolve aliases and extensions
+**Phase 1: Entry Resolution** (100-500ms)
+- Locates entry files from webpack config
+- Parses package.json to understand module structure
+- Resolves aliases, extensions, and paths
+- Creates initial module map
+- Time: 100ms for simple apps, 500ms for complex monorepos with 50+ aliases
 
-2. **Module Compilation** (1-5s depending on codebase size)
-   - Each .js/.jsx file: ~1-5ms per file
-   - Babel transformation (largest overhead)
-   - 1000 files × 2ms = 2 seconds
-   - Babel cache reduces to 100ms on second build
+**Optimization opportunities:**
+```javascript
+// ❌ Slow: Many extensions to try
+resolve: {
+  extensions: ['.js', '.jsx', '.ts', '.tsx', '.json', '.css', '.scss'],
+  // Webpack tries EACH extension for EVERY import
+  // 1000 imports × 7 extensions = 7000 file checks
+}
 
-3. **Bundling/Linking** (500ms-2s)
-   - Create dependency graph
-   - Split into chunks
-   - Optimize (tree-shake, concat)
+// ✅ Fast: Minimal extensions, explicit imports
+resolve: {
+  extensions: ['.js', '.jsx'],  // Only what you use
+  // 1000 imports × 2 extensions = 2000 file checks
+  // 3.5x fewer checks
+}
+```
 
-4. **Minification** (1-3s)
-   - Terser processes all code
-   - Parallel workers (4 CPUs = 4x faster)
+**Phase 2: Module Compilation** (1-5s, largest overhead)
+- Each .js/.jsx file: ~1-5ms per file with Babel
+- Transformation pipeline: Source → AST → Transformed AST → Code
+- Babel is synchronous and CPU-intensive
+- Example: 1000 files × 2ms = 2000ms (2 seconds)
+- With Babel cache: 10 changed files × 2ms + 990 cache hits × 0.01ms = ~30ms (66x faster!)
 
-5. **Emit** (100-500ms)
-   - Write to disk
-   - Generate source maps
-   - Hash calculation
+**Babel Transformation Breakdown:**
+```javascript
+// 1. Parse (source → AST): ~30% of time
+const ast = babylon.parse(code, { sourceType: 'module' });
 
-**Build Time Formula:**
+// 2. Transform (AST → modified AST): ~60% of time
+const transformedAst = babel.transform(ast, {
+  presets: ['@babel/preset-react', '@babel/preset-env'],
+  plugins: ['@babel/plugin-proposal-class-properties'],
+});
+// Most expensive step (applies presets, plugins)
+
+// 3. Generate (AST → code): ~10% of time
+const output = generate(transformedAst, code);
+
+// Total per file: ~2-5ms
+// For 1000 files: 2-5 seconds
+// Cache hit: ~0.01ms (200-500x faster)
+```
+
+**Phase 3: Bundling/Linking** (500ms-2s)
+- Creates complete dependency graph
+- Resolves module dependencies recursively
+- Splits modules into chunks based on splitChunks config
+- Performs tree-shaking (marks unused exports)
+- Concatenates modules (scope hoisting)
+
+**Dependency Graph Construction:**
+```javascript
+// Simplified algorithm
+function buildDependencyGraph(entryPoint) {
+  const graph = new Map();
+  const queue = [entryPoint];
+  const visited = new Set();
+
+  while (queue.length) {
+    const module = queue.shift();
+    if (visited.has(module)) continue;
+
+    visited.add(module);
+    const dependencies = parseDependencies(module);  // ~1ms per module
+    graph.set(module, dependencies);
+    queue.push(...dependencies);
+  }
+
+  return graph;
+}
+
+// Time complexity: O(n) where n = number of modules
+// For 1000 modules: ~1 second
+// For 10,000 modules: ~10 seconds
+```
+
+**Phase 4: Minification** (1-3s, parallelizable)
+- Terser processes all bundled code
+- Removes whitespace, renames variables, removes dead code
+- Single-threaded: 1 core processes entire bundle
+- Parallel mode: Splits work across N CPU cores
+
+**Minification Impact:**
+```javascript
+// Input (readable): 150KB
+function calculateTotal(items) {
+  const total = items.reduce((sum, item) => {
+    return sum + (item.price * item.quantity);
+  }, 0);
+  return total;
+}
+
+// Output (minified): 95KB (37% reduction)
+function calculateTotal(t){return t.reduce((t,e)=>t+e.price*e.quantity,0)}
+
+// Terser processing time:
+// - Single thread: 150KB ÷ 50KB/s = 3 seconds
+// - 4 parallel threads: 150KB ÷ 200KB/s = 0.75 seconds (4x faster)
+
+optimization: {
+  minimizer: [
+    new TerserPlugin({
+      parallel: 4,  // Use 4 CPU cores
+      terserOptions: {
+        compress: { drop_console: true },  // Remove console.log
+      },
+    }),
+  ],
+}
+```
+
+**Phase 5: Emit** (100-500ms)
+- Writes compiled assets to disk
+- Generates source maps (adds 40% overhead if enabled)
+- Calculates content hashes for cache busting
+- Creates manifest.json and stats.json
+
+**Emit Optimization:**
+```javascript
+// Source maps impact:
+// Without source maps: 100ms write time
+// With source maps: 140ms write time + 400KB extra size
+
+// Recommendation: Conditional source maps
+devtool: process.env.NODE_ENV === 'production'
+  ? false  // No source maps in prod
+  : 'cheap-module-source-map',  // Fast source maps in dev
+```
+
+**Complete Build Time Formula:**
 ```
 Total Build Time =
-  Entry Resolution (100ms) +
-  Module Compilation (2-5s) +
-  Bundling (1s) +
-  Minification (2s) +
-  Emit (500ms) +
-  IO (500ms)
-  = 6-9 seconds for typical app
+  Entry Resolution (100-500ms) +
+  Module Compilation (1-5s, cacheable) +
+  Bundling/Linking (500ms-2s) +
+  Minification (1-3s, parallelizable) +
+  Emit (100-500ms) +
+  Disk I/O overhead (200-500ms)
+
+Example for typical app (1000 modules):
+= 200ms + 2s + 1s + 2s + 300ms + 300ms
+= 5.8 seconds
+
+With optimizations (cache + parallel):
+= 200ms + 30ms + 1s + 500ms + 300ms + 300ms
+= 2.3 seconds (2.5x faster!)
 ```
 
-**Webpack vs Vite Comparison:**
+**Webpack vs Vite - Architectural Deep Dive:**
 
-| Phase | Webpack | Vite |
-|-------|---------|------|
-| **Cold start** | 15-30s | 500ms-2s |
-| **Dev HMR** | 2-5s | 100-300ms |
-| **Prod build** | 20-45s | 5-15s |
-| **Mechanism** | Bundles everything | Uses native ESM |
+| Phase | Webpack | Vite | Why Vite Wins |
+|-------|---------|------|---------------|
+| **Cold Start** | 15-30s | 300-500ms | Vite doesn't bundle in dev |
+| **Dev HMR** | 2-5s | 50-200ms | ESM updates single module |
+| **Prod Build** | 20-45s | 5-15s | esbuild 10-100x faster than Babel |
+| **Mechanism** | Bundle entire app | Native ESM + esbuild | No bundling overhead |
+| **Memory** | 500MB-2GB | 100-300MB | No in-memory bundle |
 
-**Why Vite is Faster:**
+**Why Vite is Faster - Technical Breakdown:**
 
+**Webpack's Approach (Traditional Bundling):**
 ```javascript
-// Webpack approach:
-1. Read all source files
-2. Parse all modules
-3. Create dependency graph (for entire app)
-4. Minify all code
-5. Serve bundled file
-= Slow for large apps, slow HMR
+=== DEVELOPMENT MODE (webpack-dev-server) ===
+Step 1: Parse all 1000 source files (5 seconds)
+  - Read from disk: 1000 × 2ms = 2s
+  - Parse to AST: 1000 × 1ms = 1s
+  - Transform (Babel): 1000 × 2ms = 2s
 
-// Vite approach (ESM-first):
-1. Serve source files as-is in development
-2. Browser loads via native ES modules
-3. Only transform on-demand (changed file)
-4. HMR only updates changed module
-= Fast for all app sizes, blazing HMR
+Step 2: Build complete dependency graph (3 seconds)
+  - Walk all imports recursively
+  - Resolve 5000 import statements
+  - Create module map
+
+Step 3: Bundle into chunks (4 seconds)
+  - Concatenate modules
+  - Apply tree-shaking
+  - Generate bundle code
+
+Step 4: Transpile and optimize (8 seconds)
+  - Babel transforms JSX
+  - Apply plugins
+  - Generate source maps
+
+Step 5: Serve bundle (200ms)
+  - Write to memory
+  - Serve via express
+
+TOTAL COLD START: ~20 seconds
+
+=== HMR UPDATE (file change) ===
+Step 1: Detect change (50ms)
+Step 2: Rebuild affected modules (1s)
+  - Re-parse changed file
+  - Re-transform with Babel
+Step 3: Rebuild dependency graph (500ms)
+  - Update graph edges
+  - Recalculate chunk
+Step 4: Re-bundle affected chunk (2s)
+  - Concatenate modules again
+  - Tree-shake again
+Step 5: Send update to browser (100ms)
+
+TOTAL HMR: ~3.6 seconds
 ```
 
-**Babel Caching Impact:**
+**Vite's Approach (ESM + esbuild):**
+```javascript
+=== DEVELOPMENT MODE (Vite dev server) ===
+Step 1: Pre-bundle dependencies ONCE (200ms)
+  - Use esbuild to bundle node_modules
+  - React + React-DOM: 200ms (vs 8s with webpack)
+  - Cached for future runs
 
-Without cache:
-- 1000 JS files × 2ms = 2000ms
+Step 2: Start dev server (100ms)
+  - Lightweight Koa server
+  - No bundling step
 
-With cache:
-- Cache miss on 10 files: 10 × 2ms = 20ms
-- Cache hit on 990 files: ~10ms (disk read)
-- Total: ~30ms (66x faster!)
+Step 3: Serve source files as-is (instant)
+  - Browser requests /src/App.jsx
+  - Vite transforms ONLY that file on-demand
+  - Returns ESM module
 
-**Module Federation (Advanced):**
+Step 4: Browser loads modules on-demand
+  - Native import() support
+  - Only loads what's needed
 
-Used in monorepos to avoid rebuilding shared code:
+TOTAL COLD START: ~300ms (67x faster than webpack!)
+
+=== HMR UPDATE (file change) ===
+Step 1: Detect change (20ms)
+Step 2: Transform ONLY changed file (30ms)
+  - esbuild transforms in 30ms (vs 2s Babel)
+  - 66x faster than Babel
+Step 3: Send precise update to browser (50ms)
+  - Browser hot-swaps single module
+  - No chunk rebuild needed
+
+TOTAL HMR: ~100ms (36x faster than webpack!)
+```
+
+**esbuild vs Babel Performance:**
 
 ```javascript
-// app1/webpack.config.js
+// Transform 1000 JSX files:
+
+// Babel (JavaScript, single-threaded):
+// - Time: 2-5 seconds
+// - Speed: 200-500 files/second
+
+// esbuild (Go, multi-threaded):
+// - Time: 30-100ms
+// - Speed: 10,000-30,000 files/second
+// - 50-100x faster than Babel!
+
+// Why esbuild is faster:
+// 1. Written in Go (compiled, not interpreted)
+// 2. Parallelizes across all CPU cores
+// 3. Optimized AST representation
+// 4. No plugin overhead
+```
+
+**Babel Caching Deep Dive:**
+
+```javascript
+// Without cache (fresh build):
+const start = performance.now();
+for (const file of allFiles) {  // 1000 files
+  const code = fs.readFileSync(file);
+  const ast = babel.parse(code);  // ~1ms
+  const transformed = babel.transform(ast, babelConfig);  // ~1ms
+  const output = babel.generate(transformed);  // ~0.5ms
+  // Total per file: ~2.5ms
+}
+const duration = performance.now() - start;
+// Total: 1000 × 2.5ms = 2500ms (2.5 seconds)
+
+// With cache (incremental build):
+// Scenario: User changes 10 files, 990 unchanged
+for (const file of allFiles) {
+  const cacheKey = getCacheKey(file);  // File hash
+
+  if (cache.has(cacheKey)) {
+    const output = cache.get(cacheKey);  // ~0.01ms disk read
+    // Total: 0.01ms (250x faster!)
+  } else {
+    // Transform and cache (as above, ~2.5ms)
+    const output = transformWithBabel(file);
+    cache.set(cacheKey, output);
+  }
+}
+// Total: (10 × 2.5ms) + (990 × 0.01ms) = 25ms + 10ms = 35ms
+// Improvement: 2500ms → 35ms (71x faster!)
+```
+
+**Module Federation for Monorepos (Advanced):**
+
+Module Federation allows multiple webpack builds to share code at runtime, avoiding duplicate builds in monorepos.
+
+```javascript
+// === MONOREPO SETUP ===
+// apps/admin/webpack.config.js
 {
   plugins: [
     new ModuleFederationPlugin({
-      name: 'app1',
+      name: 'admin',
       filename: 'remoteEntry.js',
       exposes: {
-        './Button': './src/Button.jsx',
+        './UserTable': './src/components/UserTable',
+        './Dashboard': './src/components/Dashboard',
       },
       shared: {
-        react: { singleton: true },
-        'react-dom': { singleton: true },
+        react: { singleton: true, requiredVersion: '^18.0.0' },
+        'react-dom': { singleton: true, requiredVersion: '^18.0.0' },
       },
     }),
   ],
 }
 
-// app2/webpack.config.js
+// apps/customer/webpack.config.js
 {
   plugins: [
     new ModuleFederationPlugin({
-      name: 'app2',
+      name: 'customer',
       remotes: {
-        app1: 'app1@http://localhost:3001/remoteEntry.js',
+        admin: 'admin@http://localhost:3001/remoteEntry.js',
       },
       shared: {
-        react: { singleton: true },
-        'react-dom': { singleton: true },
+        react: { singleton: true, requiredVersion: '^18.0.0' },
+        'react-dom': { singleton: true, requiredVersion: '^18.0.0' },
       },
     }),
   ],
 }
 
-// Benefits:
-// - app1 rebuilt: 3 seconds
-// - app2 built ONCE, reuses app1's Button
-// - app2 rebuild: 2 seconds (not 3s)
+// apps/customer/src/App.jsx
+import React, { lazy } from 'react';
+
+// Load UserTable from admin app at RUNTIME
+const UserTable = lazy(() => import('admin/UserTable'));
+
+function App() {
+  return <UserTable />;
+}
+
+// === BUILD TIME SAVINGS ===
+// Without Module Federation:
+// - admin build: 12 seconds (includes UserTable)
+// - customer build: 15 seconds (ALSO includes UserTable)
+// - Total: 27 seconds
+// - UserTable built TWICE (wasted effort)
+
+// With Module Federation:
+// - admin build: 12 seconds (includes UserTable)
+// - customer build: 8 seconds (references admin's UserTable, doesn't rebuild it)
+// - Total: 20 seconds (26% faster!)
+// - UserTable built ONCE, shared at runtime
 ```
 
-**Profiling webpack with Node Inspector:**
+**Profiling Webpack with Node Inspector:**
 
 ```bash
-# Start webpack with inspector
-node --inspect-brk ./node_modules/.bin/webpack
+# Terminal 1: Start webpack with Node debugger
+$ node --inspect-brk ./node_modules/.bin/webpack --mode production
 
-# In separate terminal, open Chrome DevTools
-# chrome://inspect
+Debugger listening on ws://127.0.0.1:9229
+For help, see: https://nodejs.org/en/docs/inspector
 
-# Profiler reveals:
-// Top functions by time:
-// 1. babel-loader: 65% (2.6s)
-// 2. sass-loader: 15% (600ms)
-// 3. TerserPlugin: 12% (480ms)
-// 4. webpack resolve: 8% (320ms)
+# Terminal 2: Open Chrome DevTools
+# Navigate to chrome://inspect
+# Click "inspect" next to the Node.js process
 
-// Bottleneck: Babel is slow on 1000 files
-// Solution: babel-loader cacheDirectory
+# In DevTools:
+# 1. Go to "Profiler" tab
+# 2. Click "Start"
+# 3. Resume execution (F8)
+# 4. Wait for build to finish
+# 5. Click "Stop"
+
+# === PROFILER RESULTS ===
+# Top functions by self time:
+# 1. babel-loader/transform: 2600ms (65% of total)
+#    → Bottleneck: Babel is slow
+# 2. sass-loader/compile: 600ms (15% of total)
+#    → Compiling Sass files
+# 3. TerserPlugin/minify: 480ms (12% of total)
+#    → Single-threaded minification
+# 4. webpack/resolve: 320ms (8% of total)
+#    → Module resolution overhead
+
+# === OPTIMIZATION ACTIONS ===
+# 1. Enable Babel cache → 2600ms to 30ms (86x faster)
+# 2. Parallel Terser → 480ms to 120ms (4x faster)
+# 3. Simplify resolve.extensions → 320ms to 100ms (3x faster)
+# Total: 4000ms → 850ms (4.7x faster!)
 ```
 
-**Bundle Size Metrics:**
+**Bundle Size Metrics - Comprehensive Analysis:**
 
 ```javascript
-// From webpack stats:
+// webpack stats.json output:
 {
   "assets": [
     {
       "name": "main.abc123.js",
-      "size": 150000,        // Uncompressed
-      "gzipSize": 45000,     // Gzipped (30%)
-      "brotliSize": 38000    // Brotli (25%)
+      "size": 150000,        // 150KB uncompressed
+      "gzipSize": 45000,     // 45KB gzipped (70% reduction)
+      "brotliSize": 38000    // 38KB brotli (75% reduction)
+    }
+  ],
+  "modules": [
+    {
+      "name": "./src/App.jsx",
+      "size": 3500,  // 3.5KB
+      "reasons": [...]  // Why included
+    },
+    {
+      "name": "./node_modules/lodash/index.js",
+      "size": 72000,  // 72KB (!!!)
+      "reasons": [
+        { "type": "import", "userRequest": "lodash" }
+      ]
+      // Problem: Entire lodash imported for 1 function
     }
   ]
 }
 
-// Optimization opportunities:
-// - 150KB → 45KB (Gzip)
-// - 150KB → 38KB (Brotli, 75% smaller)
-// - 150KB → 60KB (with tree-shaking, 60% smaller)
-// - 60KB → 18KB (Brotli + tree-shaking, 88% smaller!)
+// === OPTIMIZATION OPPORTUNITIES ===
+// 1. Tree-shaking lodash:
+//    Before: 72KB (entire library)
+//    After: 3KB (only used functions)
+//    Savings: 69KB (96% reduction)
+
+// 2. Gzip compression:
+//    Before: 150KB uncompressed
+//    After: 45KB gzipped
+//    Savings: 105KB (70% reduction)
+
+// 3. Brotli compression:
+//    Before: 150KB uncompressed
+//    After: 38KB brotli
+//    Savings: 112KB (75% reduction)
+
+// 4. Combined optimizations:
+//    Original: 150KB uncompressed
+//    Tree-shaken: 81KB (150 - 69)
+//    Brotli: 20KB (81 × 0.25)
+//    Final savings: 130KB (87% reduction!)
 ```
 
 </details>
