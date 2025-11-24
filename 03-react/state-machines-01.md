@@ -55,7 +55,7 @@ The key advantage is **impossibility prevention**: your code structure prevents 
 
 ---
 
-## 🔍 Deep Dive: State Machine Concepts and Architecture
+### 🔍 Deep Dive: State Machine Concepts and Architecture
 
 State machines represent one of the most powerful patterns in computer science for managing complexity. At their core, they formalize the concept that a system can only exist in exactly one well-defined state at any given moment, with clear rules for transitioning between states. This constraint eliminates an entire class of bugs related to impossible state combinations that plague traditional imperative state management.
 
@@ -226,7 +226,7 @@ For extremely large machines (100+ states), XState remains performant because st
 
 ---
 
-## 🐛 Real-World Scenario: Multi-Step Form Wizard with State Machine
+### 🐛 Real-World Scenario: Multi-Step Form Wizard with State Machine
 
 ### The Production Problem: E-commerce Checkout Bugs
 
@@ -793,7 +793,7 @@ onDone: {
 
 ---
 
-## ⚖️ Trade-offs: State Machines vs useReducer vs useState
+### ⚖️ Trade-offs: State Machines vs useReducer vs useState
 
 Choosing the right state management approach is critical for long-term maintainability. The wrong choice leads to technical debt that compounds over time. This decision should be made based on complexity metrics, team expertise, and project requirements, not personal preference or familiarity.
 
@@ -1030,7 +1030,7 @@ Start: Analyze your state complexity
 
 ---
 
-## 💬 Explain to Junior: Traffic Light Analogy & Interview Templates
+### 💬 Explain to Junior: Traffic Light Analogy & Interview Templates
 
 ### Understanding State Machines Through Real-World Analogies
 
