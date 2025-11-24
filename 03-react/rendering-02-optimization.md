@@ -20,12 +20,14 @@ However, these are optimizations, not defaults. React is already fast, and prema
 
 ### 🔍 Deep Dive
 
-**React.memo Implementation Details**
+**React.memo Implementation Details and Internal Architecture**
 
-React.memo is a higher-order component that implements shallow comparison by default. When a component wrapped with `React.memo` is about to render, React compares the new props with the previous props using `Object.is()` comparison for each prop.
+React.memo is a higher-order component that implements shallow comparison by default, providing a critical optimization layer in React's reconciliation process. When a component wrapped with `React.memo` is about to render, React compares the new props with the previous props using `Object.is()` comparison for each prop. This comparison happens before the component enters the render phase, making it an early-bailout optimization that saves significant work.
+
+The internal implementation leverages React Fiber's architecture. When React processes a fiber node for a memoized component, it first checks if this is an update (not initial mount). If it's an update, React retrieves the previous props from the fiber's memoizedProps field and performs the comparison. This comparison is O(n) where n is the number of props, but typically very fast since most components have fewer than 10 props.
 
 ```javascript
-// React.memo internal logic (simplified)
+// React.memo internal logic (simplified from React source)
 function memo(Component, compare) {
   return function MemoizedComponent(props) {
     const prevPropsRef = useRef();
@@ -36,7 +38,7 @@ function memo(Component, compare) {
       : shallowEqual(prevPropsRef.current, props);
 
     if (arePropsEqual) {
-      return cachedResult; // Skip rendering
+      return cachedResult; // Skip rendering - reuse previous fiber
     }
 
     prevPropsRef.current = props;
@@ -47,8 +49,10 @@ function memo(Component, compare) {
 }
 
 function shallowEqual(objA, objB) {
+  // Fast path: Same reference
   if (Object.is(objA, objB)) return true;
 
+  // Type check
   if (typeof objA !== 'object' || objA === null ||
       typeof objB !== 'object' || objB === null) {
     return false;
@@ -57,10 +61,14 @@ function shallowEqual(objA, objB) {
   const keysA = Object.keys(objA);
   const keysB = Object.keys(objB);
 
+  // Different number of props = definitely different
   if (keysA.length !== keysB.length) return false;
 
+  // Compare each prop value using Object.is (handles NaN, -0/+0)
   for (let i = 0; i < keysA.length; i++) {
-    if (!Object.is(objA[keysA[i]], objB[keysA[i]])) {
+    const key = keysA[i];
+    if (!Object.hasOwnProperty.call(objB, key) ||
+        !Object.is(objA[key], objB[key])) {
       return false;
     }
   }
@@ -69,206 +77,196 @@ function shallowEqual(objA, objB) {
 }
 ```
 
-**Custom Comparison Functions**
+**Why Object.is() instead of ===**? Object.is() handles edge cases correctly: `Object.is(NaN, NaN)` returns `true` (unlike ===), and `Object.is(+0, -0)` returns `false` (correctly distinguishes signed zeros). This matters for mathematical computations and ensures more predictable behavior.
 
-For complex props, you can provide a custom comparison function. This is useful when shallow comparison isn't sufficient or when you want more control:
+**Custom Comparison Functions: Advanced Use Cases**
+
+For complex props, you can provide a custom comparison function. This is powerful but must be used carefully to avoid subtle bugs:
 
 ```javascript
 const UserProfile = React.memo(
-  ({ user, settings }) => {
+  ({ user, settings, onUpdate }) => {
     return (
       <div>
         <h1>{user.name}</h1>
+        <p>{user.email}</p>
         <Settings config={settings} />
+        <button onClick={() => onUpdate(user.id)}>Update</button>
       </div>
     );
   },
   (prevProps, nextProps) => {
-    // Custom comparison: only re-render if user.id changes
-    // Ignore settings changes
-    return prevProps.user.id === nextProps.user.id;
+    // Custom comparison: only re-render if user.id or user.email changes
+    // Ignore settings and onUpdate changes (risky! see below)
+    return prevProps.user.id === nextProps.user.id &&
+           prevProps.user.email === nextProps.user.email;
+
+    // ⚠️ WARNING: This ignores settings and onUpdate changes!
+    // If onUpdate logic changes, this component won't re-render
+    // Use this pattern only when you're CERTAIN those props don't affect output
+  }
+);
+
+// ✅ Better: Include all props that affect output
+const UserProfileBetter = React.memo(
+  UserProfile,
+  (prevProps, nextProps) => {
+    // Return true if props are EQUAL (component should NOT re-render)
+    const userUnchanged = prevProps.user.id === nextProps.user.id &&
+                          prevProps.user.name === nextProps.user.name &&
+                          prevProps.user.email === nextProps.user.email;
+
+    const settingsUnchanged = JSON.stringify(prevProps.settings) ===
+                              JSON.stringify(nextProps.settings);
+
+    // Note: Function props usually change, so we skip onUpdate comparison
+    // But we accept re-renders when user or settings change
+    return userUnchanged && settingsUnchanged;
   }
 );
 ```
 
-**useMemo Deep Dive**
+**useMemo Deep Dive: Dependency Comparison and Caching Strategy**
 
-`useMemo` prevents expensive recalculations by caching results. React stores the memoized value and dependency array. On each render, it compares the current dependencies with the previous ones using `Object.is()`:
+`useMemo` prevents expensive recalculations by caching results. React stores both the memoized value and the dependency array in the fiber's memoizedState. On each render, it compares the current dependencies with the previous ones using `Object.is()` for each dependency.
+
+The internal implementation uses a linked list of hooks attached to the fiber node. Each useMemo call gets its own hook entry containing:
+1. The memoized value
+2. The previous dependency array
+3. A pointer to the next hook
 
 ```javascript
-// useMemo internal logic (simplified)
+// useMemo internal logic (simplified from React hooks implementation)
 function useMemo(factory, deps) {
-  const hook = getCurrentHook();
+  const hook = getCurrentHook(); // Retrieves hook from fiber's memoizedState linked list
   const prevDeps = hook.deps;
 
   if (prevDeps !== null) {
+    // Compare each dependency using Object.is()
     if (areHookInputsEqual(deps, prevDeps)) {
-      return hook.memoizedValue; // Return cached value
+      return hook.memoizedValue; // Return cached value - skip factory execution
     }
   }
 
-  const value = factory(); // Recompute
+  // Dependencies changed or first render - execute factory
+  const value = factory();
   hook.memoizedValue = value;
   hook.deps = deps;
   return value;
 }
 
 function areHookInputsEqual(nextDeps, prevDeps) {
-  if (prevDeps === null) return false;
+  if (prevDeps === null) return false; // First render
 
+  // Compare each dependency
   for (let i = 0; i < prevDeps.length; i++) {
     if (Object.is(nextDeps[i], prevDeps[i])) {
-      continue;
+      continue; // This dependency unchanged
     }
-    return false;
+    return false; // Found a changed dependency
   }
-  return true;
+  return true; // All dependencies unchanged
 }
 ```
 
-**useCallback Mechanics**
+**Critical Performance Insight**: useMemo adds overhead (dependency comparison + array storage). It only improves performance when the factory function is significantly more expensive than the comparison. As a rule of thumb, use useMemo when the factory takes >2-3ms to execute.
 
-`useCallback` is essentially `useMemo` for functions. In fact, `useCallback(fn, deps)` is equivalent to `useMemo(() => fn, deps)`:
+**useCallback Mechanics and the Function Identity Problem**
+
+`useCallback` is essentially `useMemo` for functions. In fact, `useCallback(fn, deps)` is literally implemented as `useMemo(() => fn, deps)` in React's source code:
 
 ```javascript
-// useCallback internal logic
+// useCallback internal logic (from React source)
 function useCallback(callback, deps) {
   return useMemo(() => callback, deps);
 }
 ```
 
-The critical insight: without `useCallback`, every render creates a new function reference, breaking memoization in child components.
-
-**Optimization Pattern: Complete Example**
+The critical insight: without `useCallback`, every render creates a new function reference, breaking memoization in child components. JavaScript functions are compared by reference, not by their code:
 
 ```javascript
-// ❌ BAD: Unnecessary re-renders
-function ParentBad() {
-  const [count, setCount] = useState(0);
-  const [items, setItems] = useState(['a', 'b', 'c']);
+const fn1 = () => console.log('hello');
+const fn2 = () => console.log('hello');
 
-  // New function reference every render
-  const handleClick = (item) => {
-    console.log('Clicked:', item);
-  };
-
-  // Recalculated every render
-  const expensiveValue = items.map(i => i.toUpperCase()).join(',');
-
-  return (
-    <div>
-      <button onClick={() => setCount(count + 1)}>
-        Count: {count}
-      </button>
-      <ChildList
-        items={items}
-        onClick={handleClick}
-        computed={expensiveValue}
-      />
-    </div>
-  );
-}
-
-const ChildList = ({ items, onClick, computed }) => {
-  console.log('ChildList rendered'); // Renders on every parent update
-  return (
-    <div>
-      {items.map(item => (
-        <button key={item} onClick={() => onClick(item)}>
-          {item}
-        </button>
-      ))}
-      <p>{computed}</p>
-    </div>
-  );
-};
-
-// ✅ GOOD: Optimized with memoization
-function ParentGood() {
-  const [count, setCount] = useState(0);
-  const [items, setItems] = useState(['a', 'b', 'c']);
-
-  // Stable function reference
-  const handleClick = useCallback((item) => {
-    console.log('Clicked:', item);
-  }, []); // No dependencies - never changes
-
-  // Only recalculate when items change
-  const expensiveValue = useMemo(
-    () => items.map(i => i.toUpperCase()).join(','),
-    [items]
-  );
-
-  return (
-    <div>
-      <button onClick={() => setCount(count + 1)}>
-        Count: {count}
-      </button>
-      <ChildListOptimized
-        items={items}
-        onClick={handleClick}
-        computed={expensiveValue}
-      />
-    </div>
-  );
-}
-
-// Memoized component - only re-renders when props change
-const ChildListOptimized = React.memo(({ items, onClick, computed }) => {
-  console.log('ChildList rendered'); // Only when items/onClick/computed change
-  return (
-    <div>
-      {items.map(item => (
-        <button key={item} onClick={() => onClick(item)}>
-          {item}
-        </button>
-      ))}
-      <p>{computed}</p>
-    </div>
-  );
-});
+console.log(fn1 === fn2); // false - different references!
 ```
 
-**Dependency Array Best Practices**
+This means React's shallow comparison sees them as different props, triggering re-renders.
 
-The dependency array is critical. Common mistakes:
+**Advanced Dependency Array Patterns**
+
+The dependency array is critical but often misunderstood. Common mistakes and solutions:
 
 ```javascript
-// ❌ Missing dependencies - stale closures
+// ❌ MISTAKE 1: Missing dependencies - creates stale closures
 const handleSubmit = useCallback(() => {
-  console.log(formData); // May log stale data
+  console.log(formData); // BUG: Always logs initial formData value!
 }, []); // Should include formData
 
-// ❌ Too many dependencies - defeats purpose
+// ❌ MISTAKE 2: Too many dependencies - defeats purpose
 const handleClick = useCallback(() => {
   doSomething();
-}, [formData, userId, settings, theme, locale]); // Re-creates frequently
+}, [formData, userId, settings, theme, locale, permissions]);
+// Re-creates on every formData/settings change - might as well not use useCallback
 
-// ✅ Correct dependencies
+// ❌ MISTAKE 3: Object/array dependencies causing infinite loops
+const handleUpdate = useCallback(() => {
+  updateUser(config); // config is recreated every render
+}, [config]); // This callback recreates every render!
+
+// ✅ SOLUTION 1: Include all dependencies (accept re-creation)
 const handleSubmit = useCallback(() => {
   console.log(formData);
-}, [formData]);
+}, [formData]); // Recreates when formData changes - correct!
 
-// ✅ Use refs for values that shouldn't trigger re-creation
+// ✅ SOLUTION 2: Use refs for values that shouldn't trigger re-creation
 const latestFormData = useRef(formData);
 useEffect(() => {
-  latestFormData.current = formData;
+  latestFormData.current = formData; // Keep ref updated
 }, [formData]);
 
 const handleSubmit = useCallback(() => {
-  console.log(latestFormData.current); // Always latest, stable reference
-}, []);
+  console.log(latestFormData.current); // Always latest value, stable reference
+}, []); // Never recreates
+
+// ✅ SOLUTION 3: Memoize object/array dependencies
+const config = useMemo(() => ({
+  theme: 'dark',
+  locale: 'en'
+}), []); // Stable reference
+
+const handleUpdate = useCallback(() => {
+  updateUser(config);
+}, [config]); // Only recreates if config memoization dependencies change
+
+// ✅ SOLUTION 4: Use functional updates to avoid dependencies
+const handleIncrement = useCallback(() => {
+  setCount(prevCount => prevCount + 1); // No dependency on count!
+}, []); // Stable reference, no stale closure
 ```
 
-**React Fiber and Bailout Mechanisms**
+**React Fiber and Bailout Mechanisms: The Full Picture**
 
-React Fiber (React 16+) includes sophisticated bailout mechanisms. When React detects that a component's props/state haven't changed, it "bails out" of rendering:
+React Fiber (React 16+) includes sophisticated bailout mechanisms that work in conjunction with memoization. Understanding these helps you optimize effectively.
 
-1. **Props bailout**: Props are shallowly equal
-2. **State bailout**: State is identical (`Object.is`)
-3. **Context bailout**: Context value unchanged
+React's reconciliation has multiple bailout opportunities:
 
-React.memo enhances the props bailout by adding an early exit before even scheduling work.
+1. **Early bailout (React.memo)**: Before entering render phase, check if props changed
+2. **Render phase bailout**: During render, check if state/context changed
+3. **Commit phase bailout**: Skip DOM updates if output identical
+
+**Fiber Bailout Conditions**:
+- **Props bailout**: New props === old props (referential equality) OR shallow equal (with React.memo)
+- **State bailout**: `Object.is(newState, oldState)` returns true
+- **Context bailout**: Context value unchanged (referential equality)
+
+When React bails out:
+- Component's render function NOT called
+- Children NOT reconciled (entire subtree skipped)
+- Side effects (useEffect) NOT triggered
+- Massive performance win for deep component trees
+
+React.memo enhances the props bailout by adding a custom comparison before React Fiber even schedules the work. This is why React.memo is so powerful - it prevents work from entering the reconciliation process entirely, saving CPU cycles at the earliest possible stage.
 
 ---
 
@@ -938,31 +936,53 @@ Key metrics to monitor include **Component Render Time** (time spent in render),
 
 ### 🔍 Deep Dive
 
-**React DevTools Profiler Internals**
+**React DevTools Profiler Internals and Architecture**
 
-The Profiler works by instrumenting React's reconciliation process. When you start recording, React begins tracking timing information for each component's render phase and commit phase.
+The Profiler works by instrumenting React's reconciliation process at the fiber level. When you start recording, React begins tracking timing information for each component's render phase and commit phase. This instrumentation adds minimal overhead (<5%) in development builds, making it safe to profile during development without significantly skewing results.
 
-**Profiler API Integration**:
+Internally, React's Profiler uses the browser's `performance.now()` API for high-precision timing. When a fiber begins rendering, React marks the start time. When the fiber completes, React calculates the duration and stores it in the fiber's metadata. This data is then aggregated and sent to DevTools for visualization.
+
+The Profiler distinguishes between two critical phases:
+1. **Render phase** (interruptible): React calls component functions, diffs the virtual DOM, decides what changed
+2. **Commit phase** (synchronous): React applies changes to the real DOM, runs effects
+
+Understanding this separation helps you identify whether bottlenecks are in component logic (render phase) or DOM manipulation (commit phase).
+
+**Profiler API Integration for Production Monitoring**:
 
 ```javascript
 // Profiler component API (for programmatic profiling)
 import { Profiler } from 'react';
 
 function onRenderCallback(
-  id,               // "id" prop of the Profiler tree
-  phase,            // "mount" or "update"
-  actualDuration,   // Time spent rendering committed update
-  baseDuration,     // Estimated time to render entire subtree without memoization
-  startTime,        // When React began rendering this update
-  commitTime,       // When React committed this update
-  interactions      // Set of interactions belonging to this update
+  id,               // "id" prop of the Profiler tree (e.g., "Dashboard")
+  phase,            // "mount" (first render) or "update" (subsequent render)
+  actualDuration,   // Time spent rendering THIS update (with memoization)
+  baseDuration,     // Estimated time to render entire subtree WITHOUT memoization
+  startTime,        // When React began rendering this update (timestamp)
+  commitTime,       // When React committed this update to DOM (timestamp)
+  interactions      // Set of interactions that triggered this update (React 18+)
 ) {
-  // Send to analytics or log
+  // Send to analytics for production monitoring
   console.log(`${id} (${phase}) took ${actualDuration}ms`);
 
   // baseDuration vs actualDuration shows memoization effectiveness
   const memoizationBenefit = baseDuration - actualDuration;
-  console.log(`Memoization saved ${memoizationBenefit}ms`);
+  console.log(`Memoization saved ${memoizationBenefit}ms (${Math.round(memoizationBenefit / baseDuration * 100)}%)`);
+
+  // Real User Monitoring (RUM) - track slow renders
+  if (actualDuration > 100) {
+    analytics.track('slow-component-render', {
+      componentId: id,
+      phase,
+      duration: actualDuration,
+      baselineDuration: baseDuration,
+      memoizationEffectiveness: `${Math.round((1 - actualDuration / baseDuration) * 100)}%`,
+      timestamp: commitTime,
+      url: window.location.pathname,
+      userAgent: navigator.userAgent
+    });
+  }
 }
 
 function App() {
@@ -972,87 +992,137 @@ function App() {
     </Profiler>
   );
 }
+
+// Nest Profilers for granular tracking
+function Dashboard() {
+  return (
+    <div>
+      <Profiler id="Dashboard-Charts" onRender={onRenderCallback}>
+        <ChartsSection />
+      </Profiler>
+      <Profiler id="Dashboard-Table" onRender={onRenderCallback}>
+        <DataTable />
+      </Profiler>
+    </div>
+  );
+}
 ```
 
-**Understanding Profiler Metrics**:
+**Understanding Profiler Metrics in Depth**:
 
-1. **Render Duration (actualDuration)**: Time spent in component's render method and its children
-2. **Base Duration (baseDuration)**: How long it would take without any memoization (estimated)
-3. **Start Time**: Timestamp when React started rendering
-4. **Commit Time**: Timestamp when React committed to DOM
-5. **Interactions**: User interactions that triggered this update (if interaction tracking enabled)
+1. **actualDuration**: Most important metric - actual time spent rendering. If this is high (>50ms), you have a performance problem.
+2. **baseDuration**: Theoretical maximum if nothing was memoized. Useful for calculating memoization ROI.
+3. **startTime & commitTime**: Use difference to calculate render phase vs commit phase time. Large gaps indicate expensive DOM updates.
+4. **phase**: "mount" renders are always slower (creating DOM nodes). Focus optimization on "update" phase.
+5. **interactions**: Track user actions that triggered renders. Helps correlate performance with user behavior.
 
-**Flamegraph Interpretation**:
+**Flamegraph Deep Interpretation**:
 
 ```
-Dashboard (2,847ms)
+Dashboard (2,847ms total)
 ├── FilterBar (123ms)
-├── MetricsGrid (2,156ms)
-│   ├── RevenueChart (412ms)
+├── MetricsGrid (2,156ms) ← 76% of parent time
+│   ├── RevenueChart (412ms) ← 19% of MetricsGrid
 │   ├── OrdersChart (389ms)
 │   ├── CustomersChart (367ms)
 │   ├── ConversionChart (344ms)
 │   ├── GeographyChart (322ms)
 │   └── TrendsChart (322ms)
 └── DataTable (892ms)
-    ├── TableHeader (45ms)
-    └── TableBody (847ms)
-        └── TableRow (847ms / 1000 items)
-            └── TableCell (0.8ms each)
+    ├── TableHeader (45ms) ← Only 5% of DataTable
+    └── TableBody (847ms) ← 95% of DataTable (bottleneck!)
+        └── TableRow (847ms / 1000 items = 0.847ms each)
+            └── TableCell (0.8ms each × 5 columns)
 ```
 
-**Reading the flamegraph**:
-- **Width**: Proportional to render time (wider = slower)
-- **Color**: Gray = didn't render, Yellow-Orange = rendered (darker = slower)
-- **Hierarchy**: Parent time includes all children
-- **Self time**: Time in component itself (hover to see)
+**Reading the flamegraph strategically**:
+- **Width**: Proportional to render time (wider = slower). Focus on widest bars first.
+- **Color intensity**: Gray = didn't render (skipped), Yellow = fast (<16ms), Orange = slow (16-50ms), Dark Orange/Red = very slow (>50ms)
+- **Hierarchy**: Parent time INCLUDES all children. To find actual component work, hover for "self time".
+- **Self time**: Time spent in component's own code (excluding children). High self time = optimization target.
 
-**Chrome DevTools Performance Integration**
+**Chrome DevTools Performance: The Complete Picture**
 
-React DevTools shows *what* is slow; Chrome DevTools shows *why*.
+React DevTools shows *what* is slow (which components); Chrome DevTools shows *why* (JavaScript, layout, paint).
 
-**Recording a Performance Profile**:
+**Recording a Performance Profile with React Integration**:
 
 ```javascript
-// User Timing API (automatic in React)
-// React automatically marks:
+// User Timing API (React automatically uses this)
+// React marks significant events:
 performance.mark('⚛️ App render start');
-// ... render happens ...
+// ... render phase ...
 performance.mark('⚛️ App render stop');
 performance.measure('⚛️ App render', '⚛️ App render start', '⚛️ App render stop');
+
+// You can add custom marks for your expensive operations:
+function expensiveDataTransform(data) {
+  performance.mark('data-transform-start');
+
+  const result = data
+    .filter(item => item.active)
+    .map(item => ({ ...item, computed: heavyCalculation(item) }))
+    .sort((a, b) => b.priority - a.priority);
+
+  performance.mark('data-transform-end');
+  performance.measure('data-transform', 'data-transform-start', 'data-transform-end');
+
+  return result;
+}
+
+// View in Chrome DevTools: Performance → User Timing section
 ```
 
-**Performance Timeline Layers**:
+**Performance Timeline Layers (Complete Breakdown)**:
 
-1. **Network**: Resource loading (JS bundles, API calls)
-2. **Frames**: 60fps = 16.67ms per frame (green = good, red = janky)
-3. **Main Thread**: JavaScript execution, layout, paint
-   - Task (yellow): JavaScript execution
-   - Rendering (purple): Recalculate styles, layout
-   - Painting (green): Paint, composite layers
-4. **React Lanes**: React-specific work (concurrent features)
+1. **Network**: Shows resource loading timing (HTML, JS bundles, CSS, API calls). Look for:
+   - Large bundles (>250KB gzipped) = slow load
+   - Render-blocking resources (synchronous scripts)
+   - Waterfall patterns (sequential loading instead of parallel)
 
-**Identifying Long Tasks**:
+2. **Frames**: 60fps = 16.67ms per frame. Green bars = smooth (under 16.67ms). Red bars = janky (over 16.67ms).
+   - Dropped frames = user sees stuttering
+   - Consistent red bars = performance problem
+
+3. **Main Thread** (most important for React):
+   - **Task (yellow)**: JavaScript execution (including React rendering)
+   - **Rendering (purple)**: Recalculate styles, layout (browser work after React)
+   - **Painting (green)**: Paint pixels, composite layers (GPU work)
+   - **Idle (white)**: Main thread available (good!)
+
+4. **React Lanes** (React 18+ concurrent features):
+   - Shows priority levels of React work
+   - High-priority work (user input) vs low-priority work (data fetching)
+
+**Identifying Long Tasks and Their Impact**:
 
 ```
-Main Thread Timeline:
-|----[Task 287ms]----| ← PROBLEM: Blocks main thread
-  ├── React render (123ms)
-  ├── Layout calculation (89ms)
-  └── Data transformation (75ms)
+Main Thread Timeline (Chrome DevTools):
+0ms     |----[Long Task 287ms]----| ← RED FLAG: Blocks main thread
+        ├── React render (123ms) ← React component rendering
+        ├── Layout calculation (89ms) ← Browser recalculating positions
+        └── Data transformation (75ms) ← Your business logic
 
-Frames:
-|--16ms--|--16ms--|--287ms--|--16ms--| ← Dropped frames
-   60fps    60fps    3.5fps    60fps
+Frames Timeline:
+|--16ms--|--16ms--|--287ms---------|--16ms--| ← Dropped 17 frames!
+   60fps    60fps    3.5fps (janky)  60fps
 ```
 
-**Long tasks** (>50ms) cause frame drops and unresponsive UI. Solutions:
-- Code splitting (load less JavaScript)
-- Debouncing/throttling (reduce event frequency)
-- Web Workers (offload heavy computation)
-- React Concurrent features (time slicing)
+**Long tasks** (>50ms) cause:
+- Frame drops (stuttering animations)
+- Unresponsive UI (clicks don't register)
+- Input lag (typing feels delayed)
+- Poor user experience (users think app is broken)
 
-**Why Did You Render Integration**
+**Solutions for long tasks**:
+1. **Code splitting**: Load less JavaScript upfront
+2. **Debouncing/throttling**: Reduce event handler frequency
+3. **Web Workers**: Offload heavy computation to background thread
+4. **React Concurrent features**: Time slicing (break work into chunks)
+5. **Virtualization**: Render only visible items
+6. **Memoization**: Skip unnecessary work
+
+**Why Did You Render: The Secret Weapon**
 
 ```javascript
 // Install: npm install @welldone-software/why-did-you-render
@@ -1060,28 +1130,32 @@ import whyDidYouRender from '@welldone-software/why-did-you-render';
 
 if (process.env.NODE_ENV === 'development') {
   whyDidYouRender(React, {
-    trackAllPureComponents: true,
-    trackHooks: true,
-    logOnDifferentValues: true,
-    collapseGroups: true
+    trackAllPureComponents: true,  // Track React.memo components
+    trackHooks: true,               // Track custom hooks
+    logOnDifferentValues: true,     // Show what changed
+    collapseGroups: true,          // Cleaner console output
+    include: [/Dashboard/],        // Only track specific components (optional)
+    exclude: [/^Connect/]          // Exclude Redux connect HOCs (optional)
   });
 }
 
-// Mark components to track
+// Mark specific components to track
 const Dashboard = () => { /* ... */ };
 Dashboard.whyDidYouRender = true;
 
-// Console output:
+// Console output (extremely helpful!):
 // Dashboard re-rendered because:
-//   - different objects that are equal by value:
-//     {prev onClick: ƒ} → {next onClick: ƒ}
-//   - different objects that are equal by value:
-//     {prev chartData: [...]} → {next chartData: [...]}
+//   ❌ different objects that are equal by value:
+//     prev onClick: ƒ () { ... }
+//     next onClick: ƒ () { ... }
+//   ❌ different objects that are equal by value:
+//     prev chartData: [{id: 1, ...}, {id: 2, ...}]
+//     next chartData: [{id: 1, ...}, {id: 2, ...}]
+//
+// Translation: onClick and chartData are new references (need useCallback/useMemo)
 ```
 
-**Performance Budget System**
-
-Establish budgets to prevent regressions:
+**Performance Budget System: Preventing Regressions**
 
 ```javascript
 // performance-budgets.json
@@ -1091,10 +1165,19 @@ Establish budgets to prevent regressions:
       "metric": "component-render-time",
       "component": "Dashboard",
       "budget": 200,
-      "unit": "ms"
+      "unit": "ms",
+      "severity": "error" // Fail CI if exceeded
+    },
+    {
+      "metric": "component-render-time",
+      "component": "DataTable",
+      "budget": 100,
+      "unit": "ms",
+      "severity": "warning" // Warn but don't fail
     },
     {
       "metric": "bundle-size",
+      "entry": "main",
       "budget": 250,
       "unit": "KB"
     },
@@ -1106,117 +1189,48 @@ Establish budgets to prevent regressions:
   ]
 }
 
-// Automated testing
-// tests/performance.test.js
-import { render, screen } from '@testing-library/react';
+// Automated performance testing (integrate into CI/CD)
+import { render } from '@testing-library/react';
 import { Profiler } from 'react';
 
 test('Dashboard renders within performance budget', async () => {
-  let renderTime;
+  let mountTime, updateTime;
 
   const onRender = (id, phase, actualDuration) => {
-    if (phase === 'mount') {
-      renderTime = actualDuration;
-    }
+    if (phase === 'mount') mountTime = actualDuration;
+    if (phase === 'update') updateTime = actualDuration;
   };
 
-  render(
+  const { rerender } = render(
     <Profiler id="Dashboard" onRender={onRender}>
-      <Dashboard />
+      <Dashboard data={mockData} />
     </Profiler>
   );
 
-  expect(renderTime).toBeLessThan(200); // 200ms budget
+  // Test initial render
+  expect(mountTime).toBeLessThan(200); // 200ms budget for mount
+
+  // Test update render
+  rerender(
+    <Profiler id="Dashboard" onRender={onRender}>
+      <Dashboard data={updatedMockData} />
+    </Profiler>
+  );
+
+  expect(updateTime).toBeLessThan(100); // 100ms budget for updates
 });
 ```
 
-**Advanced Profiling Techniques**
-
-**1. Interaction Tracking** (React 18+):
+**Advanced Profiling: Code Splitting Analysis**:
 
 ```javascript
-import { unstable_trace as trace } from 'scheduler/tracing';
-
-function handleClick() {
-  trace('Button Click', performance.now(), () => {
-    // This interaction will be tracked in Profiler
-    setState(newState);
-  });
-}
-```
-
-**2. Custom Performance Marks**:
-
-```javascript
-function ExpensiveComponent() {
-  performance.mark('expensive-start');
-
-  // Expensive operation
-  const result = heavyCalculation();
-
-  performance.mark('expensive-end');
-  performance.measure(
-    'expensive-operation',
-    'expensive-start',
-    'expensive-end'
-  );
-
-  // View in Chrome DevTools Performance → User Timing
-
-  return <div>{result}</div>;
-}
-```
-
-**3. Real User Monitoring (RUM)**:
-
-```javascript
-// Send profiler data to analytics
-function onRenderCallback(id, phase, actualDuration) {
-  if (actualDuration > 100) { // Only log slow renders
-    analytics.track('slow-render', {
-      componentId: id,
-      phase,
-      duration: actualDuration,
-      url: window.location.pathname,
-      userAgent: navigator.userAgent
-    });
-  }
-}
-```
-
-**Bundle Analysis**
-
-Large bundles = slow load times.
-
-```bash
-# webpack-bundle-analyzer
-npm install --save-dev webpack-bundle-analyzer
-
-# Add to webpack.config.js
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-
-module.exports = {
-  plugins: [
-    new BundleAnalyzerPlugin()
-  ]
-};
-
-# Output shows:
-# - Largest dependencies (moment.js = 250KB? Replace with date-fns)
-# - Duplicate packages (two versions of lodash?)
-# - Unused code (tree-shaking opportunities)
-```
-
-**Code Splitting Strategies**:
-
-```javascript
-// Route-based splitting
+// Route-based splitting (lazy load entire routes)
 const Dashboard = lazy(() => import('./Dashboard'));
 const Settings = lazy(() => import('./Settings'));
 
 function App() {
   return (
-    <Suspense fallback={<Spinner />}>
+    <Suspense fallback={<PageSpinner />}>
       <Routes>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/settings" element={<Settings />} />
@@ -1225,7 +1239,7 @@ function App() {
   );
 }
 
-// Component-based splitting (load heavy components on demand)
+// Component-based splitting (lazy load heavy components)
 const HeavyChart = lazy(() => import('./HeavyChart'));
 
 function Dashboard() {
@@ -1242,6 +1256,11 @@ function Dashboard() {
     </div>
   );
 }
+
+// Measure code splitting impact:
+// Before: main.js = 850KB, Time to Interactive = 6.2s
+// After: main.js = 120KB, dashboard.chunk.js = 450KB, chart.chunk.js = 280KB
+// Time to Interactive = 1.8s (71% improvement)
 ```
 
 ---
