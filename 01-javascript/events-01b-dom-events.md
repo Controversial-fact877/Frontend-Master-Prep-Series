@@ -1,668 +1,709 @@
-# DOM Events - Part 2 (Advanced Topics)
+# DOM Events - Complete Guide
 
-## Question 5: What's the difference between addEventListener and onclick, and which should you use?
+## Question 1: What's the difference between preventDefault() and stopPropagation()?
 
 **Answer:**
 
-`addEventListener` and `onclick` are both ways to attach event handlers, but they have important differences in functionality, flexibility, and best practices.
+`preventDefault()` and `stopPropagation()` are two different methods that control different aspects of event behavior:
 
-**Key Differences:**
+**preventDefault():**
+- Prevents the browser's default action for an event
+- Does NOT stop event propagation
+- Example: Prevents form submission, link navigation, context menu
+
+**stopPropagation():**
+- Stops the event from bubbling/capturing further
+- Does NOT prevent default browser behavior
+- Example: Prevents parent handlers from firing
 
 ```javascript
-const button = document.querySelector('button');
-
-// Method 1: onclick property
-button.onclick = function() {
-  console.log('Clicked with onclick');
-};
-
-// Problem: Overwrites previous handler
-button.onclick = function() {
-  console.log('This replaces the first handler!');
-};
-// Only the second handler runs
-
-// Method 2: addEventListener
-button.addEventListener('click', () => {
-  console.log('First handler');
+// preventDefault() - Stop default action
+const form = document.querySelector('form');
+form.addEventListener('submit', (e) => {
+  e.preventDefault(); // Prevents form submission
+  // Event still bubbles to parent elements
+  console.log('Form not submitted, but event bubbles');
 });
 
-button.addEventListener('click', () => {
-  console.log('Second handler');
+// stopPropagation() - Stop event propagation
+const link = document.querySelector('a');
+link.addEventListener('click', (e) => {
+  e.stopPropagation(); // Stops bubbling
+  // But link still navigates (default action)
+  console.log('Link navigates, but parent handlers don\'t fire');
 });
-// Both handlers run!
+
+// Both together
+link.addEventListener('click', (e) => {
+  e.preventDefault();     // Don't navigate
+  e.stopPropagation();    // Don't bubble
+  // Complete control over event
+});
 ```
-
-**Feature Comparison:**
-
-| Feature | onclick | addEventListener |
-|---------|---------|------------------|
-| **Multiple handlers** | ❌ No (last one wins) | ✅ Yes |
-| **Remove handler** | Set to null | `removeEventListener()` |
-| **Capture phase** | ❌ No | ✅ Yes (`{ capture: true }`) |
-| **Event options** | ❌ No | ✅ Yes (`once`, `passive`, `signal`) |
-| **Memory leaks** | Easier | Requires careful cleanup |
-| **HTML attributes** | ✅ Yes (`<button onclick="...">`) | ❌ No |
-| **Best practice** | ❌ Avoid | ✅ Recommended |
 
 **Real-World Examples:**
 
 ```javascript
-// Example 1: Multiple analytics trackers
-const button = document.getElementById('checkout-btn');
+// Example 1: Custom form validation
+class FormValidator {
+  constructor(form) {
+    this.form = form;
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault(); // Prevent default submission
 
-// With onclick - PROBLEM
-button.onclick = () => {
-  trackGoogleAnalytics('checkout_click');
-};
+      if (this.validate()) {
+        // Submit via AJAX instead
+        this.submitAjax();
+      }
+      // Event still bubbles for analytics tracking
+    });
+  }
 
-button.onclick = () => {
-  trackMixpanel('checkout_click'); // This replaces Google Analytics!
-};
-// Only Mixpanel tracks
+  validate() {
+    const inputs = this.form.querySelectorAll('input[required]');
+    return Array.from(inputs).every(input => input.value.trim() !== '');
+  }
 
-// With addEventListener - SOLUTION
-button.addEventListener('click', () => {
-  trackGoogleAnalytics('checkout_click');
-});
-
-button.addEventListener('click', () => {
-  trackMixpanel('checkout_click');
-});
-// Both track successfully!
-
-// Example 2: Event options
-button.addEventListener('click', handleClick, {
-  once: true,      // Auto-remove after first trigger
-  passive: true,   // Improves scroll performance
-  capture: true,   // Use capture phase
-  signal: abortController.signal // Abort listener
-});
-
-// Example 3: Removing handlers
-function handleClick() {
-  console.log('Clicked');
+  submitAjax() {
+    const formData = new FormData(this.form);
+    fetch('/api/submit', {
+      method: 'POST',
+      body: formData
+    });
+  }
 }
 
-// With onclick
-button.onclick = handleClick;
-button.onclick = null; // Remove
+// Example 2: Dropdown menu that shouldn't close parent
+class Dropdown {
+  constructor(element) {
+    this.element = element;
+    this.button = element.querySelector('.dropdown-button');
+    this.menu = element.querySelector('.dropdown-menu');
 
-// With addEventListener
-button.addEventListener('click', handleClick);
-button.removeEventListener('click', handleClick); // Must be same function reference
+    this.button.addEventListener('click', (e) => {
+      e.stopPropagation(); // Don't trigger document click handler
+      this.toggle();
+    });
 
-// Example 4: Anonymous functions (can't remove with removeEventListener)
-button.addEventListener('click', () => {
-  console.log('Cannot remove this!');
-});
-// No way to remove - must use named function
-```
+    this.menu.addEventListener('click', (e) => {
+      e.stopPropagation(); // Clicking menu items doesn't close dropdown
+    });
 
-**Advanced addEventListener Options:**
+    // Close on outside click
+    document.addEventListener('click', () => {
+      this.close();
+    });
+  }
 
-```javascript
-// once: true - Auto-remove after one execution
-button.addEventListener('click', () => {
-  console.log('Runs only once');
-}, { once: true });
+  toggle() {
+    this.menu.classList.toggle('open');
+  }
 
-// Equivalent to:
-function handler() {
-  console.log('Runs only once');
-  button.removeEventListener('click', handler);
+  close() {
+    this.menu.classList.remove('open');
+  }
 }
-button.addEventListener('click', handler);
 
-// passive: true - Indicates handler won't call preventDefault()
-// Improves scroll performance
-scrollableElement.addEventListener('touchstart', (e) => {
-  // Cannot call e.preventDefault() here
-  console.log('Touch started');
-}, { passive: true });
-
-// signal - Use AbortController to remove multiple listeners
-const controller = new AbortController();
-
-button.addEventListener('click', handler1, { signal: controller.signal });
-button.addEventListener('mouseover', handler2, { signal: controller.signal });
-button.addEventListener('focus', handler3, { signal: controller.signal });
-
-// Remove all listeners at once
-controller.abort();
-```
-
----
-
-### 🔍 Deep Dive: Event Handler Registration Internals
-
-**Browser Implementation of onclick vs addEventListener:**
-
-```javascript
-// Simplified browser implementation
-class HTMLElementEventHandlers {
+// Example 3: Custom right-click menu
+class ContextMenu {
   constructor() {
-    // onclick is a property
-    this._onclick = null;
+    this.menu = document.getElementById('context-menu');
 
-    // addEventListener uses an internal list
-    this._eventListeners = new Map();
-    // Map structure: { 'click': Set([handler1, handler2, ...]) }
-  }
-
-  // onclick setter
-  set onclick(handler) {
-    // Remove old handler from event system
-    if (this._onclick) {
-      this.removeEventListener('click', this._onclick);
-    }
-
-    this._onclick = handler;
-
-    // Add to event system if not null
-    if (handler) {
-      this.addEventListener('click', handler);
-    }
-  }
-
-  get onclick() {
-    return this._onclick;
-  }
-
-  // addEventListener implementation
-  addEventListener(type, listener, options = {}) {
-    if (!this._eventListeners.has(type)) {
-      this._eventListeners.set(type, new Set());
-    }
-
-    const listeners = this._eventListeners.get(type);
-
-    // Check for duplicates
-    if (!listeners.has(listener)) {
-      listeners.add(listener);
-
-      // Store options with listener
-      listener._options = options;
-    }
-  }
-
-  removeEventListener(type, listener) {
-    const listeners = this._eventListeners.get(type);
-    if (listeners) {
-      listeners.delete(listener);
-    }
-  }
-
-  // Event dispatch
-  dispatchEvent(event) {
-    const listeners = this._eventListeners.get(event.type);
-
-    if (!listeners) return;
-
-    for (const listener of listeners) {
-      const options = listener._options || {};
-
-      // Check capture phase
-      if (options.capture && event.eventPhase !== Event.CAPTURING_PHASE) {
-        continue;
-      }
-
-      // Call handler
-      listener.call(this, event);
-
-      // Remove if once
-      if (options.once) {
-        this.removeEventListener(event.type, listener);
-      }
-
-      // Stop if immediate propagation stopped
-      if (event._immediatePropagationStopped) {
-        break;
-      }
-    }
-  }
-}
-```
-
-**Performance Comparison:**
-
-```javascript
-class EventHandlerPerformance {
-  static benchmarkRegistration(iterations = 10000) {
-    const results = {};
-
-    // Test 1: onclick assignment
-    const button1 = document.createElement('button');
-    let start = performance.now();
-    for (let i = 0; i < iterations; i++) {
-      button1.onclick = function() {};
-    }
-    results.onclickAssignment = performance.now() - start;
-
-    // Test 2: addEventListener
-    const button2 = document.createElement('button');
-    const handlers = Array.from({ length: iterations }, () => function() {});
-    start = performance.now();
-    for (const handler of handlers) {
-      button2.addEventListener('click', handler);
-    }
-    results.addEventListener = performance.now() - start;
-
-    // Test 3: addEventListener with options
-    const button3 = document.createElement('button');
-    start = performance.now();
-    for (const handler of handlers) {
-      button3.addEventListener('click', handler, {
-        once: true,
-        passive: true,
-        capture: false
-      });
-    }
-    results.addEventListenerWithOptions = performance.now() - start;
-
-    return results;
-    // Typical results (10k iterations):
-    // onclickAssignment: 2ms (fastest, but only one handler)
-    // addEventListener: 45ms
-    // addEventListenerWithOptions: 52ms (slight overhead for options)
-  }
-
-  static benchmarkRemoval(iterations = 1000) {
-    const results = {};
-
-    // Test 1: onclick removal
-    const button1 = document.createElement('button');
-    for (let i = 0; i < iterations; i++) {
-      button1.onclick = function() {};
-    }
-
-    let start = performance.now();
-    for (let i = 0; i < iterations; i++) {
-      button1.onclick = null;
-    }
-    results.onclickRemoval = performance.now() - start;
-
-    // Test 2: removeEventListener
-    const button2 = document.createElement('button');
-    const handlers = Array.from({ length: iterations }, () => function() {});
-
-    for (const handler of handlers) {
-      button2.addEventListener('click', handler);
-    }
-
-    start = performance.now();
-    for (const handler of handlers) {
-      button2.removeEventListener('click', handler);
-    }
-    results.removeEventListener = performance.now() - start;
-
-    return results;
-    // Typical results (1k iterations):
-    // onclickRemoval: 0.5ms
-    // removeEventListener: 8ms (must search listener list)
-  }
-}
-```
-
-**Memory Implications:**
-
-```javascript
-class EventHandlerMemoryProfiler {
-  static measureMemoryUsage() {
-    if (!performance.memory) {
-      return 'Memory API not available (Chrome only)';
-    }
-
-    const results = [];
-    const initialHeap = performance.memory.usedJSHeapSize;
-
-    // Test 1: onclick on 1000 elements
-    const onclickElements = [];
-    for (let i = 0; i < 1000; i++) {
-      const btn = document.createElement('button');
-      btn.onclick = function() { console.log('Click'); };
-      onclickElements.push(btn);
-    }
-
-    results.push({
-      method: 'onclick',
-      elements: 1000,
-      heapIncrease: performance.memory.usedJSHeapSize - initialHeap
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // Prevent browser context menu
+      this.show(e.pageX, e.pageY);
     });
 
-    // Clean up
-    onclickElements.length = 0;
-
-    // Force GC (Chrome with --expose-gc)
-    if (global.gc) global.gc();
-
-    const afterCleanup = performance.memory.usedJSHeapSize;
-
-    // Test 2: addEventListener on 1000 elements (3 listeners each)
-    const addListenerElements = [];
-    for (let i = 0; i < 1000; i++) {
-      const btn = document.createElement('button');
-      btn.addEventListener('click', () => console.log('Handler 1'));
-      btn.addEventListener('click', () => console.log('Handler 2'));
-      btn.addEventListener('click', () => console.log('Handler 3'));
-      addListenerElements.push(btn);
-    }
-
-    results.push({
-      method: 'addEventListener (3 each)',
-      elements: 1000,
-      heapIncrease: performance.memory.usedJSHeapSize - afterCleanup
+    document.addEventListener('click', () => {
+      this.hide(); // Hide on any click
     });
 
-    return results;
-    // Typical results:
-    // onclick: ~50KB for 1000 elements
-    // addEventListener (3 each): ~180KB for 1000 elements
-    // Trade-off: flexibility vs memory
+    this.menu.addEventListener('click', (e) => {
+      e.stopPropagation(); // Menu clicks don't trigger document click
+    });
+  }
+
+  show(x, y) {
+    this.menu.style.left = x + 'px';
+    this.menu.style.top = y + 'px';
+    this.menu.classList.add('visible');
+  }
+
+  hide() {
+    this.menu.classList.remove('visible');
   }
 }
 ```
+
+**stopImmediatePropagation():**
+
+```javascript
+// stopImmediatePropagation() - Stops ALL handlers, even on same element
+const button = document.querySelector('button');
+
+button.addEventListener('click', (e) => {
+  console.log('Handler 1');
+  e.stopImmediatePropagation(); // Stops everything after this
+});
+
+button.addEventListener('click', (e) => {
+  console.log('Handler 2'); // Never executes
+});
+
+document.body.addEventListener('click', (e) => {
+  console.log('Parent handler'); // Never executes
+});
+
+// Click output: "Handler 1" only
+```
+
+**Comparison Table:**
+
+| Method | Stops Propagation | Prevents Default | Stops Other Handlers on Same Element |
+|--------|-------------------|------------------|--------------------------------------|
+| `preventDefault()` | ❌ No | ✅ Yes | ❌ No |
+| `stopPropagation()` | ✅ Yes | ❌ No | ❌ No |
+| `stopImmediatePropagation()` | ✅ Yes | ❌ No | ✅ Yes |
+| Both `preventDefault()` + `stopPropagation()` | ✅ Yes | ✅ Yes | ❌ No |
 
 ---
 
-### 🐛 Real-World Scenario: Memory Leak in SPA Navigation
+<details>
+<summary><strong>🔍 Deep Dive: Browser Event Cancellation Mechanism</strong></summary>
+
+
+**How preventDefault() Works Internally:**
+
+```javascript
+// Browser's internal event implementation
+class BrowserEvent {
+  constructor(type, options = {}) {
+    this.type = type;
+    this.defaultPrevented = false;
+    this.cancelable = options.cancelable !== false;
+    this.bubbles = options.bubbles !== false;
+    this.propagationStopped = false;
+    this.immediatePropagationStopped = false;
+  }
+
+  preventDefault() {
+    if (this.cancelable) {
+      this.defaultPrevented = true;
+    } else {
+      console.warn(`Event '${this.type}' is not cancelable`);
+    }
+  }
+
+  stopPropagation() {
+    this.propagationStopped = true;
+  }
+
+  stopImmediatePropagation() {
+    this.propagationStopped = true;
+    this.immediatePropagationStopped = true;
+  }
+
+  // Check if default can be prevented
+  get cancelable() {
+    return this._cancelable;
+  }
+}
+
+// Browser checks defaultPrevented before executing default action
+class BrowserEventDispatcher {
+  dispatchClickEvent(element) {
+    const event = new BrowserEvent('click', { cancelable: true });
+
+    // Execute all handlers
+    this.executeHandlers(element, event);
+
+    // Check if default action should execute
+    if (!event.defaultPrevented) {
+      this.executeDefaultAction(element, event);
+    }
+  }
+
+  executeDefaultAction(element, event) {
+    if (element.tagName === 'A') {
+      // Navigate to href
+      window.location.href = element.href;
+    } else if (element.tagName === 'FORM' && event.type === 'submit') {
+      // Submit form
+      element.submit();
+    }
+    // ... other default actions
+  }
+}
+```
+
+**Cancelable vs Non-Cancelable Events:**
+
+```javascript
+class EventCancelability {
+  static checkCancelable(eventType) {
+    const cancelableEvents = [
+      'click', 'mousedown', 'keydown', 'submit',
+      'contextmenu', 'wheel', 'touchstart', 'dragstart'
+    ];
+
+    const nonCancelableEvents = [
+      'load', 'unload', 'abort', 'error',
+      'focus', 'blur', 'resize', 'scroll' // These can't be prevented
+    ];
+
+    return {
+      cancelable: cancelableEvents.includes(eventType),
+      nonCancelable: nonCancelableEvents.includes(eventType)
+    };
+  }
+
+  static testCancelability() {
+    // Try preventing non-cancelable event
+    window.addEventListener('load', (e) => {
+      e.preventDefault(); // Does nothing!
+      console.log('Default prevented:', e.defaultPrevented); // false
+      console.log('Cancelable:', e.cancelable); // false
+    });
+
+    // Prevent cancelable event
+    document.addEventListener('click', (e) => {
+      e.preventDefault(); // Works!
+      console.log('Default prevented:', e.defaultPrevented); // true
+      console.log('Cancelable:', e.cancelable); // true
+    });
+  }
+}
+```
+
+**Propagation Flow with stopPropagation:**
+
+```javascript
+class PropagationFlowVisualizer {
+  static demonstrateFlow() {
+    const structure = `
+      <div id="grandparent">
+        <div id="parent">
+          <button id="child">Click Me</button>
+        </div>
+      </div>
+    `;
+
+    const logs = [];
+
+    // Setup listeners
+    grandparent.addEventListener('click', (e) => {
+      logs.push('Grandparent - Capture');
+    }, true);
+
+    parent.addEventListener('click', (e) => {
+      logs.push('Parent - Capture');
+      // e.stopPropagation(); // Uncomment to see effect
+    }, true);
+
+    child.addEventListener('click', (e) => {
+      logs.push('Child - Target');
+      e.stopPropagation(); // Stop here
+    });
+
+    parent.addEventListener('click', (e) => {
+      logs.push('Parent - Bubble'); // Never reaches here
+    });
+
+    grandparent.addEventListener('click', (e) => {
+      logs.push('Grandparent - Bubble'); // Never reaches here
+    });
+
+    // Click child
+    child.click();
+
+    console.log(logs);
+    // ['Grandparent - Capture', 'Parent - Capture', 'Child - Target']
+    // Bubble phase never executes
+  }
+}
+```
+
+**Performance Impact of Propagation Stopping:**
+
+```javascript
+class PropagationPerformance {
+  static benchmark() {
+    const container = document.createElement('div');
+
+    // Create deep nesting
+    let current = container;
+    for (let i = 0; i < 100; i++) {
+      const div = document.createElement('div');
+      current.appendChild(div);
+      current = div;
+    }
+    const deepButton = current;
+
+    // Test 1: Full propagation (no stopPropagation)
+    let handlerCount = 0;
+    current = container;
+    while (current) {
+      current.addEventListener('click', () => handlerCount++);
+      current = current.firstChild;
+    }
+
+    const start1 = performance.now();
+    for (let i = 0; i < 1000; i++) {
+      handlerCount = 0;
+      deepButton.click();
+    }
+    const fullPropTime = performance.now() - start1;
+    console.log('Full propagation:', fullPropTime, 'ms');
+    console.log('Handlers executed per click:', handlerCount / 1000);
+
+    // Test 2: Stop propagation at target
+    container.innerHTML = '';
+    current = container;
+    for (let i = 0; i < 100; i++) {
+      const div = document.createElement('div');
+      current.appendChild(div);
+      current = div;
+    }
+    const deepButton2 = current;
+
+    handlerCount = 0;
+    current = container;
+    while (current) {
+      if (current === deepButton2) {
+        current.addEventListener('click', (e) => {
+          handlerCount++;
+          e.stopPropagation();
+        });
+      } else {
+        current.addEventListener('click', () => handlerCount++);
+      }
+      current = current.firstChild;
+    }
+
+    const start2 = performance.now();
+    for (let i = 0; i < 1000; i++) {
+      handlerCount = 0;
+      deepButton2.click();
+    }
+    const stoppedPropTime = performance.now() - start2;
+    console.log('Stopped propagation:', stoppedPropTime, 'ms');
+    console.log('Handlers executed per click:', handlerCount / 1000);
+
+    return {
+      fullPropagation: fullPropTime,
+      stoppedPropagation: stoppedPropTime,
+      speedup: ((fullPropTime / stoppedPropTime - 1) * 100).toFixed(1) + '%'
+    };
+    // Typical: 40-60% faster with stopped propagation
+  }
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Modal Form with Nested Click Handlers</strong></summary>
+
 
 **The Problem:**
 
-A single-page application (SPA) had severe memory leaks causing browser crashes after users navigated between views multiple times. The issue was caused by improper event listener cleanup.
+An e-commerce checkout modal had a bug where clicking form fields would close the modal. The issue stemmed from improper use of stopPropagation and preventDefault.
 
 **Initial Metrics:**
-- Memory growth: 50MB per view navigation
-- Browser crashes: After 8-10 navigations (400MB+ memory)
-- User complaints: "App gets slower over time"
-- Bounce rate: 34% (users closing tab)
-- Performance degradation: 300% slower after 5 navigations
+- Cart abandonment rate: 34% (industry average: 18%)
+- User complaints: 156 in one week
+- Mobile completion rate: 23% (desktop: 67%)
+- Support tickets: "Form keeps closing when I try to fill it"
 
 **Buggy Implementation:**
 
 ```javascript
-// ❌ WRONG: Event listeners never removed
-class BuggyView {
-  constructor(data) {
-    this.data = data;
-    this.container = document.getElementById('view-container');
+// ❌ WRONG: Misused stopPropagation and preventDefault
+class BuggyCheckoutModal {
+  constructor() {
+    this.modal = document.getElementById('checkout-modal');
+    this.form = this.modal.querySelector('form');
+    this.overlay = document.querySelector('.modal-overlay');
+
+    this.init();
   }
 
-  render() {
-    this.container.innerHTML = `
-      <div class="view">
-        <button class="action-btn">Click Me</button>
-        <div class="data-list"></div>
-      </div>
-    `;
-
-    // BUG 1: onclick prevents multiple handlers but leaks memory
-    const button = this.container.querySelector('.action-btn');
-    button.onclick = () => {
-      this.handleAction(); // 'this' keeps entire view in memory
-    };
-
-    // BUG 2: Anonymous addEventListener can't be removed
-    button.addEventListener('click', () => {
-      this.trackClick(); // Another memory leak
+  init() {
+    // Close modal on overlay click
+    this.overlay.addEventListener('click', (e) => {
+      e.preventDefault(); // BUG: Prevents link clicks in modal!
+      this.close();
     });
 
-    // BUG 3: Document-level listeners never cleaned up
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.close(); // View stays in memory forever
-      }
+    // Handle form submission
+    this.form.addEventListener('submit', (e) => {
+      e.stopPropagation(); // BUG: Stops event, but doesn't prevent submission
+      // Form still submits because preventDefault() not called!
+      this.processPayment();
     });
 
-    // BUG 4: Interval/timer with reference to view
-    this.updateInterval = setInterval(() => {
-      this.updateData(); // Prevents garbage collection
-    }, 1000);
+    // Close button
+    this.modal.querySelector('.close-btn').addEventListener('click', (e) => {
+      // BUG: No stopPropagation - triggers overlay click handler too!
+      this.close();
+    });
 
-    this.renderData();
-  }
-
-  handleAction() {
-    console.log('Action triggered');
-  }
-
-  trackClick() {
-    console.log('Click tracked');
+    // Form field focus
+    this.form.querySelectorAll('input').forEach(input => {
+      input.addEventListener('focus', (e) => {
+        e.stopPropagation(); // Useless - focus doesn't bubble
+      });
+    });
   }
 
   close() {
-    // BUG: No cleanup before removing view
-    this.container.innerHTML = ''; // Removes DOM but listeners remain!
+    this.modal.style.display = 'none';
   }
 
-  updateData() {
-    console.log('Updating data...');
-  }
-
-  renderData() {
-    const list = this.container.querySelector('.data-list');
-    list.innerHTML = this.data.map(item => `<div>${item}</div>`).join('');
-  }
-
-  destroy() {
-    // BUG: Incomplete cleanup
-    this.container.innerHTML = '';
-    // Forgot to:
-    // - Remove document listeners
-    // - Clear intervals
-    // - Remove event handlers
+  processPayment() {
+    console.log('Processing payment...');
   }
 }
 
-// Simulating SPA navigation
-function navigate(viewData) {
-  const view = new BuggyView(viewData);
-  view.render();
-}
-
-// Each navigation leaks memory
-for (let i = 0; i < 10; i++) {
-  navigate([{ id: i, name: `Item ${i}` }]);
-}
-// After 10 navigations: ~500MB memory leaked!
+// What goes wrong:
+// 1. Clicking "Terms of Service" link in modal doesn't work (preventDefault on overlay)
+// 2. Form submits page reload (missing preventDefault)
+// 3. Close button closes modal twice (no stopPropagation, triggers both handlers)
+// 4. stopPropagation on focus does nothing (focus doesn't bubble)
 ```
 
 **Debugging Process:**
 
 ```javascript
-class MemoryLeakDetector {
-  static detectListenerLeaks() {
-    const getListenerCount = () => {
-      // Chrome DevTools method
-      const listeners = getEventListeners(document);
-      return Object.keys(listeners).reduce((total, type) => {
-        return total + listeners[type].length;
-      }, 0);
+class EventDebugger {
+  static trackEventFlow(selector) {
+    const element = document.querySelector(selector);
+    const originalPreventDefault = Event.prototype.preventDefault;
+    const originalStopPropagation = Event.prototype.stopPropagation;
+
+    Event.prototype.preventDefault = function() {
+      console.log('preventDefault called:', {
+        type: this.type,
+        target: this.target,
+        cancelable: this.cancelable,
+        stackTrace: new Error().stack
+      });
+      originalPreventDefault.call(this);
     };
 
-    console.log('Initial listeners:', getListenerCount());
-
-    // Navigate 5 times
-    for (let i = 0; i < 5; i++) {
-      navigate([{ id: i }]);
-      console.log(`After navigation ${i + 1}:`, getListenerCount());
-    }
-
-    // Expected: Listener count should stay constant
-    // Actual: Listener count keeps growing!
-    // Output:
-    // Initial listeners: 5
-    // After navigation 1: 8
-    // After navigation 2: 11
-    // After navigation 3: 14
-    // After navigation 4: 17
-    // After navigation 5: 20 (Memory leak confirmed!)
+    Event.prototype.stopPropagation = function() {
+      console.log('stopPropagation called:', {
+        type: this.type,
+        target: this.target,
+        bubbles: this.bubbles,
+        stackTrace: new Error().stack
+      });
+      originalStopPropagation.call(this);
+    };
   }
 
-  static profileMemoryGrowth() {
-    if (!performance.memory) return;
+  static logEventPhases(root) {
+    const phases = { capture: [], bubble: [] };
 
-    const measurements = [];
-
-    measurements.push({
-      navigation: 0,
-      heapSize: performance.memory.usedJSHeapSize / 1024 / 1024
-    });
-
-    for (let i = 1; i <= 10; i++) {
-      navigate([{ id: i }]);
-
-      // Force layout
-      document.body.offsetHeight;
-
-      measurements.push({
-        navigation: i,
-        heapSize: performance.memory.usedJSHeapSize / 1024 / 1024
-      });
+    function addLogger(el, phase) {
+      el.addEventListener('click', (e) => {
+        phases[phase].push({
+          element: el.tagName + (el.className ? '.' + el.className : ''),
+          defaultPrevented: e.defaultPrevented,
+          propagationStopped: e.cancelBubble,
+          timestamp: performance.now()
+        });
+      }, phase === 'capture');
     }
 
-    console.table(measurements);
-    // Shows steady memory growth: 45MB → 480MB
+    let current = root;
+    while (current) {
+      addLogger(current, 'capture');
+      addLogger(current, 'bubble');
+      current = current.parentElement;
+    }
+
+    return phases;
   }
 }
+
+// Debug output revealed:
+// 1. preventDefault() called on overlay, preventing ALL child link clicks
+// 2. stopPropagation() called on form submit (useless without preventDefault)
+// 3. Close button click event reached overlay (caused double close attempt)
 ```
 
 **Fixed Implementation:**
 
 ```javascript
-// ✅ CORRECT: Proper lifecycle management and cleanup
-class FixedView {
-  constructor(data) {
-    this.data = data;
-    this.container = document.getElementById('view-container');
+// ✅ CORRECT: Proper use of both methods
+class FixedCheckoutModal {
+  constructor() {
+    this.modal = document.getElementById('checkout-modal');
+    this.form = this.modal.querySelector('form');
+    this.overlay = document.querySelector('.modal-overlay');
+    this.modalContent = this.modal.querySelector('.modal-content');
 
-    // Store handler references for cleanup
-    this.handlers = {
-      action: this.handleAction.bind(this),
-      trackClick: this.trackClick.bind(this),
-      keydown: this.handleKeydown.bind(this)
-    };
-
-    this.updateInterval = null;
-    this.destroyed = false;
+    this.init();
   }
 
-  render() {
-    // Clear previous content and listeners
-    this.cleanup();
-
-    this.container.innerHTML = `
-      <div class="view">
-        <button class="action-btn">Click Me</button>
-        <div class="data-list"></div>
-      </div>
-    `;
-
-    const button = this.container.querySelector('.action-btn');
-
-    // Use addEventListener with named functions
-    button.addEventListener('click', this.handlers.action);
-    button.addEventListener('click', this.handlers.trackClick);
-
-    // Store document listener for cleanup
-    document.addEventListener('keydown', this.handlers.keydown);
-
-    // Use AbortController for automatic cleanup (modern approach)
-    this.abortController = new AbortController();
-    const { signal } = this.abortController;
-
-    button.addEventListener('mouseenter', () => {
-      console.log('Hover');
-    }, { signal });
-
-    // Set interval with proper cleanup
-    this.updateInterval = setInterval(() => {
-      if (!this.destroyed) {
-        this.updateData();
+  init() {
+    // Close on overlay click, but not modal content
+    this.overlay.addEventListener('click', (e) => {
+      // Only close if clicking directly on overlay
+      if (e.target === this.overlay) {
+        this.close();
       }
-    }, 1000);
+      // No preventDefault - allow links to work
+      // No stopPropagation - allow event delegation
+    });
 
-    this.renderData();
-  }
+    // Alternative: Stop propagation from modal content
+    this.modalContent.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent overlay click handler
+      // No preventDefault - allow buttons, links, etc.
+    });
 
-  handleAction(e) {
-    console.log('Action triggered');
-  }
+    // Handle form submission
+    this.form.addEventListener('submit', (e) => {
+      e.preventDefault(); // Prevent page reload
+      // No stopPropagation needed - we want analytics to track this
+      this.processPayment();
+    });
 
-  trackClick(e) {
-    console.log('Click tracked');
-  }
+    // Close button
+    this.modal.querySelector('.close-btn').addEventListener('click', (e) => {
+      e.stopPropagation(); // Don't trigger overlay handler
+      // No preventDefault needed - button has no default action
+      this.close();
+    });
 
-  handleKeydown(e) {
-    if (e.key === 'Escape') {
-      this.destroy();
-    }
-  }
+    // Terms link should work normally
+    const termsLink = this.modal.querySelector('.terms-link');
+    termsLink.addEventListener('click', (e) => {
+      // Let default action happen (open link)
+      // Event still bubbles for analytics
+    });
 
-  updateData() {
-    if (this.destroyed) return;
-    console.log('Updating data...');
-  }
-
-  renderData() {
-    const list = this.container.querySelector('.data-list');
-    list.innerHTML = this.data.map(item => `<div>${item.name}</div>`).join('');
-  }
-
-  cleanup() {
-    // Remove all event listeners
-    const button = this.container.querySelector('.action-btn');
-    if (button) {
-      button.removeEventListener('click', this.handlers.action);
-      button.removeEventListener('click', this.handlers.trackClick);
-    }
-
-    // Remove document listeners
-    document.removeEventListener('keydown', this.handlers.keydown);
-
-    // Abort all listeners registered with signal
-    if (this.abortController) {
-      this.abortController.abort();
-    }
-
-    // Clear intervals/timeouts
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
-  }
-
-  destroy() {
-    if (this.destroyed) return;
-
-    this.destroyed = true;
-    this.cleanup();
-    this.container.innerHTML = '';
-
-    // Clear references
-    this.data = null;
-    this.handlers = null;
-  }
-}
-
-// Modern pattern: Using WeakRef and FinalizationRegistry
-class ModernView {
-  static #registry = new FinalizationRegistry((cleanupData) => {
-    // Cleanup when view is garbage collected
-    console.log('View garbage collected, cleaning up:', cleanupData);
-  });
-
-  constructor(data) {
-    this.data = data;
-
-    // Register for cleanup
-    ModernView.#registry.register(this, {
-      viewId: Date.now(),
-      timestamp: new Date().toISOString()
+    // Keyboard: Escape to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.isOpen()) {
+        // No preventDefault - allow other Escape handlers
+        // No stopPropagation - allow global keyboard shortcuts
+        this.close();
+      }
     });
   }
 
-  // ... rest of implementation
+  isOpen() {
+    return this.modal.style.display !== 'none';
+  }
+
+  close() {
+    this.modal.style.display = 'none';
+  }
+
+  processPayment() {
+    const formData = new FormData(this.form);
+
+    fetch('/api/checkout', {
+      method: 'POST',
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        this.showSuccess();
+      }
+    });
+  }
+
+  showSuccess() {
+    alert('Payment successful!');
+    this.close();
+  }
+}
+```
+
+**Testing Strategy:**
+
+```javascript
+class ModalEventTester {
+  static runTests() {
+    const modal = new FixedCheckoutModal();
+    const tests = [];
+
+    // Test 1: Click overlay directly
+    tests.push({
+      name: 'Overlay click closes modal',
+      run: () => {
+        modal.open();
+        document.querySelector('.modal-overlay').click();
+        return modal.isOpen() === false;
+      }
+    });
+
+    // Test 2: Click inside modal content
+    tests.push({
+      name: 'Content click doesn\'t close modal',
+      run: () => {
+        modal.open();
+        document.querySelector('.modal-content').click();
+        return modal.isOpen() === true;
+      }
+    });
+
+    // Test 3: Submit form
+    tests.push({
+      name: 'Form submit prevents reload',
+      run: () => {
+        let reloaded = false;
+        const originalSubmit = HTMLFormElement.prototype.submit;
+        HTMLFormElement.prototype.submit = () => { reloaded = true; };
+
+        modal.form.dispatchEvent(new Event('submit'));
+
+        HTMLFormElement.prototype.submit = originalSubmit;
+        return !reloaded;
+      }
+    });
+
+    // Test 4: Links work
+    tests.push({
+      name: 'Links inside modal work',
+      run: () => {
+        const link = document.querySelector('.modal .terms-link');
+        const event = new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true
+        });
+
+        link.dispatchEvent(event);
+        return !event.defaultPrevented;
+      }
+    });
+
+    // Test 5: Close button
+    tests.push({
+      name: 'Close button closes modal',
+      run: () => {
+        modal.open();
+        document.querySelector('.close-btn').click();
+        return modal.isOpen() === false;
+      }
+    });
+
+    // Run all tests
+    const results = tests.map(test => ({
+      name: test.name,
+      passed: test.run()
+    }));
+
+    console.table(results);
+    return results.every(r => r.passed);
+  }
 }
 ```
 
@@ -670,1079 +711,1184 @@ class ModernView {
 
 ```javascript
 // Before fix:
-// - Memory per navigation: +50MB
-// - Total after 10 navigations: 500MB
-// - Browser crashes: After 8-10 navigations
-// - Listener count growth: 3 per navigation
-// - Performance: 300% degradation
+// - Cart abandonment: 34%
+// - User complaints: 156/week
+// - Mobile completion: 23%
+// - Form submission errors: 12%
 
 // After fix:
-// - Memory per navigation: +2MB (98% reduction!)
-// - Total after 10 navigations: 65MB (87% reduction!)
-// - Browser crashes: None
-// - Listener count growth: 0 (all cleaned up)
-// - Performance: Stable across navigations
+// - Cart abandonment: 19% (↓ 44%)
+// - User complaints: 8/week (↓ 95%)
+// - Mobile completion: 64% (↑ 178%)
+// - Form submission errors: 0.3% (↓ 97.5%)
 
-// User impact:
-// - Bounce rate: 34% → 8%
-// - Session duration: 3.2min → 12.5min
-// - User complaints: 156/week → 4/week
+// Revenue impact: +$47,000/month from reduced abandonment
 ```
+
+</details>
 
 ---
 
-### ⚖️ Trade-offs: onclick vs addEventListener
+<details>
+<summary><strong>⚖️ Trade-offs: When to Use Each Method</strong></summary>
 
-**When onclick is Acceptable:**
 
-| Scenario | Why onclick is OK | Example |
-|----------|-------------------|---------|
-| **Simple prototypes** | Quick testing, no production code | CodePen demos |
-| **Single handler needed** | One action, no need for multiple | Simple button |
-| **Inline event attributes** | HTML-based event handling | `<button onclick="submit()">` |
-| **Overriding existing handler** | Intentionally replace old handler | Reset functionality |
+**preventDefault() Use Cases:**
 
-**When addEventListener is Required:**
+| Scenario | Why preventDefault | Alternative |
+|----------|-------------------|-------------|
+| **Form validation** | Prevent submission until valid | Use `novalidate` + manual submit |
+| **Custom link behavior** | Navigate programmatically (SPA) | Use `<button>` instead of `<a>` |
+| **Right-click menus** | Show custom context menu | CSS-only limited alternative |
+| **Drag and drop** | Prevent default drag behavior | No alternative |
+| **Custom keyboard shortcuts** | Override browser shortcuts | Limited options |
 
-| Scenario | Why addEventListener | Example |
-|----------|---------------------|---------|
-| **Multiple handlers** | Different systems need to react | Analytics + UI + logging |
-| **Event options needed** | `once`, `passive`, `capture`, `signal` | Scroll optimization |
-| **Removable handlers** | Dynamic adding/removing | Modal lifecycle |
-| **Library/framework code** | Don't interfere with user code | Plugin systems |
-| **Best practices** | Industry standard, maintainable | Production applications |
+**stopPropagation() Use Cases:**
+
+| Scenario | Why stopPropagation | Alternative |
+|----------|---------------------|-------------|
+| **Modal click-outside** | Prevent document handler | Check `event.target` instead |
+| **Nested click handlers** | Prevent parent handlers | Event delegation pattern |
+| **Dropdown menus** | Keep menu open on interaction | Check `contains()` |
+| **Complex nested widgets** | Isolate component events | Better component boundaries |
 
 **Decision Matrix:**
 
 ```javascript
-class EventHandlerSelector {
-  static selectMethod(requirements) {
-    const {
-      needsMultipleHandlers,
-      needsRemoval,
-      needsOptions,
-      isProduction,
-      isPrototype
-    } = requirements;
-
-    // Production code: always addEventListener
-    if (isProduction) {
-      return {
-        method: 'addEventListener',
-        reason: 'Best practice for production',
+class EventMethodSelector {
+  static selectMethod(scenario) {
+    const strategies = {
+      'form-submission': {
+        method: 'preventDefault',
+        reason: 'Prevent page reload, handle via AJAX',
+        alternatives: ['novalidate attribute'],
         confidence: 'high'
-      };
-    }
+      },
 
-    // Quick prototype: onclick is fine
-    if (isPrototype && !needsMultipleHandlers && !needsRemoval) {
-      return {
-        method: 'onclick',
-        reason: 'Simple and quick for prototyping',
+      'link-navigation': {
+        method: 'preventDefault',
+        reason: 'Handle navigation programmatically (SPA)',
+        alternatives: ['Use buttons for actions', 'History API'],
+        confidence: 'high'
+      },
+
+      'modal-close-on-outside-click': {
+        method: 'neither',
+        reason: 'Check event.target instead',
+        alternatives: ['if (e.target === overlay) close()'],
+        confidence: 'high',
+        avoid: 'stopPropagation - breaks delegation'
+      },
+
+      'dropdown-menu': {
+        method: 'stopPropagation',
+        reason: 'Prevent document click handler',
+        alternatives: ['Check if contains(e.target)'],
         confidence: 'medium'
-      };
-    }
+      },
 
-    // Need advanced features: addEventListener
-    if (needsOptions || needsMultipleHandlers || needsRemoval) {
-      return {
-        method: 'addEventListener',
-        reason: 'Required features only in addEventListener',
-        confidence: 'high'
-      };
-    }
-
-    // Default: addEventListener
-    return {
-      method: 'addEventListener',
-      reason: 'More flexible and future-proof',
-      confidence: 'high'
+      'nested-buttons': {
+        method: 'stopPropagation',
+        reason: 'Prevent parent button click',
+        alternatives: ['Check event.target in parent'],
+        confidence: 'medium'
+      }
     };
+
+    return strategies[scenario];
+  }
+
+  static shouldPreventDefault(event) {
+    // Rules for when to prevent default
+    const preventCases = [
+      // Forms
+      event.type === 'submit' && !event.target.hasAttribute('novalidate'),
+
+      // Links in SPAs
+      event.type === 'click' &&
+      event.target.matches('a[href]') &&
+      event.target.hasAttribute('data-spa-link'),
+
+      // Context menus
+      event.type === 'contextmenu',
+
+      // Drag and drop
+      event.type === 'dragover' || event.type === 'drop'
+    ];
+
+    return preventCases.some(condition => condition);
+  }
+
+  static shouldStopPropagation(event) {
+    // Rules for when to stop propagation
+    const stopCases = [
+      // Modals/dropdowns with explicit stop attribute
+      event.target.closest('[data-stop-propagation]'),
+
+      // Nested interactive elements
+      event.target.matches('button') &&
+      event.target.closest('button') !== event.target
+    ];
+
+    return stopCases.some(condition => condition);
   }
 }
+```
 
-// Usage
-const recommendation = EventHandlerSelector.selectMethod({
-  needsMultipleHandlers: true,
-  needsRemoval: true,
-  needsOptions: false,
-  isProduction: true,
-  isPrototype: false
+**Anti-Patterns to Avoid:**
+
+```javascript
+// ❌ Anti-pattern 1: Always stopping propagation
+document.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Breaks event delegation!
+    handleClick(btn);
+  });
 });
 
-console.log(recommendation);
-// { method: 'addEventListener', reason: 'Best practice for production', confidence: 'high' }
+// ✅ Better: Only stop when necessary
+document.body.addEventListener('click', (e) => {
+  if (e.target.matches('button')) {
+    handleClick(e.target);
+  }
+});
+
+// ❌ Anti-pattern 2: Preventing default on wrong events
+document.addEventListener('click', (e) => {
+  e.preventDefault(); // Breaks all clicks!
+});
+
+// ✅ Better: Prevent only specific elements
+document.addEventListener('click', (e) => {
+  if (e.target.matches('.custom-action')) {
+    e.preventDefault();
+    handleCustomAction(e.target);
+  }
+});
+
+// ❌ Anti-pattern 3: Return false (jQuery-style)
+element.onclick = function(e) {
+  return false; // Does both preventDefault + stopPropagation (unclear!)
+};
+
+// ✅ Better: Be explicit
+element.addEventListener('click', (e) => {
+  e.preventDefault();     // Clear intent
+  e.stopPropagation();    // Clear intent
+});
 ```
+
+</details>
 
 ---
 
-### 💬 Explain to Junior: onclick vs addEventListener
+<details>
+<summary><strong>💬 Explain to Junior: preventDefault vs stopPropagation</strong></summary>
+
 
 **Simple Analogy:**
 
-Think of event handlers like phone contacts:
+Imagine you're watching a movie in a theater:
 
-- **onclick**: Like having one "Emergency Contact" field. You can only store one number. Adding a new number replaces the old one.
+- **preventDefault()**: You prevent the projectionist from changing the film (stop the default action), but people can still whisper comments to each other (event still propagates)
 
-- **addEventListener**: Like a contact list. You can have multiple numbers for the same person (work, mobile, home). Each one stays in the list.
+- **stopPropagation()**: You tell people to stop whispering to others (stop propagation), but the movie still plays (default action still happens)
 
-**Visual Comparison:**
+**Visual Diagram:**
 
 ```
-onclick:                              addEventListener:
-========                              =================
+preventDefault():
+==================
+User clicks link
+     ↓
+Event bubbles normally: child → parent → document
+     ↓
+Browser SKIPS default action (navigation) ✗
 
-element.onclick = handler1            element.addEventListener('click', handler1)
-element.onclick = handler2            element.addEventListener('click', handler2)
-                                      element.addEventListener('click', handler3)
 
-Result: Only handler2 runs            Result: All three run in order
+stopPropagation():
+==================
+User clicks link
+     ↓
+Event STOPS at current element (no further bubbling) ✗
+     ↓
+Browser executes default action (navigation) ✓
 ```
 
 **Interview Answer Template:**
 
-> "The main difference between `onclick` and `addEventListener` is that `onclick` can only attach one handler at a time, while `addEventListener` can attach multiple handlers.
+> "`preventDefault()` and `stopPropagation()` control different aspects of events:
 >
-> With `onclick`, if you assign a new handler, it replaces the previous one:
-> ```javascript
-> button.onclick = () => console.log('First');
-> button.onclick = () => console.log('Second'); // Replaces first
-> ```
+> **preventDefault()** stops the browser's default action. For example:
+> - On a form submit event, it prevents the form from submitting
+> - On a link click, it prevents navigation
+> - On a right-click, it prevents the context menu
 >
-> With `addEventListener`, you can add multiple handlers and they'll all run:
-> ```javascript
-> button.addEventListener('click', () => console.log('First'));
-> button.addEventListener('click', () => console.log('Second')); // Both run
-> ```
+> But the event still bubbles up to parent elements.
 >
-> Additionally, `addEventListener` supports advanced options like:
-> - `once: true` - Handler auto-removes after first execution
-> - `passive: true` - Improves scroll performance
-> - `capture: true` - Listen during capture phase
-> - `signal` - Use AbortController to remove multiple listeners at once
+> **stopPropagation()** stops the event from bubbling up (or capturing down) to other elements. Parent handlers won't fire. But it doesn't prevent the browser's default action.
 >
-> In production code, I always use `addEventListener` because it's more flexible, supports these options, and is the industry best practice. `onclick` is only acceptable for quick prototypes or demos."
+> A common use case: in a modal, I'll use `stopPropagation()` on the modal content to prevent clicks from reaching the overlay's click-outside handler, while allowing buttons and links to work normally. For forms, I use `preventDefault()` to stop the page reload and handle submission via AJAX instead.
+>
+> There's also `stopImmediatePropagation()` which is like `stopPropagation()` but also prevents other handlers on the same element from running."
 
 **Quick Reference:**
 
 ```javascript
-// onclick - Simple but limited
-button.onclick = () => console.log('Click');
-button.onclick = null; // Remove
-
-// addEventListener - Flexible and powerful
-button.addEventListener('click', handler);
-button.removeEventListener('click', handler);
-
-// Advanced options
-button.addEventListener('click', handler, {
-  once: true,      // Run once then auto-remove
-  passive: true,   // Won't call preventDefault()
-  capture: true,   // Use capture phase
-  signal: controller.signal // Cleanup with AbortController
+// Prevent form submission (but event still bubbles)
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  submitViaAjax();
 });
 
-// AbortController for easy cleanup
-const controller = new AbortController();
+// Stop event from reaching parent (but link still navigates)
+link.addEventListener('click', (e) => {
+  e.stopPropagation();
+  // Link still navigates!
+});
 
-btn1.addEventListener('click', handler1, { signal: controller.signal });
-btn2.addEventListener('click', handler2, { signal: controller.signal });
-btn3.addEventListener('click', handler3, { signal: controller.signal });
+// Do both: prevent navigation AND stop bubbling
+link.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  customNavigation();
+});
 
-controller.abort(); // Removes all three listeners
+// Stop immediately (prevents other handlers on same element too)
+button.addEventListener('click', (e) => {
+  e.stopImmediatePropagation();
+  // No other click handlers on this button will run
+});
+
+// Check if already prevented/stopped
+element.addEventListener('click', (e) => {
+  if (e.defaultPrevented) {
+    console.log('Someone already prevented default');
+  }
+
+  if (e.cancelBubble) {
+    console.log('Propagation was stopped');
+  }
+});
 ```
 
-**Common Mistakes:**
+**Common Gotchas:**
 
 ```javascript
-// ❌ Mistake 1: Using onclick in production
-button.onclick = () => handleClick(); // What if analytics needs to track too?
+// 1. preventDefault() only works on cancelable events
+window.addEventListener('scroll', (e) => {
+  e.preventDefault(); // Does nothing! Scroll isn't cancelable
+  console.log(e.cancelable); // false
+});
 
-// ✅ Correct: Use addEventListener
-button.addEventListener('click', () => handleClick());
-button.addEventListener('click', () => trackAnalytics());
+// 2. stopPropagation() doesn't prevent default
+link.addEventListener('click', (e) => {
+  e.stopPropagation();
+  // Link STILL navigates - need preventDefault() too!
+});
 
-// ❌ Mistake 2: Anonymous function can't be removed
-button.addEventListener('click', () => console.log('Click'));
-// No way to remove this handler!
+// 3. Return false in inline handlers
+<button onclick="return false"> // Prevents default only
+<button onclick="event.stopPropagation(); return false;"> // Does both
 
-// ✅ Correct: Use named function
-function handleClick() {
-  console.log('Click');
-}
-button.addEventListener('click', handleClick);
-button.removeEventListener('click', handleClick); // Can remove
-
-// ❌ Mistake 3: Forgetting to cleanup
-function showModal() {
-  document.addEventListener('keydown', handleEscape);
-  // Never removed - memory leak!
-}
-
-// ✅ Correct: Cleanup on destroy
-class Modal {
-  constructor() {
-    this.handleEscape = (e) => {
-      if (e.key === 'Escape') this.close();
-    };
-    document.addEventListener('keydown', this.handleEscape);
-  }
-
-  destroy() {
-    document.removeEventListener('keydown', this.handleEscape);
-  }
-}
+// 4. Passive listeners can't preventDefault()
+element.addEventListener('touchstart', (e) => {
+  e.preventDefault(); // ERROR if listener is passive
+}, { passive: true });
 ```
+
+</details>
 
 ---
 
-## Question 6: How does removeEventListener work and why do memory leaks occur?
+## Question 2: How do you create and dispatch custom events using the CustomEvent API?
 
 **Answer:**
 
-`removeEventListener` removes an event handler previously added with `addEventListener`. Memory leaks occur when event listeners are not properly removed, keeping DOM elements and their associated data in memory even after they're no longer needed.
+The CustomEvent API allows you to create and dispatch custom events with custom data, enabling communication between different parts of your application without tight coupling.
 
 **Basic Usage:**
 
 ```javascript
-// Named function - can be removed
-function handleClick(e) {
-  console.log('Clicked', e.target);
-}
-
-button.addEventListener('click', handleClick);
-button.removeEventListener('click', handleClick); // ✅ Works
-
-// Anonymous function - cannot be removed
-button.addEventListener('click', (e) => {
-  console.log('Clicked', e.target);
+// Create custom event
+const event = new CustomEvent('userLogin', {
+  detail: {
+    username: 'john_doe',
+    timestamp: Date.now(),
+    role: 'admin'
+  },
+  bubbles: true,
+  cancelable: true
 });
 
-// This doesn't work - different function reference!
-button.removeEventListener('click', (e) => {
-  console.log('Clicked', e.target);
-}); // ❌ Doesn't remove
+// Dispatch event
+document.dispatchEvent(event);
+
+// Listen for custom event
+document.addEventListener('userLogin', (e) => {
+  console.log('User logged in:', e.detail.username);
+  console.log('Role:', e.detail.role);
+});
 ```
 
-**Why Memory Leaks Happen:**
+**CustomEvent vs Event:**
 
 ```javascript
-// Memory Leak Scenario 1: Detached DOM with listeners
-class LeakyComponent {
-  constructor() {
-    this.element = document.createElement('div');
-    this.data = new Array(10000).fill('large data'); // 10KB+ of data
+// Event (basic, no custom data)
+const basicEvent = new Event('customAction', {
+  bubbles: true,
+  cancelable: true
+});
 
-    // Listener keeps component in memory
-    this.element.addEventListener('click', () => {
-      console.log(this.data.length); // References 'this'
-    });
+// CustomEvent (with custom data in detail property)
+const customEvent = new CustomEvent('customAction', {
+  detail: { message: 'Hello', count: 42 },
+  bubbles: true,
+  cancelable: true
+});
 
-    document.body.appendChild(this.element);
-  }
-
-  destroy() {
-    // Remove from DOM but listener still attached
-    this.element.remove(); // Element gone from DOM
-    // BUT: Element + listener + component still in memory!
-  }
-}
-
-// Create and destroy 100 components
-for (let i = 0; i < 100; i++) {
-  const component = new LeakyComponent();
-  component.destroy();
-}
-// All 100 components still in memory! (~1MB leaked)
-
-// Memory Leak Scenario 2: Global listeners never removed
-class AnotherLeakyComponent {
-  constructor() {
-    this.data = new Array(10000).fill('data');
-
-    // Document listener keeps component alive forever
-    document.addEventListener('click', () => {
-      this.handleGlobalClick();
-    });
-  }
-
-  handleGlobalClick() {
-    console.log('Global click', this.data.length);
-  }
-
-  destroy() {
-    // Forgot to remove document listener!
-    // Component stays in memory forever
-  }
-}
+// Listen and access data
+element.addEventListener('customAction', (e) => {
+  console.log(e.detail); // { message: 'Hello', count: 42 }
+});
 ```
 
-**How to Properly Remove Listeners:**
+**Real-World Example: Component Communication:**
 
 ```javascript
-class ProperCleanupComponent {
+// Component 1: Shopping Cart
+class ShoppingCart {
   constructor() {
-    this.element = document.createElement('div');
-    this.data = new Array(10000).fill('data');
+    this.items = [];
+    this.element = document.getElementById('cart');
+  }
 
-    // Store bound handlers for cleanup
-    this.handlers = {
-      click: this.handleClick.bind(this),
-      mouseenter: this.handleMouseEnter.bind(this),
-      keydown: this.handleKeydown.bind(this)
+  addItem(product) {
+    this.items.push(product);
+    this.update();
+
+    // Dispatch custom event
+    const event = new CustomEvent('cart:item-added', {
+      detail: {
+        product,
+        totalItems: this.items.length,
+        totalPrice: this.calculateTotal()
+      },
+      bubbles: true
+    });
+
+    this.element.dispatchEvent(event);
+  }
+
+  removeItem(productId) {
+    const index = this.items.findIndex(item => item.id === productId);
+    if (index > -1) {
+      const removed = this.items.splice(index, 1)[0];
+
+      const event = new CustomEvent('cart:item-removed', {
+        detail: {
+          product: removed,
+          totalItems: this.items.length,
+          totalPrice: this.calculateTotal()
+        },
+        bubbles: true
+      });
+
+      this.element.dispatchEvent(event);
+    }
+  }
+
+  calculateTotal() {
+    return this.items.reduce((sum, item) => sum + item.price, 0);
+  }
+
+  update() {
+    this.element.textContent = `Cart (${this.items.length})`;
+  }
+}
+
+// Component 2: Cart Badge
+class CartBadge {
+  constructor() {
+    this.badge = document.getElementById('cart-badge');
+
+    // Listen for cart events
+    document.addEventListener('cart:item-added', (e) => {
+      this.updateBadge(e.detail.totalItems);
+      this.showAnimation('added');
+    });
+
+    document.addEventListener('cart:item-removed', (e) => {
+      this.updateBadge(e.detail.totalItems);
+      this.showAnimation('removed');
+    });
+  }
+
+  updateBadge(count) {
+    this.badge.textContent = count;
+    this.badge.style.display = count > 0 ? 'block' : 'none';
+  }
+
+  showAnimation(type) {
+    this.badge.classList.add(`animate-${type}`);
+    setTimeout(() => {
+      this.badge.classList.remove(`animate-${type}`);
+    }, 300);
+  }
+}
+
+// Component 3: Analytics
+class Analytics {
+  constructor() {
+    document.addEventListener('cart:item-added', (e) => {
+      this.track('add_to_cart', {
+        product_id: e.detail.product.id,
+        product_name: e.detail.product.name,
+        price: e.detail.product.price,
+        cart_total: e.detail.totalPrice
+      });
+    });
+
+    document.addEventListener('cart:item-removed', (e) => {
+      this.track('remove_from_cart', {
+        product_id: e.detail.product.id
+      });
+    });
+  }
+
+  track(eventName, data) {
+    console.log(`[Analytics] ${eventName}`, data);
+    // Send to analytics service
+  }
+}
+
+// Initialize components (no direct coupling!)
+const cart = new ShoppingCart();
+const badge = new CartBadge();
+const analytics = new Analytics();
+
+// Add item - automatically updates badge and tracks analytics
+cart.addItem({ id: 1, name: 'Laptop', price: 999 });
+```
+
+**Advanced Pattern: Event Bus:**
+
+```javascript
+class EventBus {
+  constructor() {
+    this.bus = document.createElement('div');
+  }
+
+  on(event, callback) {
+    this.bus.addEventListener(event, callback);
+  }
+
+  off(event, callback) {
+    this.bus.removeEventListener(event, callback);
+  }
+
+  emit(event, detail = {}) {
+    const customEvent = new CustomEvent(event, { detail });
+    this.bus.dispatchEvent(customEvent);
+  }
+
+  once(event, callback) {
+    const onceCallback = (e) => {
+      callback(e);
+      this.off(event, onceCallback);
     };
-
-    // Attach listeners
-    this.element.addEventListener('click', this.handlers.click);
-    this.element.addEventListener('mouseenter', this.handlers.mouseenter);
-    document.addEventListener('keydown', this.handlers.keydown);
-
-    document.body.appendChild(this.element);
-  }
-
-  handleClick(e) {
-    console.log('Click', this.data.length);
-  }
-
-  handleMouseEnter(e) {
-    console.log('Mouse enter');
-  }
-
-  handleKeydown(e) {
-    if (e.key === 'Escape') {
-      this.destroy();
-    }
-  }
-
-  destroy() {
-    // Remove all listeners
-    this.element.removeEventListener('click', this.handlers.click);
-    this.element.removeEventListener('mouseenter', this.handlers.mouseenter);
-    document.removeEventListener('keydown', this.handlers.keydown);
-
-    // Remove from DOM
-    this.element.remove();
-
-    // Clear references
-    this.element = null;
-    this.data = null;
-    this.handlers = null;
-  }
-}
-```
-
-**Modern Cleanup with AbortController:**
-
-```javascript
-class ModernCleanupComponent {
-  constructor() {
-    this.element = document.createElement('div');
-    this.controller = new AbortController();
-    const { signal } = this.controller;
-
-    // All listeners share same signal
-    this.element.addEventListener('click', () => {
-      this.handleClick();
-    }, { signal });
-
-    this.element.addEventListener('mouseenter', () => {
-      this.handleMouseEnter();
-    }, { signal });
-
-    document.addEventListener('keydown', (e) => {
-      this.handleKeydown(e);
-    }, { signal });
-
-    // Even works for fetch requests!
-    fetch('/api/data', { signal })
-      .then(response => response.json())
-      .then(data => this.handleData(data));
-
-    document.body.appendChild(this.element);
-  }
-
-  handleClick() {
-    console.log('Click');
-  }
-
-  handleMouseEnter() {
-    console.log('Mouse enter');
-  }
-
-  handleKeydown(e) {
-    if (e.key === 'Escape') {
-      this.destroy();
-    }
-  }
-
-  handleData(data) {
-    console.log('Data loaded', data);
-  }
-
-  destroy() {
-    // One line removes ALL listeners and cancels fetch!
-    this.controller.abort();
-
-    this.element.remove();
-    this.element = null;
-  }
-}
-```
-
----
-
-### 🔍 Deep Dive: Memory Leak Detection and Prevention
-
-**How Browser Tracks Event Listeners:**
-
-```javascript
-// Simplified browser internal representation
-class BrowserEventListenerRegistry {
-  constructor() {
-    // WeakMap: element → Map<eventType → Set<listener>>
-    this.listeners = new WeakMap();
-  }
-
-  addEventListener(element, type, listener, options) {
-    if (!this.listeners.has(element)) {
-      this.listeners.set(element, new Map());
-    }
-
-    const elementListeners = this.listeners.get(element);
-
-    if (!elementListeners.has(type)) {
-      elementListeners.set(type, new Set());
-    }
-
-    const typeListeners = elementListeners.get(type);
-
-    // Store listener with its options
-    typeListeners.add({
-      listener,
-      options,
-      // Store bound references
-      boundListener: listener
-    });
-  }
-
-  removeEventListener(element, type, listener) {
-    const elementListeners = this.listeners.get(element);
-    if (!elementListeners) return false;
-
-    const typeListeners = elementListeners.get(type);
-    if (!typeListeners) return false;
-
-    // Must find exact same function reference
-    for (const entry of typeListeners) {
-      if (entry.listener === listener || entry.boundListener === listener) {
-        typeListeners.delete(entry);
-        return true;
-      }
-    }
-
-    return false; // Listener not found
-  }
-
-  // Garbage collection interaction
-  cleanupDetachedElements() {
-    // WeakMap automatically removes entries when element is GC'd
-    // BUT listeners prevent GC if they reference the element!
-
-    // This is the root cause of many memory leaks:
-    // element → listeners → closures → element (circular reference)
-  }
-}
-```
-
-**Circular Reference Problem:**
-
-```javascript
-class CircularReferenceLeak {
-  demonstrateProblem() {
-    const element = document.createElement('div');
-    const bigData = new Array(100000).fill('x'); // ~100KB
-
-    // LEAK: Closure captures 'element' and 'bigData'
-    element.addEventListener('click', function() {
-      console.log(element.id, bigData.length);
-      // 'this' is element
-      // closure captures bigData
-      // → Circular reference: element → listener → element
-    });
-
-    document.body.appendChild(element);
-    element.remove(); // Element detached but still in memory!
-
-    // Memory chain:
-    // element → event listener → closure → { element, bigData }
-    // ↑_________________________________________________|
-    //                 Circular reference!
-  }
-
-  demonstrateSolution() {
-    const element = document.createElement('div');
-    const bigData = new Array(100000).fill('x');
-
-    // SOLUTION 1: Use WeakRef
-    const weakElement = new WeakRef(element);
-    const weakData = new WeakRef(bigData);
-
-    function handleClick() {
-      const el = weakElement.deref();
-      const data = weakData.deref();
-
-      if (el && data) {
-        console.log(el.id, data.length);
-      } else {
-        // Element or data was garbage collected
-        // Remove this listener
-        document.removeEventListener('click', handleClick);
-      }
-    }
-
-    element.addEventListener('click', handleClick);
-
-    // SOLUTION 2: Explicit cleanup
-    const controller = new AbortController();
-    element.addEventListener('click', () => {
-      console.log(element.id, bigData.length);
-    }, { signal: controller.signal });
-
-    // When done:
-    controller.abort(); // Breaks circular reference
-  }
-}
-```
-
-**Memory Leak Detection Tools:**
-
-```javascript
-class MemoryLeakDetector {
-  constructor() {
-    this.listenerCount = new Map();
-    this.elementCount = 0;
-  }
-
-  // Track listener additions
-  trackAddListener(element, type) {
-    const key = this.getElementKey(element);
-
-    if (!this.listenerCount.has(key)) {
-      this.listenerCount.set(key, new Map());
-      this.elementCount++;
-    }
-
-    const elementListeners = this.listenerCount.get(key);
-    elementListeners.set(type, (elementListeners.get(type) || 0) + 1);
-  }
-
-  // Track listener removals
-  trackRemoveListener(element, type) {
-    const key = this.getElementKey(element);
-    const elementListeners = this.listenerCount.get(key);
-
-    if (elementListeners) {
-      const count = elementListeners.get(type) || 0;
-      if (count > 0) {
-        elementListeners.set(type, count - 1);
-      }
-    }
-  }
-
-  // Find potential leaks
-  findLeaks() {
-    const leaks = [];
-
-    for (const [key, listeners] of this.listenerCount) {
-      for (const [type, count] of listeners) {
-        if (count > 0) {
-          leaks.push({
-            element: key,
-            eventType: type,
-            listenerCount: count,
-            severity: count > 10 ? 'high' : 'medium'
-          });
-        }
-      }
-    }
-
-    return leaks;
-  }
-
-  getElementKey(element) {
-    if (!element._leakDetectorId) {
-      element._leakDetectorId = `element-${this.elementCount}`;
-    }
-    return element._leakDetectorId;
-  }
-
-  // Chrome DevTools integration
-  static getListenersFromDevTools() {
-    // This only works in Chrome DevTools console
-    const allElements = document.querySelectorAll('*');
-    const report = [];
-
-    allElements.forEach(el => {
-      const listeners = getEventListeners(el);
-      const listenerCount = Object.keys(listeners).reduce((sum, type) => {
-        return sum + listeners[type].length;
-      }, 0);
-
-      if (listenerCount > 0) {
-        report.push({
-          element: el.tagName + (el.id ? `#${el.id}` : ''),
-          listeners: listeners,
-          count: listenerCount
-        });
-      }
-    });
-
-    return report.sort((a, b) => b.count - a.count);
+    this.on(event, onceCallback);
   }
 }
 
 // Usage
-const detector = new MemoryLeakDetector();
+const eventBus = new EventBus();
 
-// Monkey-patch addEventListener
-const originalAdd = Element.prototype.addEventListener;
-Element.prototype.addEventListener = function(type, listener, options) {
-  detector.trackAddListener(this, type);
-  return originalAdd.call(this, type, listener, options);
-};
+// Module A
+eventBus.on('user:login', (e) => {
+  console.log('User logged in:', e.detail.user);
+});
 
-const originalRemove = Element.prototype.removeEventListener;
-Element.prototype.removeEventListener = function(type, listener, options) {
-  detector.trackRemoveListener(this, type);
-  return originalRemove.call(this, type, listener, options);
-};
+// Module B
+eventBus.emit('user:login', {
+  user: { id: 1, name: 'John' }
+});
 
-// Check for leaks
-setTimeout(() => {
-  const leaks = detector.findLeaks();
-  console.table(leaks);
-}, 5000);
+// One-time listener
+eventBus.once('app:ready', () => {
+  console.log('App initialized');
+});
 ```
 
 ---
 
-### 🐛 Real-World Scenario: Infinite Feed Memory Leak
+<details>
+<summary><strong>🔍 Deep Dive: Custom Event Implementation Details</strong></summary>
+
+
+**Browser Implementation of CustomEvent:**
+
+```javascript
+// Simplified browser implementation
+class CustomEventPolyfill {
+  constructor(type, options = {}) {
+    // Create base event
+    const event = document.createEvent('CustomEvent');
+
+    // Initialize with type and options
+    event.initCustomEvent(
+      type,
+      options.bubbles || false,
+      options.cancelable || false,
+      options.detail || null
+    );
+
+    return event;
+  }
+}
+
+// Modern browser native implementation (conceptual)
+class BrowserCustomEvent extends Event {
+  constructor(type, options = {}) {
+    super(type, {
+      bubbles: options.bubbles,
+      cancelable: options.cancelable,
+      composed: options.composed
+    });
+
+    // Store custom data
+    this._detail = options.detail !== undefined ? options.detail : null;
+
+    // Make detail read-only
+    Object.defineProperty(this, 'detail', {
+      get: () => this._detail,
+      enumerable: true
+    });
+  }
+}
+```
+
+**Memory and Performance Characteristics:**
+
+```javascript
+class CustomEventPerformance {
+  static benchmarkEventCreation(iterations = 10000) {
+    const results = {
+      basicEvent: 0,
+      customEvent: 0,
+      customEventWithLargePayload: 0
+    };
+
+    // Test 1: Basic Event
+    let start = performance.now();
+    for (let i = 0; i < iterations; i++) {
+      new Event('test');
+    }
+    results.basicEvent = performance.now() - start;
+
+    // Test 2: CustomEvent with small payload
+    start = performance.now();
+    for (let i = 0; i < iterations; i++) {
+      new CustomEvent('test', {
+        detail: { id: i, value: 'test' }
+      });
+    }
+    results.customEvent = performance.now() - start;
+
+    // Test 3: CustomEvent with large payload
+    start = performance.now();
+    const largePayload = new Array(1000).fill({ data: 'test' });
+    for (let i = 0; i < iterations; i++) {
+      new CustomEvent('test', {
+        detail: { items: largePayload }
+      });
+    }
+    results.customEventWithLargePayload = performance.now() - start;
+
+    return results;
+    // Typical results (10k iterations):
+    // basicEvent: 8ms
+    // customEvent: 12ms (50% slower, but still fast)
+    // customEventWithLargePayload: 15ms (payload is referenced, not copied)
+  }
+
+  static benchmarkEventDispatch(iterations = 10000) {
+    const element = document.createElement('div');
+    const results = {};
+
+    // No listeners
+    const event1 = new CustomEvent('test1');
+    let start = performance.now();
+    for (let i = 0; i < iterations; i++) {
+      element.dispatchEvent(event1);
+    }
+    results.noListeners = performance.now() - start;
+
+    // One listener
+    element.addEventListener('test2', () => {});
+    const event2 = new CustomEvent('test2');
+    start = performance.now();
+    for (let i = 0; i < iterations; i++) {
+      element.dispatchEvent(event2);
+    }
+    results.oneListener = performance.now() - start;
+
+    // Ten listeners
+    for (let i = 0; i < 10; i++) {
+      element.addEventListener('test3', () => {});
+    }
+    const event3 = new CustomEvent('test3');
+    start = performance.now();
+    for (let i = 0; i < iterations; i++) {
+      element.dispatchEvent(event3);
+    }
+    results.tenListeners = performance.now() - start;
+
+    return results;
+    // Typical results (10k iterations):
+    // noListeners: 12ms
+    // oneListener: 18ms
+    // tenListeners: 45ms (scales linearly with listeners)
+  }
+}
+```
+
+**Event Detail Deep Copying:**
+
+```javascript
+class EventDetailBehavior {
+  static demonstrateDetailReference() {
+    const data = { count: 0, items: [] };
+
+    const event = new CustomEvent('test', { detail: data });
+
+    // Detail is a REFERENCE, not a copy
+    console.log(event.detail.count); // 0
+
+    // Mutating original object affects event detail
+    data.count = 10;
+    console.log(event.detail.count); // 10 (!)
+
+    // This can cause bugs if not careful
+  }
+
+  static safeEventCreation(data) {
+    // Deep clone to prevent mutations
+    return new CustomEvent('test', {
+      detail: JSON.parse(JSON.stringify(data))
+    });
+
+    // Or use structured clone (modern browsers)
+    return new CustomEvent('test', {
+      detail: structuredClone(data)
+    });
+  }
+}
+```
+
+**Event Bubbling Through Shadow DOM:**
+
+```javascript
+class ShadowDOMEvents {
+  static demonstrateComposedEvents() {
+    const host = document.createElement('div');
+    const shadow = host.attachShadow({ mode: 'open' });
+
+    const button = document.createElement('button');
+    shadow.appendChild(button);
+    document.body.appendChild(host);
+
+    // Listen outside shadow boundary
+    document.addEventListener('custom-event', (e) => {
+      console.log('Event reached document');
+      console.log('Event target:', e.target); // Retargeted to host
+    });
+
+    // Non-composed event (default)
+    const nonComposedEvent = new CustomEvent('custom-event', {
+      bubbles: true,
+      composed: false // Doesn't cross shadow boundary
+    });
+    button.dispatchEvent(nonComposedEvent);
+    // Output: (nothing - event stops at shadow boundary)
+
+    // Composed event
+    const composedEvent = new CustomEvent('custom-event', {
+      bubbles: true,
+      composed: true // Crosses shadow boundary
+    });
+    button.dispatchEvent(composedEvent);
+    // Output: "Event reached document", "Event target: <div>"
+  }
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Race Conditions in Custom Event System</strong></summary>
+
 
 **The Problem:**
 
-A social media feed application had memory leaks causing the browser to crash after scrolling through ~500 posts. Each post had event listeners that were never removed.
+A multi-tab dashboard application used custom events for widget communication, but race conditions caused data inconsistencies and duplicate API calls.
 
 **Initial Metrics:**
-- Memory growth: 2MB per post viewed
-- Browser crash: After viewing ~500 posts (1GB+ memory)
-- Scroll performance: Degraded from 60fps to 15fps after 100 posts
-- User complaints: "App freezes after scrolling for a while"
-- Mobile impact: Crashes on devices with <4GB RAM
+- Duplicate API calls: 34% of requests
+- Stale data shown: 18% of widget updates
+- User confusion: "Why are numbers different in different widgets?"
+- Server load: 2.3x expected
+- Support tickets: 89 in one week
 
 **Buggy Implementation:**
 
 ```javascript
-// ❌ WRONG: Listeners never removed, infinite memory growth
-class BuggyPostComponent {
-  constructor(postData) {
-    this.data = postData;
-    this.element = this.createElement();
-    this.images = [];
-    this.setupListeners();
-  }
-
-  createElement() {
-    const post = document.createElement('div');
-    post.className = 'post';
-    post.innerHTML = `
-      <div class="post-header">
-        <img class="avatar" src="${this.data.avatar}" />
-        <span class="username">${this.data.username}</span>
-        <button class="follow-btn">Follow</button>
-      </div>
-      <img class="post-image" src="${this.data.image}" />
-      <div class="post-actions">
-        <button class="like-btn">Like</button>
-        <button class="comment-btn">Comment</button>
-        <button class="share-btn">Share</button>
-      </div>
-      <div class="comments"></div>
-    `;
-    return post;
-  }
-
-  setupListeners() {
-    // BUG 1: Anonymous functions can't be removed
-    this.element.querySelector('.like-btn').addEventListener('click', () => {
-      this.likePost();
-    });
-
-    this.element.querySelector('.comment-btn').addEventListener('click', () => {
-      this.showComments();
-    });
-
-    this.element.querySelector('.share-btn').addEventListener('click', () => {
-      this.sharePost();
-    });
-
-    this.element.querySelector('.follow-btn').addEventListener('click', () => {
-      this.followUser();
-    });
-
-    // BUG 2: Image load listener never removed
-    const postImage = this.element.querySelector('.post-image');
-    postImage.addEventListener('load', () => {
-      this.onImageLoad();
-    });
-
-    this.images.push(postImage); // Keeps image in memory
-
-    // BUG 3: Global listener for visibility tracking
-    document.addEventListener('scroll', () => {
-      this.trackVisibility(); // Every post adds a scroll listener!
-    });
-
-    // BUG 4: Intersection Observer not disconnected
-    this.observer = new IntersectionObserver((entries) => {
-      this.handleIntersection(entries);
-    });
-    this.observer.observe(this.element);
-  }
-
-  likePost() {
-    console.log('Liked', this.data.id);
-  }
-
-  showComments() {
-    // Loads more data without cleanup
-    fetch(`/api/posts/${this.data.id}/comments`)
-      .then(r => r.json())
-      .then(comments => {
-        this.renderComments(comments); // More event listeners added!
-      });
-  }
-
-  renderComments(comments) {
-    const container = this.element.querySelector('.comments');
-    comments.forEach(comment => {
-      const div = document.createElement('div');
-      div.textContent = comment.text;
-
-      // BUG 5: More listeners that never get removed
-      div.addEventListener('click', () => {
-        this.likeComment(comment.id);
-      });
-
-      container.appendChild(div);
-    });
-  }
-
-  sharePost() {
-    console.log('Shared', this.data.id);
-  }
-
-  followUser() {
-    console.log('Followed', this.data.username);
-  }
-
-  onImageLoad() {
-    console.log('Image loaded');
-  }
-
-  trackVisibility() {
-    // Expensive calculation on every scroll!
-    const rect = this.element.getBoundingClientRect();
-    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-
-    if (isVisible) {
-      console.log('Post visible:', this.data.id);
-    }
-  }
-
-  handleIntersection(entries) {
-    console.log('Intersection', entries);
-  }
-
-  // NO CLEANUP METHOD!
-}
-
-class BuggyFeed {
+// ❌ WRONG: Race conditions and event timing issues
+class BuggyDataManager {
   constructor() {
-    this.container = document.getElementById('feed');
-    this.posts = [];
-    this.page = 0;
+    this.data = null;
+    this.loading = false;
 
-    this.setupInfiniteScroll();
-  }
-
-  setupInfiniteScroll() {
-    window.addEventListener('scroll', () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 1000) {
-        this.loadMore();
-      }
+    // Listen for data requests
+    document.addEventListener('data:fetch', (e) => {
+      this.fetchData(e.detail.endpoint);
     });
   }
 
-  async loadMore() {
-    this.page++;
-    const response = await fetch(`/api/posts?page=${this.page}`);
-    const newPosts = await response.json();
+  async fetchData(endpoint) {
+    // BUG: No check if already loading
+    this.loading = true;
 
-    newPosts.forEach(postData => {
-      const post = new BuggyPostComponent(postData);
-      this.posts.push(post);
-      this.container.appendChild(post.element);
-    });
+    const response = await fetch(endpoint);
+    const data = await response.json();
 
-    // BUG: Old posts never removed from DOM or memory!
-    // After viewing 500 posts:
-    // - 500 posts in DOM
-    // - 500 * 4 = 2000 button listeners
-    // - 500 scroll listeners (!)
-    // - 500 intersection observers
-    // - 500 * average 10 comments = 5000 comment listeners
-    // Total: ~8000 listeners + 500 observers = CRASH!
+    this.data = data;
+    this.loading = false;
+
+    // BUG: Event dispatched before state fully updated
+    document.dispatchEvent(new CustomEvent('data:loaded', {
+      detail: { data }
+    }));
   }
 }
+
+class BuggyWidget {
+  constructor(id) {
+    this.id = id;
+
+    // BUG: No unsubscribe mechanism
+    document.addEventListener('data:loaded', (e) => {
+      // BUG: All widgets respond to all data loads
+      this.render(e.detail.data);
+    });
+  }
+
+  loadData() {
+    // BUG: Multiple widgets trigger multiple fetches
+    document.dispatchEvent(new CustomEvent('data:fetch', {
+      detail: { endpoint: '/api/data' }
+    }));
+  }
+
+  render(data) {
+    console.log(`Widget ${this.id} rendering:`, data);
+  }
+}
+
+// Create 3 widgets
+const widget1 = new BuggyWidget(1);
+const widget2 = new BuggyWidget(2);
+const widget3 = new BuggyWidget(3);
+
+// All widgets request data simultaneously
+widget1.loadData();
+widget2.loadData(); // Duplicate fetch!
+widget3.loadData(); // Duplicate fetch!
+
+// Problems:
+// 1. Three simultaneous API calls for same data
+// 2. All widgets respond to each other's data loads
+// 3. Race conditions - last response wins, may show stale data
+// 4. Memory leak - event listeners never removed
 ```
 
 **Fixed Implementation:**
 
 ```javascript
-// ✅ CORRECT: Proper lifecycle and memory management
-class FixedPostComponent {
-  constructor(postData) {
-    this.data = postData;
-    this.element = this.createElement();
-    this.controller = new AbortController();
-    this.observers = [];
+// ✅ CORRECT: Proper event coordination and state management
+class FixedDataManager {
+  constructor() {
+    this.cache = new Map();
+    this.pendingRequests = new Map();
+    this.subscribers = new Map();
 
-    this.setupListeners();
+    document.addEventListener('data:request', (e) => {
+      this.handleDataRequest(e);
+    });
   }
 
-  createElement() {
-    const post = document.createElement('div');
-    post.className = 'post';
-    post.dataset.postId = this.data.id;
-    post.innerHTML = `
-      <div class="post-header">
-        <img class="avatar" src="${this.data.avatar}" />
-        <span class="username">${this.data.username}</span>
-        <button class="follow-btn">Follow</button>
-      </div>
-      <img class="post-image" src="${this.data.image}" loading="lazy" />
-      <div class="post-actions">
-        <button class="like-btn">Like</button>
-        <button class="comment-btn">Comment</button>
-        <button class="share-btn">Share</button>
-      </div>
-      <div class="comments"></div>
-    `;
-    return post;
-  }
+  async handleDataRequest(event) {
+    const { endpoint, requestId } = event.detail;
 
-  setupListeners() {
-    const { signal } = this.controller;
+    // Check cache first
+    if (this.cache.has(endpoint)) {
+      this.dispatchDataLoaded(endpoint, this.cache.get(endpoint), requestId);
+      return;
+    }
 
-    // Use event delegation on post element
-    this.element.addEventListener('click', (e) => {
-      const target = e.target;
-
-      if (target.matches('.like-btn')) {
-        this.likePost();
-      } else if (target.matches('.comment-btn')) {
-        this.showComments();
-      } else if (target.matches('.share-btn')) {
-        this.sharePost();
-      } else if (target.matches('.follow-btn')) {
-        this.followUser();
+    // Check if already fetching
+    if (this.pendingRequests.has(endpoint)) {
+      // Add to subscribers for this endpoint
+      if (!this.subscribers.has(endpoint)) {
+        this.subscribers.set(endpoint, []);
       }
-    }, { signal });
+      this.subscribers.get(endpoint).push(requestId);
+      return;
+    }
 
-    // Image load with cleanup
-    const postImage = this.element.querySelector('.post-image');
-    postImage.addEventListener('load', () => {
-      this.onImageLoad();
-    }, { signal, once: true });
+    // Start new fetch
+    this.pendingRequests.set(endpoint, true);
+    this.subscribers.set(endpoint, [requestId]);
 
-    // Intersection Observer for visibility (better than scroll)
-    const observer = new IntersectionObserver(
-      (entries) => this.handleIntersection(entries),
-      { threshold: 0.5 }
-    );
-    observer.observe(this.element);
-    this.observers.push(observer);
-  }
-
-  async showComments() {
-    const container = this.element.querySelector('.comments');
-
-    // Use same AbortController for fetch
     try {
-      const response = await fetch(
-        `/api/posts/${this.data.id}/comments`,
-        { signal: this.controller.signal }
-      );
-      const comments = await response.json();
+      const response = await fetch(endpoint);
+      const data = await response.json();
 
-      // Event delegation for comments too
-      container.innerHTML = comments.map(c => `
-        <div class="comment" data-id="${c.id}">${c.text}</div>
-      `).join('');
+      // Cache the data
+      this.cache.set(endpoint, data);
 
-      container.addEventListener('click', (e) => {
-        const comment = e.target.closest('.comment');
-        if (comment) {
-          this.likeComment(comment.dataset.id);
-        }
-      }, { signal: this.controller.signal });
+      // Notify all subscribers
+      const subscribers = this.subscribers.get(endpoint) || [];
+      subscribers.forEach(id => {
+        this.dispatchDataLoaded(endpoint, data, id);
+      });
 
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('Comments fetch aborted');
-      }
+      // Notify subscribers of error
+      const subscribers = this.subscribers.get(endpoint) || [];
+      subscribers.forEach(id => {
+        this.dispatchDataError(endpoint, error, id);
+      });
+    } finally {
+      // Clean up
+      this.pendingRequests.delete(endpoint);
+      this.subscribers.delete(endpoint);
     }
   }
 
-  handleIntersection(entries) {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        // Track visibility
-        console.log('Post visible:', this.data.id);
-      }
+  dispatchDataLoaded(endpoint, data, requestId) {
+    // Use microtask to ensure state consistency
+    queueMicrotask(() => {
+      document.dispatchEvent(new CustomEvent('data:loaded', {
+        detail: {
+          endpoint,
+          data: structuredClone(data), // Prevent mutations
+          requestId,
+          timestamp: Date.now()
+        }
+      }));
     });
   }
 
-  likePost() {
-    console.log('Liked', this.data.id);
+  dispatchDataError(endpoint, error, requestId) {
+    document.dispatchEvent(new CustomEvent('data:error', {
+      detail: { endpoint, error: error.message, requestId }
+    }));
   }
 
-  likeComment(commentId) {
-    console.log('Liked comment', commentId);
-  }
-
-  sharePost() {
-    console.log('Shared', this.data.id);
-  }
-
-  followUser() {
-    console.log('Followed', this.data.username);
-  }
-
-  onImageLoad() {
-    console.log('Image loaded');
-  }
-
-  destroy() {
-    // Abort all listeners and fetches
-    this.controller.abort();
-
-    // Disconnect all observers
-    this.observers.forEach(observer => observer.disconnect());
-    this.observers = [];
-
-    // Remove from DOM
-    this.element.remove();
-
-    // Clear references
-    this.element = null;
-    this.data = null;
-  }
-}
-
-class FixedFeed {
-  constructor() {
-    this.container = document.getElementById('feed');
-    this.posts = new Map(); // Use Map for O(1) lookup
-    this.page = 0;
-    this.maxPostsInDOM = 50; // Virtual scrolling threshold
-
-    this.setupInfiniteScroll();
-  }
-
-  setupInfiniteScroll() {
-    // Use IntersectionObserver instead of scroll listener
-    this.sentinel = document.createElement('div');
-    this.sentinel.className = 'scroll-sentinel';
-    this.container.appendChild(this.sentinel);
-
-    this.scrollObserver = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        this.loadMore();
-      }
-    });
-
-    this.scrollObserver.observe(this.sentinel);
-  }
-
-  async loadMore() {
-    this.page++;
-    const response = await fetch(`/api/posts?page=${this.page}`);
-    const newPosts = await response.json();
-
-    newPosts.forEach(postData => {
-      const post = new FixedPostComponent(postData);
-      this.posts.set(postData.id, post);
-      this.container.insertBefore(post.element, this.sentinel);
-    });
-
-    // Virtual scrolling: Remove old posts from DOM
-    if (this.posts.size > this.maxPostsInDOM) {
-      this.recycleOldPosts();
+  clearCache(endpoint) {
+    if (endpoint) {
+      this.cache.delete(endpoint);
+    } else {
+      this.cache.clear();
     }
   }
+}
 
-  recycleOldPosts() {
-    const postsArray = Array.from(this.posts.values());
-    const toRemove = postsArray.slice(0, postsArray.length - this.maxPostsInDOM);
+class FixedWidget {
+  constructor(id, config) {
+    this.id = id;
+    this.config = config;
+    this.requestId = null;
+    this.destroyed = false;
 
-    toRemove.forEach(post => {
-      post.destroy(); // Proper cleanup!
-      this.posts.delete(post.data.id);
-    });
+    this.dataLoadedHandler = this.handleDataLoaded.bind(this);
+    this.dataErrorHandler = this.handleDataError.bind(this);
 
-    console.log(`Recycled ${toRemove.length} posts`);
+    document.addEventListener('data:loaded', this.dataLoadedHandler);
+    document.addEventListener('data:error', this.dataErrorHandler);
+  }
+
+  handleDataLoaded(event) {
+    // Only process events meant for this widget
+    if (event.detail.requestId !== this.requestId) {
+      return;
+    }
+
+    if (this.destroyed) {
+      return;
+    }
+
+    this.render(event.detail.data);
+  }
+
+  handleDataError(event) {
+    if (event.detail.requestId !== this.requestId) {
+      return;
+    }
+
+    console.error(`Widget ${this.id} error:`, event.detail.error);
+    this.renderError(event.detail.error);
+  }
+
+  loadData() {
+    // Generate unique request ID
+    this.requestId = `widget-${this.id}-${Date.now()}`;
+
+    document.dispatchEvent(new CustomEvent('data:request', {
+      detail: {
+        endpoint: this.config.endpoint,
+        requestId: this.requestId
+      },
+      bubbles: true
+    }));
+  }
+
+  render(data) {
+    console.log(`Widget ${this.id} rendering (ID: ${this.requestId}):`, data);
+  }
+
+  renderError(error) {
+    console.error(`Widget ${this.id} error:`, error);
   }
 
   destroy() {
-    // Cleanup all posts
-    this.posts.forEach(post => post.destroy());
-    this.posts.clear();
-
-    // Disconnect scroll observer
-    this.scrollObserver.disconnect();
-
-    this.sentinel.remove();
+    this.destroyed = true;
+    document.removeEventListener('data:loaded', this.dataLoadedHandler);
+    document.removeEventListener('data:error', this.dataErrorHandler);
   }
 }
+
+// Initialize
+const dataManager = new FixedDataManager();
+
+const widget1 = new FixedWidget(1, { endpoint: '/api/data' });
+const widget2 = new FixedWidget(2, { endpoint: '/api/data' });
+const widget3 = new FixedWidget(3, { endpoint: '/api/data' });
+
+// All widgets request data - only ONE API call made!
+widget1.loadData();
+widget2.loadData();
+widget3.loadData();
+
+// Each widget only processes its own response
 ```
 
 **Metrics After Fix:**
 
 ```javascript
-// Before fix:
-// - Memory growth: 2MB per post
-// - Total after 500 posts: 1GB+
-// - Listeners after 500 posts: ~8,000
-// - Observers: 500
-// - Scroll performance: 15fps
-// - Crash: After ~500 posts
+// Before:
+// - Duplicate API calls: 34%
+// - Stale data: 18%
+// - Server requests: 23,400/hour
+// - Memory leaks: Yes (listeners never removed)
+// - Response time: 450ms avg
 
-// After fix:
-// - Memory growth: Stable (50 posts max in DOM)
-// - Total after 500 posts: 65MB (94% reduction!)
-// - Listeners after 500 posts: ~50 (99% reduction!)
-// - Observers: 50
-// - Scroll performance: Stable 60fps
-// - Crash: Never
+// After:
+// - Duplicate API calls: 0%
+// - Stale data: 0%
+// - Server requests: 6,800/hour (71% reduction!)
+// - Memory leaks: None (proper cleanup)
+// - Response time: 180ms avg (60% faster)
 
-// Virtual scrolling impact:
-// - Only 50 posts in DOM at any time
-// - Old posts properly destroyed
-// - Memory usage capped
-// - Performance maintained
+// Cost savings: $4,200/month in server costs
 ```
+
+</details>
 
 ---
 
-*Due to length constraints, I'll continue with the remaining content (Trade-offs, Explain to Junior, and Questions 7-8) in the next edit.*
+<details>
+<summary><strong>⚖️ Trade-offs: Custom Events vs Other Patterns</strong></summary>
+
+
+**Custom Events vs Direct Method Calls:**
+
+| Aspect | Custom Events | Direct Calls | Winner |
+|--------|---------------|--------------|--------|
+| **Coupling** | Loose (pub/sub) | Tight (direct dependency) | Events |
+| **Performance** | ~2-5ms overhead | Instant | Direct |
+| **Testability** | Easy to mock | Harder to mock | Events |
+| **Debugging** | Harder to trace | Easy to trace | Direct |
+| **Async** | Natural async | Requires promises | Events |
+
+**When to Use Custom Events:**
+
+```javascript
+// ✅ Good use case: Decoupled components
+class GoodEventUse {
+  // Multiple components need to react to one action
+  handleUserAction() {
+    document.dispatchEvent(new CustomEvent('user:action', {
+      detail: { action: 'purchase' }
+    }));
+    // Analytics, UI updates, cache invalidation all happen independently
+  }
+}
+
+// ❌ Bad use case: Simple parent-child communication
+class BadEventUse {
+  // Overkill for direct parent-child
+  handleClick() {
+    this.element.dispatchEvent(new CustomEvent('button:click'));
+    // Just call a callback instead!
+  }
+}
+
+// ✅ Better:
+class BetterDirectCall {
+  constructor(onClick) {
+    this.onClick = onClick;
+  }
+
+  handleClick() {
+    this.onClick(); // Simple and direct
+  }
+}
+```
+
+**Decision Matrix:**
+
+```javascript
+class CommunicationPatternSelector {
+  static selectPattern(scenario) {
+    const patterns = {
+      'one-to-many-notification': {
+        recommended: 'Custom Events',
+        reason: 'Multiple listeners, loose coupling',
+        alternative: 'Observer pattern',
+        confidence: 'high'
+      },
+
+      'parent-child-simple': {
+        recommended: 'Callbacks/Props',
+        reason: 'Direct, simple, fast',
+        alternative: 'Custom events (overkill)',
+        confidence: 'high'
+      },
+
+      'cross-module-communication': {
+        recommended: 'Event Bus or Custom Events',
+        reason: 'Modules shouldn\'t know about each other',
+        alternative: 'Dependency injection',
+        confidence: 'high'
+      },
+
+      'state-management': {
+        recommended: 'State management library',
+        reason: 'Centralized state, time-travel debugging',
+        alternative: 'Custom events (too fragmented)',
+        confidence: 'high'
+      },
+
+      'plugin-system': {
+        recommended: 'Custom Events',
+        reason: 'Plugins shouldn\'t depend on host internals',
+        alternative: 'Hook system',
+        confidence: 'high'
+      }
+    };
+
+    return patterns[scenario];
+  }
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary><strong>💬 Explain to Junior: Custom Events</strong></summary>
+
+
+**Simple Analogy:**
+
+Think of custom events like a messaging app for your code:
+
+- **Direct method calls**: Like calling someone on the phone (you need their number, they must answer)
+- **Custom events**: Like posting in a group chat (anyone interested can listen, sender doesn't need to know who's listening)
+
+**Visual Diagram:**
+
+```
+DIRECT CALLS:                    CUSTOM EVENTS:
+=============                    ==============
+
+Component A                      Component A
+    |                                |
+    |--- calls --->                  |--- emits event --->
+    |                                         |
+Component B                              Event Bus
+                                          /   |   \
+                                         /    |    \
+                                        B     C     D
+                                    (all listening)
+
+Tight coupling                    Loose coupling
+```
+
+**Interview Answer Template:**
+
+> "Custom events let you create your own event types with custom data. They're perfect for component communication without tight coupling.
+>
+> You create them with `new CustomEvent('eventName', { detail: data })` where `detail` holds your custom data. Then dispatch with `element.dispatchEvent(event)`.
+>
+> For example, in an e-commerce app, when a user adds an item to the cart, I can dispatch a `cart:item-added` event. Then multiple components can listen for it:
+> - Cart badge updates the count
+> - Analytics tracks the event
+> - Inventory system reserves the item
+>
+> None of these components need to know about each other. The cart just dispatches the event and anyone interested can listen.
+>
+> The main advantage is loose coupling - components communicate without direct dependencies, making code more maintainable and testable."
+
+**Quick Reference:**
+
+```javascript
+// Create and dispatch
+const event = new CustomEvent('my-event', {
+  detail: { data: 'hello' },
+  bubbles: true,
+  cancelable: true
+});
+element.dispatchEvent(event);
+
+// Listen
+element.addEventListener('my-event', (e) => {
+  console.log(e.detail); // { data: 'hello' }
+});
+
+// Event bus pattern
+class EventBus {
+  constructor() {
+    this.bus = document.createElement('div');
+  }
+  on(event, callback) {
+    this.bus.addEventListener(event, callback);
+  }
+  emit(event, detail) {
+    this.bus.dispatchEvent(new CustomEvent(event, { detail }));
+  }
+}
+
+// Usage
+const bus = new EventBus();
+bus.on('user:login', (e) => console.log(e.detail.user));
+bus.emit('user:login', { user: { name: 'John' } });
+```
+
+
+</details>
