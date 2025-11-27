@@ -44,6 +44,9 @@ type Paths = PathOf<{ user: { name: string; age: number } }>;
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: Recursive Type System and Tail Call Optimization</strong></summary>
+
 #### 🔍 **Deep Dive: Recursive Type System and Tail Call Optimization**
 
 Recursive types in TypeScript enable powerful transformations on deeply nested structures, but they come with important performance and complexity considerations. Understanding how the type checker processes recursion is crucial for writing efficient type-level code.
@@ -314,6 +317,11 @@ The TypeScript compiler implements recursive type checking through:
 
 ---
 
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Form Validation State Type Explosion</strong></summary>
+
 #### 🐛 **Real-World Scenario: Form Validation State Type Explosion**
 
 **Context:** Enterprise application with complex nested forms (inventory management system, 300+ form fields across 12 nested levels). TypeScript compilation time ballooned from 8s to 180s after adding deep validation types.
@@ -582,7 +590,10 @@ type GeneratedFormState = {
 5. **Consider Code Generation**: For very large/deep forms, generate explicit types
 6. **Use Selective Recursion**: Only recurse where actually needed, use simple types elsewhere
 
----
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Recursive Type Complexity vs. Type Precision</strong></summary>
 
 #### ⚖️ **Trade-offs: Recursive Type Complexity vs. Type Precision**
 
@@ -892,7 +903,10 @@ type GeneratedReadonly = {
    - Small (<5): Optimize for developer experience (recursive)
    - Large (>20): Optimize for build time (explicit/generated)
 
----
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Recursion Like Russian Nesting Dolls</strong></summary>
 
 #### 💬 **Explain to Junior: Recursion Like Russian Nesting Dolls**
 
@@ -1173,6 +1187,8 @@ It checks if T is an object, makes each property optional, and recursively appli
 - **R**ecursive case: Call the type on nested parts (object properties)
 - **U**nwinding: Build result from recursive calls (combine with mapped types)
 
+</details>
+
 ### Q13-15: Advanced Patterns & Best Practices
 
 ```typescript
@@ -1228,6 +1244,9 @@ const eur = 100 as EUR;
 ```
 
 ---
+
+<details>
+<summary><strong>🔍 Deep Dive: Advanced Type Pattern Architectures</strong></summary>
 
 #### 🔍 **Deep Dive: Advanced Type Pattern Architectures**
 
@@ -1617,6 +1636,11 @@ const OptionFunctor: Functor<OptionHKT> = {
 
 ---
 
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Type-Safe State Management Library Bugs</strong></summary>
+
 #### 🐛 **Real-World Scenario: Type-Safe State Management Library Bugs**
 
 **Context:** Open-source state management library with 50K+ GitHub stars. After adding "type-safe" builder pattern for state updates, users reported 1,200+ issues about confusing type errors and unexpected runtime behavior.
@@ -1862,7 +1886,10 @@ const updated = userNameLens.set('Jane')(currentState); // ✅ Type-safe
 5. **Test with --strict**: Catch type holes before users do
 6. **Progressive Type Accumulation**: Track what's been set in the type parameter
 
----
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Pattern Complexity vs. Developer Experience</strong></summary>
 
 #### ⚖️ **Trade-offs: Pattern Complexity vs. Developer Experience**
 
@@ -2222,7 +2249,10 @@ const query = createQuery({
    - Junior: Stick to simple patterns
    - Senior: Advanced patterns acceptable
 
----
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Design Patterns Like LEGO Instructions</strong></summary>
 
 #### 💬 **Explain to Junior: Design Patterns Like LEGO Instructions**
 
@@ -2531,6 +2561,8 @@ TypeScript tracks which fields you've set and only allows build() when all are c
 - **B**uilder: Step-by-step construction with type accumulation
 - **E**vents: Decoupled communication with type-safe message passing
 - **P**hantom: State encoded in types for compile-time state machines
+
+</details>
 
 ### Resources
 - [TypeScript Advanced Types](https://www.typescriptlang.org/docs/handbook/2/types-from-types.html)

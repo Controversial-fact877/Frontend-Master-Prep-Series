@@ -297,6 +297,9 @@ function createUser(data: CreateUser) {
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: How TypeScript's Built-in Utility Types Work</strong></summary>
+
 ## Deep Dive: How TypeScript's Built-in Utility Types Work
 
 ### Internal Implementation of Utility Types
@@ -543,6 +546,11 @@ TypeScript optimizes utility type evaluation through:
 - `Awaited<T>`: 45ms (recursive)
 
 ---
+
+</details>
+
+<details>
+<parameter name="summary"><strong>🐛 Real-World Scenario: Type-Safe Redux State Management</strong></summary>
 
 ## Real-World Scenario: Type-Safe Redux State Management
 
@@ -890,7 +898,10 @@ Business Impact:
 4. **Type unions enable exhaustiveness checking** - Compiler ensures all cases handled
 5. **Type-driven development improves quality** - 99.5% reduction in runtime errors
 
----
+</details>
+
+<details>
+<parameter name="summary"><strong>⚖️ Trade-offs: When to Use Each Utility Type</strong></summary>
 
 ## Trade-offs: When to Use Each Utility Type
 
@@ -1145,7 +1156,10 @@ type NonNullString = NonNullable<string | null | undefined>;
 3. Avoid chaining more than 2-3 utilities
 4. Profile TypeScript compilation time with `--diagnostics`
 
----
+</details>
+
+<details>
+<parameter name="summary"><strong>💬 Explain to Junior: Utility Types for Everyday Coding</strong></summary>
 
 ## Explain to Junior: Utility Types for Everyday Coding
 
@@ -1523,6 +1537,10 @@ type User = Awaited<ReturnType<typeof fetchUser>>;
 9. **Awaited** - Unwraps Promise types
 
 **Golden rule:** Use utility types to transform existing types instead of duplicating them. Your future self (and teammates) will thank you when refactoring!
+
+</details>
+
+</details>
 
 ---
 

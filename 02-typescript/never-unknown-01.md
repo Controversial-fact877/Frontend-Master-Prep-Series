@@ -116,7 +116,8 @@ unknownVal = neverVal;  // never → unknown
 
 ---
 
-### 🔍 Deep Dive: Type System Theory and Bottom Types
+<details>
+<summary><strong>🔍 Deep Dive: Type System Theory and Bottom Types</strong></summary>
 
 **Never as a Bottom Type:**
 
@@ -368,9 +369,10 @@ function isComplexType(value: unknown): value is ComplexType {
 }
 ```
 
----
+</details>
 
-### 🐛 Real-World Scenario: Type Safety Bug in API Integration
+<details>
+<summary><strong>🐛 Real-World Scenario: Type Safety Bug in API Integration</strong></summary>
 
 **Background:**
 E-commerce platform integrating third-party payment gateway API. Initial implementation used `any` for API responses, leading to runtime errors in production.
@@ -596,9 +598,10 @@ function isPaymentResponse(value: unknown): value is PaymentResponse {
 - Support tickets reduced: 340 → 8 per month
 - **ROI**: 925x (2 hours investment, ~1850 hours support time saved)
 
----
+</details>
 
-### ⚖️ Trade-offs: unknown vs any, never vs void
+<details>
+<summary><strong>⚖️ Trade-offs: unknown vs any, never vs void</strong></summary>
 
 **unknown vs any:**
 
@@ -836,9 +839,10 @@ async function main() {
 }
 ```
 
----
+</details>
 
-### 💬 Explain to Junior: The Safety Net Analogy
+<details>
+<summary><strong>💬 Explain to Junior: The Safety Net Analogy</strong></summary>
 
 **Simple Explanation:**
 
@@ -1056,6 +1060,8 @@ never → string/number/etc → unknown → any
 //   No → Regular error handling
 ```
 
+</details>
+
 ---
 
 ## Question 2: How to use never for exhaustive checking?
@@ -1216,7 +1222,8 @@ function handleStatus(status: Status): string {
 
 ---
 
-### 🔍 Deep Dive: Type Theory Behind Exhaustive Checking
+<details>
+<summary><strong>🔍 Deep Dive: Type Theory Behind Exhaustive Checking</strong></summary>
 
 **Control Flow Analysis (CFA):**
 
@@ -1537,9 +1544,10 @@ type Action = /* existing actions */ | { type: 'RESET' };
 // Compiler error: Type '{ type: "RESET"; }' is not assignable to type 'never'
 ```
 
----
+</details>
 
-### 🐛 Real-World Scenario: Payment State Machine Bug
+<details>
+<summary><strong>🐛 Real-World Scenario: Payment State Machine Bug</strong></summary>
 
 **Background:**
 Fintech company processing online payments. State machine handled payment lifecycle with 4 states initially. New "refund pending" state added without updating all handlers, causing payments to get stuck.
@@ -1838,9 +1846,10 @@ function displayMetrics(metrics: StateMetrics): void {
 - **Development overhead**: 4 hours to add exhaustive checks
 - **ROI**: $88k saved / 4 hours = $22k per hour invested
 
----
+</details>
 
-### ⚖️ Trade-offs: Exhaustive Checking Patterns
+<details>
+<summary><strong>⚖️ Trade-offs: Exhaustive Checking Patterns</strong></summary>
 
 **Pattern 1: assertNever Helper vs Inline Checks:**
 
@@ -2109,9 +2118,10 @@ function handleAction(action: Action): void {
 }
 ```
 
----
+</details>
 
-### 💬 Explain to Junior: The Checklist Analogy
+<details>
+<summary><strong>💬 Explain to Junior: The Checklist Analogy</strong></summary>
 
 **Simple Explanation:**
 
@@ -2373,3 +2383,5 @@ Default case:
 ```
 
 This mental model helps you remember: **never means "nothing left to handle"**. If something's left, it's not never, and TypeScript complains.
+
+</details>

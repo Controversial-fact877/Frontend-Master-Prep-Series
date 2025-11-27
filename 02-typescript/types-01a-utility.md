@@ -263,6 +263,9 @@ type Getters<T> = {
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: Mapped Types Internals</strong></summary>
+
 ## Deep Dive: Mapped Types Internals
 
 ### How TypeScript Compiles Mapped Types
@@ -397,6 +400,11 @@ For large-scale applications, consider:
 - Leveraging TypeScript's structural typing to reuse types
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Form State Management Type Safety</strong></summary>
 
 ## Real-World Scenario: Form State Management Type Safety
 
@@ -689,6 +697,11 @@ const advancedValidators: ConditionalValidator<User> = {
 
 ---
 
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Choosing the Right Mapped Type Pattern</strong></summary>
+
 ## Trade-offs: Choosing the Right Mapped Type Pattern
 
 ### Decision Matrix for Mapped Type Strategies
@@ -976,6 +989,11 @@ Based on TypeScript compiler benchmarks (TypeScript 5.3):
 4. **Use incremental builds:** Enable `incremental: true` in tsconfig.json
 
 ---
+
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Mapped Types Made Simple</strong></summary>
 
 ## Explain to Junior: Mapped Types Made Simple
 
@@ -1313,6 +1331,7 @@ Remember: Start simple with built-in utilities, create custom mapped types only 
 
 ---
 
+</details>
 
 ## Question 2: What are conditional types?
 
@@ -1573,6 +1592,9 @@ type ReturnType<T> = T extends (...args: any[]) => infer R ? R : never;
 - [Advanced Type Inference](https://www.typescriptlang.org/docs/handbook/2/conditional-types.html#inferring-within-conditional-types)
 
 ---
+
+<details>
+<summary><strong>🔍 Deep Dive: Conditional Types Type System Mechanics</strong></summary>
 
 ## Deep Dive: Conditional Types Type System Mechanics
 
@@ -1852,6 +1874,11 @@ type C = IsString<number>;  // New computation
 The type checker maintains a resolution cache, making repeated type checks O(1) after the first evaluation.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: API Type Inference System</strong></summary>
 
 ## Real-World Scenario: API Type Inference System
 
@@ -2208,6 +2235,11 @@ Code Quality:
 
 ---
 
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Conditional Type Complexity vs. Simplicity</strong></summary>
+
 ## Trade-offs: Conditional Type Complexity vs. Simplicity
 
 ### Decision Matrix for Conditional Type Usage
@@ -2456,6 +2488,11 @@ TypeScript 5.3 benchmarks for 1,000 type evaluations:
 5. **Team alignment**: Ensure entire team understands chosen complexity level
 
 ---
+
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Conditional Types Made Simple</strong></summary>
 
 ## Explain to Junior: Conditional Types Made Simple
 
@@ -2831,6 +2868,8 @@ type DeepReadonlyObjects<T> = {
 6. **Add base cases for recursion** - Prevent infinite type loops
 
 Remember: Conditional types are advanced TypeScript—use them when simpler approaches (like `Pick`, `Omit`) don't suffice. Start simple, add complexity only when justified.
+
+</details>
 
 ---
 

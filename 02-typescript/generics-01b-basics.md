@@ -187,6 +187,9 @@ type ExtractStringSafe<T> = [T] extends [never]
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: Conditional Type Mechanics and Advanced Patterns</strong></summary>
+
 ## 🔍 Deep Dive: Conditional Type Mechanics and Advanced Patterns
 
 ### How TypeScript Evaluates Conditional Types
@@ -553,6 +556,11 @@ type FastUnwrap<T> = T extends Promise<any>
 
 ---
 
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Conditional Type Bug in Type-Safe Router</strong></summary>
+
 ## 🐛 Real-World Scenario: Conditional Type Bug in Type-Safe Router
 
 ### The Problem
@@ -890,6 +898,11 @@ function validateRoute<Path extends string>(
 
 ---
 
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Conditional Types vs Alternatives</strong></summary>
+
 ## ⚖️ Trade-offs: Conditional Types vs Alternatives
 
 ### Decision Matrix: When to Use Conditional Types
@@ -1148,6 +1161,11 @@ const runtimeField: GenericFormField = {
 **Verdict:** Use conditional types for type safety, runtime validation for complex/dynamic rules. Combine both for best results.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Conditional Types Made Simple</strong></summary>
 
 ## 💬 Explain to Junior: Conditional Types Made Simple
 
@@ -1436,6 +1454,8 @@ type BoolKeys = FilterByType<User, boolean>;    // 'isActive'
 ```
 
 **Key Takeaway:** Conditional types let you write type-level logic that makes your code more flexible and type-safe. They're like if-else for types!
+
+</details>
 
 ---
 

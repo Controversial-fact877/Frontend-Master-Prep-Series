@@ -300,6 +300,9 @@ type DeepPartial<T> = {
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: Interface vs Type - Compiler Internals and Structural Typing</strong></summary>
+
 ## 🔍 Deep Dive: Interface vs Type - Compiler Internals and Structural Typing
 
 ### TypeScript Compiler's Representation
@@ -602,6 +605,11 @@ type NonNullable<T> = T extends null | undefined ? never : T;
 - Declaration merging is preserved in `.d.ts` files
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Interface Declaration Conflict in Multi-Team Codebase</strong></summary>
 
 ## 🐛 Real-World Scenario: Interface Declaration Conflict in Multi-Team Codebase
 
@@ -994,6 +1002,11 @@ function isAllowedMerge(typeName: string): boolean {
 - Code review checklist includes type system guidelines
 
 ---
+
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Interface vs Type Alias - Decision Framework</strong></summary>
 
 ## ⚖️ Trade-offs: Interface vs Type Alias - Decision Framework
 
@@ -1486,6 +1499,11 @@ type ModernConfig = {
 - Generic utilities: `type` (advanced type features)
 
 ---
+
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Understanding Interface vs Type in TypeScript</strong></summary>
 
 ## 💬 Explain to Junior: Understanding Interface vs Type in TypeScript
 
@@ -2070,6 +2088,11 @@ const status: 'pending' = 'pending';
 
 ---
 
+</details>
+
+<details>
+<summary><strong>🔍 Deep Dive: TypeScript's Type Inference Algorithm</strong></summary>
+
 ## 🔍 Deep Dive: TypeScript's Type Inference Algorithm
 
 ### How the Compiler Infers Types
@@ -2359,6 +2382,11 @@ function processData(items: Item[]): ProcessedItem[] {
 For library code and public APIs, explicit types are recommended both for performance and clarity.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Type Inference Bug in Production</strong></summary>
 
 ## 🐛 Real-World Scenario: Type Inference Bug in Production
 
@@ -2736,6 +2764,11 @@ module.exports = {
 This scenario demonstrates why understanding type inference deeply matters—overly permissive inference can introduce subtle bugs that manifest at runtime despite TypeScript's static typing.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Type Inference vs. Explicit Annotations</strong></summary>
 
 ## ⚖️ Trade-offs: Type Inference vs. Explicit Annotations
 
@@ -3151,6 +3184,11 @@ const result: Promise<ApiResponse> = fetch('/api/data').then(res => res.json());
 
 ---
 
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Type Inference Made Simple</strong></summary>
+
 ## 💬 Explain to Junior: Type Inference Made Simple
 
 ### The Auto-Complete Analogy
@@ -3433,6 +3471,8 @@ Is the inferred type too wide (any, string vs 'pending')?
 - Simple variables → Infer
 - Functions → Annotate
 - Public APIs → Always annotate
+
+</details>
 
 ---
 

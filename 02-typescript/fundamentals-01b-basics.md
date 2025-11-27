@@ -309,6 +309,9 @@ type OneOrOther = TypeA | TypeB; // Can be either type
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: Union and Intersection Type System Internals</strong></summary>
+
 ## 🔍 Deep Dive: Union and Intersection Type System Internals
 
 ### How TypeScript's Type System Handles Set Theory
@@ -688,6 +691,11 @@ type PartialUser = OptionalFields<User, 'age' | 'email'>;
 ```
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Union Type Mismanagement</strong></summary>
 
 ## 🐛 Real-World Scenario: Union Type Mismanagement
 
@@ -1106,6 +1114,11 @@ This scenario demonstrates why discriminated unions are essential for complex st
 
 ---
 
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Union vs Intersection Types</strong></summary>
+
 ## ⚖️ Trade-offs: Union vs Intersection Types
 
 ### Decision Framework for Type Composition
@@ -1498,6 +1511,11 @@ fn(42);      // OK - matches F2
 
 ---
 
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Unions and Intersections Made Simple</strong></summary>
+
 ## 💬 Explain to Junior: Unions and Intersections Made Simple
 
 ### The Restaurant Menu Analogy
@@ -1794,6 +1812,8 @@ Do you need different shapes in different cases?
 **Remember:**
 - **Union** = **U**nique choice (pick **ONE**)
 - **Intersection** = **I**ncludes all (**ALL** required)
+
+</details>
 
 ---
 

@@ -58,6 +58,9 @@ type Params = Parameters<typeof getUser>;
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: Mapped Types and Conditional Type Internals</strong></summary>
+
 #### 🔍 **Deep Dive: Mapped Types and Conditional Type Internals**
 
 TypeScript's utility types are built on two foundational mechanisms: **mapped types** and **conditional types**. Understanding their internal implementation reveals how TypeScript performs type transformations at compile time.
@@ -200,6 +203,11 @@ type DeepNested<T, N extends number = 0> =
 ```
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: API Response Type Transformation Crisis</strong></summary>
 
 #### 🐛 **Real-World Scenario: API Response Type Transformation Crisis**
 
@@ -441,7 +449,10 @@ function isCompletePublicUser(
 4. **Document Type Contracts**: API responses should have explicit type documentation
 5. **Use Branded Types for IDs**: Prevents string/number ID confusion
 
----
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Utility Type Complexity vs. Type Safety</strong></summary>
 
 #### ⚖️ **Trade-offs: Utility Type Complexity vs. Type Safety**
 
@@ -754,7 +765,10 @@ function processResponse(response: ApiResponse): void {
    - Medium (internal tools): Utility types with guards
    - Low (prototypes): Minimal typing
 
----
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Type Transformations Like Photo Filters</strong></summary>
 
 #### 💬 **Explain to Junior: Type Transformations Like Photo Filters**
 
@@ -1012,6 +1026,8 @@ The `?` makes each property optional."
 - **E**xclude: Filters out union members (like removing options)
 - **R**eturnType: Extracts function return type (like copying output)
 
+</details>
+
 ### Q7-9: Template Literal Types & String Manipulation
 
 ```typescript
@@ -1034,6 +1050,9 @@ type EventHandler = `on${Capitalize<EventName>}`;
 ```
 
 ---
+
+<details>
+<summary><strong>🔍 Deep Dive: Template Literal Type System Internals</strong></summary>
 
 #### 🔍 **Deep Dive: Template Literal Type System Internals**
 
@@ -1285,6 +1304,11 @@ sendEmail('not-validated'); // ❌ Error: string not assignable to Email
 ```
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: API Route Type Safety Catastrophe</strong></summary>
 
 #### 🐛 **Real-World Scenario: API Route Type Safety Catastrophe**
 
@@ -1568,7 +1592,10 @@ await api.get('getUser', {}); // Error: missing required parameter
 4. **Full-Stack Consistency**: Share type definitions across layers
 5. **Gradual Migration**: Can be adopted incrementally per-route
 
----
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Template Literal Complexity vs. Type Precision</strong></summary>
 
 #### ⚖️ **Trade-offs: Template Literal Complexity vs. Type Precision**
 
@@ -1893,7 +1920,10 @@ const userRoute = routes.getUser('123'); // Type: "/api/v1/users/${string}"
    - Stable: Manual types (simplicity)
    - Large team: Template literals (consistency)
 
----
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: String Types Like Mad Libs</strong></summary>
 
 #### 💬 **Explain to Junior: String Types Like Mad Libs**
 
@@ -2147,4 +2177,6 @@ This extracts the parameter name from a route segment."
 - **T**ransformations: Change case (Uppercase, Capitalize)
 - **E**xtraction: Pull out parts with `infer`
 - **M**apping: Convert between naming conventions (kebab → camel)
+
+</details>
 

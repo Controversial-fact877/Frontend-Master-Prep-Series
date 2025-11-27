@@ -187,6 +187,9 @@ function processItems<T>(items: T[]): void {
 
 ---
 
+<details>
+<summary><strong>🔍 Deep Dive: How TypeScript Generics Work Internally</strong></summary>
+
 ## 🔍 Deep Dive: How TypeScript Generics Work Internally
 
 ### Type Variable Resolution and Inference
@@ -457,6 +460,11 @@ type GetReturnTypeFast<T> =
 
 ---
 
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Generic Type Inference Fails in Production API Client</strong></summary>
+
 ## 🐛 Real-World Scenario: Generic Type Inference Fails in Production API Client
 
 ### The Problem
@@ -707,6 +715,11 @@ async function getWithValidation<T>(
 5. **Monitoring is Critical**: Track schema mismatches as key metrics
 
 ---
+
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: When to Use Generics vs Alternatives</strong></summary>
 
 ## ⚖️ Trade-offs: When to Use Generics vs Alternatives
 
@@ -1108,6 +1121,11 @@ console.log(cache.getStats());  // { total: 1, byType: { user: 1 } }
 **Verdict:** Generic classes for isolation, composition for unified management.
 
 ---
+
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Understanding TypeScript Generics Like a Pro</strong></summary>
 
 ## 💬 Explain to Junior: Understanding TypeScript Generics Like a Pro
 
@@ -1622,6 +1640,11 @@ function lengthSafe<T extends { length: number }>(item: T): number {
 
 ---
 
+</details>
+
+<details>
+<summary><strong>🔍 Deep Dive: Generic Constraint Mechanics and Advanced Patterns</strong></summary>
+
 ## 🔍 Deep Dive: Generic Constraint Mechanics and Advanced Patterns
 
 ### How TypeScript Resolves Generic Constraints
@@ -1974,6 +1997,11 @@ const userRepo: Repository<User> = { /* ... */ };
 ```
 
 ---
+
+</details>
+
+<details>
+<summary><strong>🐛 Real-World Scenario: Generic Constraint Bugs in E-Commerce Search</strong></summary>
 
 ## 🐛 Real-World Scenario: Generic Constraint Bugs in E-Commerce Search
 
@@ -2330,6 +2358,11 @@ try {
 5. **Use adapter pattern** - Don't force types to conform, adapt them
 
 ---
+
+</details>
+
+<details>
+<summary><strong>⚖️ Trade-offs: Generic Constraints vs Type Unions vs Overloads</strong></summary>
 
 ## ⚖️ Trade-offs: Generic Constraints vs Type Unions vs Overloads
 
@@ -2714,6 +2747,11 @@ const result = pipeline2
 
 ---
 
+</details>
+
+<details>
+<summary><strong>💬 Explain to Junior: Generic Constraints Made Simple</strong></summary>
+
 ## 💬 Explain to Junior: Generic Constraints Made Simple
 
 ### What Are Generic Constraints?
@@ -3026,6 +3064,8 @@ class NotificationCenter<T extends Notification> {
 ```
 
 **Key Takeaway:** Constraints are like a contract - they guarantee that your generic type T will have specific properties, letting you write safe, reusable code!
+
+</details>
 
 ---
 
