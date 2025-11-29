@@ -404,7 +404,201 @@ function Feed() {
 }
 ```
 
-## Solution 3: Scroll Event (Legacy Approach)
+## Solution 3: Bi-Directional Infinite Scroll
+
+```javascript
+// Load both older items (bottom) and newer items (top)
+class BiDirectionalScroll {
+  constructor(options) {
+    this.container = document.querySelector(options.container);
+    this.fetchOlder = options.fetchOlder;
+    this.fetchNewer = options.fetchNewer;
+    this.renderItem = options.renderItem;
+
+    this.state = {
+      olderPage: 1,
+      newerPage: 1,
+      isLoadingOlder: false,
+      isLoadingNewer: false,
+      hasMoreOlder: true,
+      hasMoreNewer: true,
+      scrollRestorationKey: null,
+    };
+
+    this.init();
+  }
+
+  init() {
+    this.createSentinels();
+    this.setupObservers();
+    this.loadOlder(); // Initial load
+  }
+
+  createSentinels() {
+    // Top sentinel
+    this.topSentinel = document.createElement('div');
+    this.topSentinel.className = 'top-sentinel';
+    this.topSentinel.style.height = '1px';
+    this.container.insertBefore(this.topSentinel, this.container.firstChild);
+
+    // Bottom sentinel
+    this.bottomSentinel = document.createElement('div');
+    this.bottomSentinel.className = 'bottom-sentinel';
+    this.bottomSentinel.style.height = '1px';
+    this.container.appendChild(this.bottomSentinel);
+
+    // Loaders
+    this.topLoader = this.createLoader('top');
+    this.bottomLoader = this.createLoader('bottom');
+    this.container.insertBefore(this.topLoader, this.topSentinel.nextSibling);
+    this.container.insertBefore(this.bottomLoader, this.bottomSentinel);
+  }
+
+  createLoader(position) {
+    const loader = document.createElement('div');
+    loader.className = `loader-${position}`;
+    loader.innerHTML = '<div class="spinner"></div>';
+    loader.style.display = 'none';
+    return loader;
+  }
+
+  setupObservers() {
+    // Observer for bottom (older items)
+    this.bottomObserver = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !this.state.isLoadingOlder &&
+          this.state.hasMoreOlder
+        ) {
+          this.loadOlder();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    this.bottomObserver.observe(this.bottomSentinel);
+
+    // Observer for top (newer items)
+    this.topObserver = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !this.state.isLoadingNewer &&
+          this.state.hasMoreNewer
+        ) {
+          this.loadNewer();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    this.topObserver.observe(this.topSentinel);
+  }
+
+  async loadOlder() {
+    if (this.state.isLoadingOlder || !this.state.hasMoreOlder) return;
+
+    this.state.isLoadingOlder = true;
+    this.bottomLoader.style.display = 'block';
+
+    try {
+      const items = await this.fetchOlder(this.state.olderPage);
+
+      if (!items || items.length === 0) {
+        this.state.hasMoreOlder = false;
+        return;
+      }
+
+      this.renderItemsAtBottom(items);
+      this.state.olderPage++;
+    } catch (error) {
+      console.error('Error loading older items:', error);
+    } finally {
+      this.state.isLoadingOlder = false;
+      this.bottomLoader.style.display = 'none';
+    }
+  }
+
+  async loadNewer() {
+    if (this.state.isLoadingNewer || !this.state.hasMoreNewer) return;
+
+    this.state.isLoadingNewer = true;
+    this.topLoader.style.display = 'block';
+
+    // Save scroll position
+    const scrollBefore = this.container.scrollHeight - this.container.scrollTop;
+
+    try {
+      const items = await this.fetchNewer(this.state.newerPage);
+
+      if (!items || items.length === 0) {
+        this.state.hasMoreNewer = false;
+        return;
+      }
+
+      this.renderItemsAtTop(items);
+      this.state.newerPage++;
+
+      // Restore scroll position
+      requestAnimationFrame(() => {
+        const scrollAfter = this.container.scrollHeight - scrollBefore;
+        this.container.scrollTop = scrollAfter;
+      });
+    } catch (error) {
+      console.error('Error loading newer items:', error);
+    } finally {
+      this.state.isLoadingNewer = false;
+      this.topLoader.style.display = 'none';
+    }
+  }
+
+  renderItemsAtBottom(items) {
+    const fragment = document.createDocumentFragment();
+    items.forEach((item) => {
+      const div = document.createElement('div');
+      div.innerHTML = this.renderItem(item);
+      fragment.appendChild(div.firstElementChild);
+    });
+    this.container.insertBefore(fragment, this.bottomSentinel);
+  }
+
+  renderItemsAtTop(items) {
+    const fragment = document.createDocumentFragment();
+    items.reverse().forEach((item) => {
+      const div = document.createElement('div');
+      div.innerHTML = this.renderItem(item);
+      fragment.appendChild(div.firstElementChild);
+    });
+    this.container.insertBefore(fragment, this.topSentinel.nextSibling);
+  }
+
+  destroy() {
+    this.topObserver.disconnect();
+    this.bottomObserver.disconnect();
+  }
+}
+
+// Usage: Chat/messaging app
+const scroll = new BiDirectionalScroll({
+  container: '#messages',
+  fetchOlder: async (page) => {
+    // Load older messages
+    const res = await fetch(`/api/messages?page=${page}&direction=older`);
+    return res.json();
+  },
+  fetchNewer: async (page) => {
+    // Load newer messages
+    const res = await fetch(`/api/messages?page=${page}&direction=newer`);
+    return res.json();
+  },
+  renderItem: (msg) => `
+    <div class="message">
+      <strong>${msg.user}</strong>: ${msg.text}
+    </div>
+  `,
+});
+```
+
+## Solution 4: Scroll Event (Legacy Approach)
 
 ```javascript
 // Less efficient than Intersection Observer, but works in older browsers
@@ -606,9 +800,22 @@ describe('InfiniteScroll', () => {
 });
 ```
 
+## Time & Space Complexity
+
+**Intersection Observer Approach:**
+- **Loading new items:** O(n) where n = items per page
+- **Observer callback:** O(1) - constant time
+- **Memory:** O(total items loaded) - grows linearly with scroll
+- **Note:** For thousands of items, consider virtual scrolling to maintain O(viewport items) memory
+
+**Scroll Event Approach:**
+- **Scroll handler:** O(1) per call, but fires 100+ times/second
+- **With throttling:** O(1) per throttled interval
+- **Memory:** Same as Intersection Observer
+
 ## Common Mistakes
 
-❌ **Mistake:** Not preventing duplicate requests
+❌ **Mistake 1:** Not preventing duplicate requests
 ```javascript
 // Can trigger multiple simultaneous requests
 if (entries[0].isIntersecting) {
@@ -623,35 +830,213 @@ if (entries[0].isIntersecting && !isLoading && hasMore) {
 }
 ```
 
-❌ **Mistake:** Using scroll events without throttling
+❌ **Mistake 2:** Using scroll events without throttling
 ```javascript
 window.addEventListener('scroll', handleScroll);  // Fires too often
 ```
 
 ✅ **Correct:** Throttle or use Intersection Observer
 ```javascript
-// Better: Intersection Observer
-const observer = new IntersectionObserver(callback);
+// Better: Intersection Observer (modern, performant)
+const observer = new IntersectionObserver(callback, {
+  rootMargin: '200px', // Load before reaching end
+  threshold: 0.8
+});
 
-// Or throttle scroll events
+// Or throttle scroll events (legacy)
 window.addEventListener('scroll', throttle(handleScroll, 200));
 ```
 
+❌ **Mistake 3:** Poor UX - Loading too early or too late
+```javascript
+// Loads when already at bottom - janky UX
+rootMargin: '0px'
+```
+
+✅ **Correct:** Load before user reaches end
+```javascript
+// Load 200px before bottom - smooth UX
+rootMargin: '200px'
+```
+
+❌ **Mistake 4:** Not handling errors
+```javascript
+async loadMore() {
+  const data = await this.fetchData(this.state.page);
+  this.renderItems(data);  // No try/catch
+}
+```
+
+✅ **Correct:** Error handling with retry option
+```javascript
+async loadMore() {
+  try {
+    const data = await this.fetchData(this.state.page);
+    this.renderItems(data);
+  } catch (error) {
+    console.error('Failed to load:', error);
+    this.showError(error);
+    // Show retry button
+  }
+}
+```
+
+❌ **Mistake 5:** Images without lazy loading
+```javascript
+<img src="${item.image}" alt="${item.title}">
+```
+
+✅ **Correct:** Native lazy loading
+```javascript
+<img src="${item.image}" alt="${item.title}" loading="lazy">
+```
+
+## Accessibility Considerations
+
+**1. ARIA Live Regions**
+```html
+<!-- Announce loading state to screen readers -->
+<div role="status" aria-live="polite" aria-atomic="true">
+  {isLoading ? 'Loading more items...' : ''}
+</div>
+
+<div role="status" aria-live="polite" aria-atomic="true">
+  {!hasMore ? 'All items loaded' : ''}
+</div>
+```
+
+**2. Focus Management**
+```javascript
+// Maintain focus when new items load
+const lastFocusedIndex = getFocusedItemIndex();
+loadMore().then(() => {
+  if (lastFocusedIndex >= 0) {
+    focusItemAtIndex(lastFocusedIndex);
+  }
+});
+```
+
+**3. Keyboard Navigation**
+```javascript
+// Allow keyboard users to skip to "Load More" button
+<button
+  onClick={loadMore}
+  aria-label="Load more items"
+  tabIndex={0}
+>
+  Load More
+</button>
+```
+
+**4. Provide Manual Load Option**
+```javascript
+// Alternative to auto-loading - better for screen reader users
+<button
+  className="load-more-btn"
+  onClick={loadMore}
+  disabled={isLoading || !hasMore}
+  aria-busy={isLoading}
+>
+  {isLoading ? 'Loading...' : hasMore ? 'Load More' : 'All loaded'}
+</button>
+```
+
+**5. Semantic HTML**
+```html
+<main>
+  <h1>Feed</h1>
+  <section aria-label="Items list">
+    <article>Item 1</article>
+    <article>Item 2</article>
+  </section>
+
+  <!-- Loading indicator -->
+  <div role="status" aria-label="Loading more items">
+    <div class="spinner"></div>
+  </div>
+</main>
+```
+
+**6. Prefers Reduced Motion**
+```css
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+
+  .autocomplete-item {
+    transition: none;
+  }
+}
+```
+
+## Performance Optimizations
+
+**1. Use `loading="lazy"` on images**
+```javascript
+<img src="${post.image}" alt="${post.title}" loading="lazy">
+```
+
+**2. Implement virtual scrolling for 1000+ items**
+- Only render visible items + buffer
+- Reuse DOM elements
+- Libraries: `react-window`, `react-virtualized`
+
+**3. Optimize `rootMargin` and `threshold`**
+```javascript
+// Load 200px before end - smooth UX
+{
+  rootMargin: '200px',
+  threshold: 0.8
+}
+```
+
+**4. Use `requestIdleCallback` for non-critical rendering**
+```javascript
+requestIdleCallback(() => {
+  this.renderLowPriorityItems();
+});
+```
+
+**5. Batch DOM updates with `DocumentFragment`**
+```javascript
+const fragment = document.createDocumentFragment();
+items.forEach(item => fragment.appendChild(createItem(item)));
+container.appendChild(fragment); // Single reflow
+```
+
+**6. Consider bi-directional infinite scroll for feeds**
+- Load older items at bottom
+- Load newer items at top
+- Maintain scroll position
+
 ## Real-World Applications
 
-1. **Social media feeds** - Twitter, Instagram, Facebook
-2. **Image galleries** - Pinterest, Unsplash
-3. **E-commerce listings** - Amazon, eBay
-4. **Article feeds** - Medium, Reddit
-5. **Search results** - Google Images
+1. **Social media feeds** - Twitter, Instagram, Facebook, TikTok
+2. **Image galleries** - Pinterest, Unsplash, Google Images
+3. **E-commerce listings** - Amazon product pages, eBay search results
+4. **Article feeds** - Medium, Reddit, LinkedIn feed
+5. **Video platforms** - YouTube search, Netflix browse
 
 ## Follow-up Questions
 
+**Basic:**
+- "What's the difference between scroll events and Intersection Observer?"
+- "Why do we need debouncing/throttling for scroll events?"
+- "How do you prevent duplicate API requests?"
+
+**Intermediate:**
 - "How do you handle pagination with URL parameters?"
-- "What's the performance difference between scroll events and Intersection Observer?"
-- "How would you implement bidirectional infinite scroll?"
-- "How do you handle items with dynamic heights?"
-- "How do you preserve scroll position on navigation?"
+- "How do you preserve scroll position on navigation back/forward?"
+- "What happens if items have dynamic heights?"
+- "How would you implement a 'back to top' button?"
+
+**Advanced:**
+- "How would you implement bidirectional infinite scroll (load top + bottom)?"
+- "How do you combine infinite scroll with virtual scrolling for 10,000+ items?"
+- "How do you handle real-time updates (new items) in an infinite scroll feed?"
+- "What are the accessibility concerns and how do you address them?"
+- "How would you implement infinite scroll with server-side rendering (SSR)?"
 
 ## Resources
 
