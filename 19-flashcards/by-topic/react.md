@@ -250,6 +250,8 @@
 **Tags:** #react #portals #dom
 **Frequency:** ⭐⭐⭐⭐
 
+**💡 Interview Tip:** Practical DOM pattern. "Used portals for modal system - rendered at body level but maintained React tree for events and context." Fix common issue: "Portals break out of overflow:hidden - intentional for modals/tooltips."
+
 ---
 
 ## Card 20: Concurrent Features
@@ -260,6 +262,8 @@
 **Difficulty:** 🔴 Hard
 **Tags:** #react #concurrent #react18
 **Frequency:** ⭐⭐⭐⭐
+
+**💡 Interview Tip:** React 18 differentiator. "Used startTransition for search - typing instant, filter results non-urgent. Reduced input lag from 200ms to <16ms." Follow-up: "When NOT to use?" Don't wrap urgent updates like controlled inputs.
 
 ---
 
@@ -272,6 +276,8 @@
 **Tags:** #react #hooks #layouteffect
 **Frequency:** ⭐⭐⭐
 
+**💡 Interview Tip:** Timing question. "Used useLayoutEffect for tooltip positioning - calculate before paint, prevent jump. useEffect would flicker." Warning: "Blocks visual updates - use sparingly." Red flag: Using for data fetching.
+
 ---
 
 ## Card 22: Ref Forwarding
@@ -282,6 +288,8 @@
 **Difficulty:** 🟡 Medium
 **Tags:** #react #refs #forwarding
 **Frequency:** ⭐⭐⭐
+
+**💡 Interview Tip:** Library pattern. "Built input library - forwardRef lets consumers call .focus(). Without it, ref points to wrapper not input." Mistake: Forgetting displayName - DevTools shows 'ForwardRef' instead of 'CustomInput'.
 
 ---
 
@@ -294,6 +302,8 @@
 **Tags:** #react #hooks #useReducer
 **Frequency:** ⭐⭐⭐⭐
 
+**💡 Interview Tip:** State complexity decision. "Form with 10 fields, validation, touched state - useReducer centralized logic. Single dispatch vs multiple setStates." When NOT: Simple toggle - useState clearer than reducer boilerplate.
+
 ---
 
 ## Card 24: Batching Updates
@@ -304,6 +314,8 @@
 **Difficulty:** 🟡 Medium
 **Tags:** #react #batching #performance
 **Frequency:** ⭐⭐⭐⭐
+
+**💡 Interview Tip:** React 18 performance win. "Before 18: setTimeout with 3 setState = 3 renders. React 18 batches = 1 render. 60% fewer renders in validation." Rare: "flushSync for immediate DOM measurement."
 
 ---
 
@@ -316,6 +328,8 @@
 **Tags:** #react #code-splitting #performance
 **Frequency:** ⭐⭐⭐⭐⭐
 
+**💡 Interview Tip:** Bundle optimization. "Route-based splitting first - admin routes lazy loaded, reduced initial by 40%." Advanced: "Webpack magic comments for chunk naming: import(/* webpackChunkName: 'admin' */ './Admin')." Error handling: Suspense fallback.
+
 ---
 
 ## Card 26: useImperativeHandle
@@ -326,6 +340,8 @@
 **Difficulty:** 🔴 Hard
 **Tags:** #react #hooks #refs
 **Frequency:** ⭐⭐
+
+**💡 Interview Tip:** Advanced ref control. "Video player - useImperativeHandle exposes play()/pause(), not raw <video>. Maintains encapsulation." Pattern: useImperativeHandle(ref, () => ({ focus: () => inputRef.current.focus() })). Rare but powerful for libraries.
 
 ---
 
@@ -338,6 +354,8 @@
 **Tags:** #react #events #cross-browser
 **Frequency:** ⭐⭐⭐⭐
 
+**💡 Interview Tip:** Cross-browser consistency. "Synthetic events normalize across browsers - e.preventDefault() works same everywhere." Gotcha: "Events are pooled - can't access async. Use e.persist() if needed." Modern: React 17+ no pooling.
+
 ---
 
 ## Card 28: useCallback Gotcha
@@ -348,6 +366,8 @@
 **Difficulty:** 🔴 Hard
 **Tags:** #react #optimization #hooks
 **Frequency:** ⭐⭐⭐⭐
+
+**💡 Interview Tip:** Performance trap awareness. "Only useful with React.memo children or hook dependencies. Otherwise overhead > benefit." Measured: "Removed 50 unnecessary useCallbacks, improved render by 15ms." Profile first!
 
 ---
 
@@ -360,6 +380,8 @@
 **Tags:** #react #fragments #jsx
 **Frequency:** ⭐⭐⭐⭐
 
+**💡 Interview Tip:** Best practice. "Avoid div soup - fragments prevent CSS issues." Real bug: "Flexbox broken by wrapper div - fragment fixed." Shorthand: <> vs <Fragment key={}> for lists.
+
 ---
 
 ## Card 30: Default Props
@@ -370,6 +392,8 @@
 **Difficulty:** 🟢 Easy
 **Tags:** #react #props #defaults
 **Frequency:** ⭐⭐⭐
+
+**💡 Interview Tip:** Modern pattern. "Prefer default parameters: function MyComponent({count = 0}) over Component.defaultProps." TypeScript: Default params type-checked, defaultProps not. Shows modern React knowledge.
 
 ---
 
@@ -382,6 +406,8 @@
 **Tags:** #react #patterns #composition
 **Frequency:** ⭐⭐⭐
 
+**💡 Interview Tip:** Advanced composition. "Built Tabs component - <Tabs><Tab/><TabPanel/></Tabs>. Shared state via Context." Used by: Radix UI, Reach UI. Flexible API, better DX than props configuration.
+
 ---
 
 ## Card 32: State Colocation
@@ -392,6 +418,8 @@
 **Difficulty:** 🟡 Medium
 **Tags:** #react #state #performance
 **Frequency:** ⭐⭐⭐⭐
+
+**💡 Interview Tip:** Performance principle. "Kept modal state IN modal component, not App root. Modal unmounts = state gone, no unnecessary re-renders." Rule: "Start local, lift only when shared." Kent C. Dodds: "Colocation is King."
 
 ---
 
@@ -404,6 +432,8 @@
 **Tags:** #react #props #patterns
 **Frequency:** ⭐⭐⭐⭐⭐
 
+**💡 Interview Tip:** Refactoring decision. "5-level prop drilling for theme - Context eliminated 3 intermediate passes." Strategy: "Try composition first (cheapest), then Context, then Zustand for complex state." Shows solution spectrum.
+
 ---
 
 ## Card 34: useMemo Overhead
@@ -414,6 +444,8 @@
 **Difficulty:** 🟡 Medium
 **Tags:** #react #optimization #useMemo
 **Frequency:** ⭐⭐⭐⭐
+
+**💡 Interview Tip:** Premature optimization. "Measured: memoizing string uppercase = slower than recalculating. useMemo overhead > benefit." Use when: Large arrays filtering, expensive calculations, referential equality for React.memo. Profile first!
 
 ---
 
@@ -426,6 +458,8 @@
 **Tags:** #react #hooks #debugging
 **Frequency:** ⭐⭐
 
+**💡 Interview Tip:** DevTools helper. "Custom useUser hook - useDebugValue(user.name) shows username in DevTools instead of object." Only for library authors. Optional formatter for expensive display logic.
+
 ---
 
 ## Card 36: useId Hook
@@ -436,6 +470,8 @@
 **Difficulty:** 🟡 Medium
 **Tags:** #react #hooks #react18 #accessibility
 **Frequency:** ⭐⭐⭐
+
+**💡 Interview Tip:** SSR solution. "Before useId: Math.random() IDs caused hydration errors. useId generates same ID server/client." Use: aria-describedby, htmlFor. Red flag: Using for list keys - breaks reconciliation.
 
 ---
 
@@ -448,6 +484,8 @@
 **Tags:** #react #hooks #react18 #external-stores
 **Frequency:** ⭐⭐
 
+**💡 Interview Tip:** Library author hook. "Libraries use for external stores - Redux, Zustand migrated for concurrent safety." Regular apps rarely use directly. Prevents tearing during concurrent rendering.
+
 ---
 
 ## Card 38: useTransition
@@ -458,6 +496,8 @@
 **Difficulty:** 🔴 Hard
 **Tags:** #react #hooks #react18 #concurrent
 **Frequency:** ⭐⭐⭐⭐
+
+**💡 Interview Tip:** Concurrent rendering. "Search filter - useTransition kept input responsive, marked filter non-urgent. isPending shows loading spinner." Use: Tab switching, filtering, sorting. Not for: Controlled inputs.
 
 ---
 
@@ -470,6 +510,8 @@
 **Tags:** #react #hooks #react18 #concurrent
 **Frequency:** ⭐⭐⭐
 
+**💡 Interview Tip:** Debounce alternative. "Heavy visualization from slider - useDeferredValue lets slider stay smooth while viz lags." React-controlled unlike manual debounce. Works with Suspense for fallback UI.
+
 ---
 
 ## Card 40: Suspense for Data
@@ -480,6 +522,8 @@
 **Difficulty:** 🔴 Hard
 **Tags:** #react #suspense #data-fetching
 **Frequency:** ⭐⭐⭐⭐
+
+**💡 Interview Tip:** Next-gen data fetching. "Next.js 13+ App Router - components suspend during fetch, Suspense shows skeleton." Caveat: "Needs Suspense-enabled libraries (Next.js, Relay, SWR 2.0+). Regular fetch() needs wrapper."
 
 ---
 
@@ -492,6 +536,8 @@
 **Tags:** #react #server-components #rsc
 **Frequency:** ⭐⭐⭐⭐
 
+**💡 Interview Tip:** Hottest 2024-2025 topic. "Next.js 14 App Router - server components reduced bundle 60%. Fetch data directly, no API route." Key: "Default in Next.js 13+. Add 'use client' only for interactivity."
+
 ---
 
 ## Card 42: RSC vs SSR
@@ -502,6 +548,8 @@
 **Difficulty:** 🔴 Hard
 **Tags:** #react #server-components #ssr
 **Frequency:** ⭐⭐⭐
+
+**💡 Interview Tip:** Architecture clarity. "SSR = HTML generation every request. RSC = cached component tree, streamed, selective hydration." Combined: "Server Components for data, SSR for HTML, Client for interactivity."
 
 ---
 
@@ -514,6 +562,8 @@
 **Tags:** #react #server-components #patterns
 **Frequency:** ⭐⭐⭐⭐⭐
 
+**💡 Interview Tip:** Decision framework. "Server: data fetching, sensitive info, large libs. Client: hooks, events, browser APIs." Next.js 13+: "Default server. Add 'use client' directive only when need state/effects."
+
 ---
 
 ## Card 44: Hydration Mismatch
@@ -525,6 +575,8 @@
 **Tags:** #react #ssr #hydration
 **Frequency:** ⭐⭐⭐⭐
 
+**💡 Interview Tip:** Common SSR bug. "Date.now() in render caused mismatch - server time !== client time." Fix: "useEffect for client-only, suppressHydrationWarning for intentional mismatches like timestamps."
+
 ---
 
 ## Card 45: forwardRef Pattern
@@ -535,6 +587,8 @@
 **Difficulty:** 🟡 Medium
 **Tags:** #react #refs #patterns
 **Frequency:** ⭐⭐⭐
+
+**💡 Interview Tip:** Ref passing pattern. "Library input component - forwardRef lets parent call .focus()." TypeScript: ForwardRefRenderFunction<HTMLInputElement, Props>. displayName for DevTools: MyInput.displayName = 'MyInput'.
 
 ---
 
