@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import { copyFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'fs'
 
-// Plugin to copy markdown folders to dist
 function copyMarkdownPlugin() {
   return {
     name: 'copy-markdown',
