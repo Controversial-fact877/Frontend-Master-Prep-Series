@@ -1,41 +1,49 @@
 import { Code, ExternalLink } from 'lucide-react';
 
+const GITHUB_BASE = 'https://github.com/maurya-sachin/Frontend-Master-Prep-Series/tree/main/18-coding-challenges';
+
 export default function ChallengesPage() {
   const categories = [
     {
       name: 'JavaScript Fundamentals',
       icon: '📜',
       count: 30,
+      folder: '01-javascript-fundamentals',
       description: 'Core JS problems covering closures, promises, and prototypes',
+    },
+    {
+      name: 'DOM Manipulation',
+      icon: '🌐',
+      count: 12,
+      folder: '02-dom-manipulation',
+      description: 'DOM traversal, events, and interactive UI challenges',
     },
     {
       name: 'React Problems',
       icon: '⚛️',
-      count: 25,
+      count: 11,
+      folder: '03-react-problems',
       description: 'Custom hooks, state management, and component patterns',
     },
     {
       name: 'Algorithms',
       icon: '🧮',
-      count: 30,
+      count: 1,
+      folder: '04-algorithms',
       description: 'Data structures, sorting, searching, and optimization',
     },
     {
       name: 'UI Components',
       icon: '🎨',
-      count: 25,
+      count: 2,
+      folder: '05-ui-components',
       description: 'Build autocomplete, modals, carousels, and more',
-    },
-    {
-      name: 'System Implementations',
-      icon: '🏗️',
-      count: 20,
-      description: 'Design and implement complex frontend systems',
     },
     {
       name: 'Performance',
       icon: '⚡',
       count: 5,
+      folder: '06-performance',
       description: 'Lazy loading, memoization, web workers, and optimization',
     },
   ];
@@ -73,10 +81,15 @@ export default function ChallengesPage() {
                   </span>
                 </div>
                 <p className="text-sm text-slate-400 mb-4">{category.description}</p>
-                <button className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1 group-hover:gap-2 transition-all">
+                <a
+                  href={`${GITHUB_BASE}/${category.folder}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1 group-hover:gap-2 transition-all"
+                >
                   Browse Problems
                   <ExternalLink size={14} />
-                </button>
+                </a>
               </div>
             </div>
           </div>
