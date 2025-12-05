@@ -96,7 +96,7 @@ function AppLayout() {
           </button>
 
           <a
-            href="https://github.com/your-username/frontend-master-prep"
+            href="https://github.com/maurya-sachin/Frontend-Master-Prep-Series"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800/50 transition-all duration-200"
@@ -126,10 +126,10 @@ function AppLayout() {
 
           <div className="flex items-center gap-2 text-sm text-slate-400">
             <span className="px-3 py-1 bg-primary-500/10 border border-primary-500/30 rounded-full text-primary-400">
-              420+ Q&A
+              374+ Q&A
             </span>
             <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-full text-green-400">
-              526 Flashcards
+              514+ Flashcards
             </span>
           </div>
         </header>
